@@ -114,7 +114,11 @@ int main(int argc, char *argv[])
         printf("argv[%d] = %s\n", i, argv[i]);
     }
 
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    int sdl_init = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    if (sdl_init < 0) {
+        printf("Failed to initialize SDL: %s\n", SDL_GetError());
+        return -1;
+    }
 
     SDL_Window *window = SDL_CreateWindow(
         "15days",
@@ -124,6 +128,10 @@ int main(int argc, char *argv[])
         900,
         SDL_WINDOW_OPENGL
     );
+    if (!window) {
+        printf("Failed to create window: %s\n", SDL_GetError());
+        return -1;
+    }
 
 #if 0
     int audioDrivers = SDL_GetNumAudioDrivers();
@@ -181,6 +189,10 @@ int main(int argc, char *argv[])
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!renderer) {
+        printf("Failed to create renderer: %s\n", SDL_GetError());
+        return -1;
+    }
 
     printf("Audio driver: %s\n", SDL_GetCurrentAudioDriver());
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
@@ -191,15 +203,17 @@ int main(int argc, char *argv[])
     Depot depot{};
     depot.inputButtons.push_back({});
     depot.inputKeymap.push_back({});
-    depot.inputKeymap.push_back({});
 
     InputKeymap &keymap = depot.inputKeymap.back();
-    keymap.hotkeys[GameState_Play].emplace_back(SDL_SCANCODE_ESCAPE, 0, 0, HotkeyTriggerFlag_Trigger, Command_QuitRequested);
-    keymap.hotkeys[GameState_Play].emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, HotkeyTriggerFlag_Active, Command_Primary);
+    keymap.hotkeys[GameState_Play].emplace_back(
+        SDL_SCANCODE_ESCAPE, 0, 0, HotkeyTriggerFlag_Trigger, Command_QuitRequested);
+    keymap.hotkeys[GameState_Play].emplace_back(
+        FDOV_SCANCODE_MOUSE_LEFT, 0, 0, HotkeyTriggerFlag_Active, Command_Primary);
 
-    double now = 0;
-    bool quit = false;
+    double now{};
     SDL_Event evt{};
+
+    bool quit = false;
     while (!quit) {
         now = clock_now();
 
@@ -215,10 +229,7 @@ int main(int argc, char *argv[])
                     g_inputSystem.Enqueue(FDOV_SCANCODE_QUIT, true);
                     break;
                 } case SDL_KEYDOWN: {
-                    // TODO: We might want to track intra-frame DOWN/UP or
-                    // UP/DOWN events for anything bound to Triggered/Released
                     g_inputSystem.Enqueue(evt.key.keysym.scancode, true);
-                    //g_inputSystem.
                     break;
                 } case SDL_KEYUP: {
                     g_inputSystem.Enqueue(evt.key.keysym.scancode, false);
@@ -262,22 +273,6 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
-        //// TODO: Process keymap hotkeys here (only for active mode?)
-        //// TODO: Hotkey InputCommand_QuitRequested
-        //if (inputButtons.Triggered(SDL_SCANCODE_ESCAPE)) {
-        //    inputCommands.Trigger(InputCommand_QuitRequested);
-        //}
-        //if (inputButtons.Active(FDOV_SCANCODE_MOUSE_LEFT)) {
-        //    inputCommands.Trigger(InputCommand_Primary);
-        //}
-
-        //// This will update commands generated both manually and by hotkeys
-        //inputCommands.Update(now);
-
-        //if (inputCommands.Triggered(InputCommand_QuitRequested)) {
-        //    quit = true;
-        //}
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
