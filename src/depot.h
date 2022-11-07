@@ -20,8 +20,12 @@ struct Vec3 {
     float y{};
     float z{};
 
-    bool IsZero() { return x == 0 && y == 0 && z == 0; }
-    bool IsTiny(float epsilon = 0.0001f) {
+    inline bool IsZero(void)
+    {
+        return x == 0 && y == 0 && z == 0;
+    }
+    inline bool IsTiny(float epsilon = 0.0001f)
+    {
         return fabsf(x) <= epsilon
             && fabsf(y) <= epsilon
             && fabsf(z) <= epsilon;
@@ -37,8 +41,8 @@ enum FacetType {
     Facet_Count,
 };
 struct Facet {
-    UID uid{};
-    FacetType type{};
+    UID       uid  {};
+    FacetType type {};
 };
 
 // TODO: If these don't share sensible names across different entities, we
@@ -48,25 +52,27 @@ enum AttachPoint {
     AttachPoint_Count
 };
 struct Attach {
-    Facet facet{};
-    Vec2 points[AttachPoint_Count]{};
+    Facet facet  {};
+    Vec2  points [AttachPoint_Count]{};
 };
 
 // Input plan:
 // - UI elements process input in topmost-first order
 // - If controller input goes unprocessed, it populates its InputWorld facet
 struct ButtonState {
-    bool   active{};      // input is currently active
-    bool   activePrev{};  // input was active last frame
-    double changedAt{};   // time of last state change in milliseconds
-    bool   handled{};     // true if already handled by something this frame
+    bool   active     {};      // input is currently active
+    bool   activePrev {};  // input was active last frame
+    double changedAt  {};   // time of last state change in milliseconds
+    bool   handled    {};     // true if already handled by something this frame
 
-    void BeginFrame() {
+    inline void BeginFrame(void)
+    {
         activePrev = active;
         handled = false;
     }
 
-    void Set(bool activeNow, double now) {
+    inline void Set(bool activeNow, double now)
+    {
         if (activeNow != active) {
             activePrev = active;
             active = activeNow;
@@ -75,7 +81,7 @@ struct ButtonState {
         }
     }
 
-    inline bool Triggered()
+    inline bool Triggered(void)
     {
         return active && Changed();
     }
@@ -83,13 +89,13 @@ struct ButtonState {
     {
         return active && (!handled || includeHandled);
     }
-    inline bool Released()
+    inline bool Released(void)
     {
         return !active && Changed();
     }
 
 private:
-    inline bool Changed()
+    inline bool Changed(void)
     {
         return active != activePrev;
     }
@@ -110,18 +116,17 @@ enum {
     InputButton_Count
 };
 struct InputButtons {
-    Facet facet{};
-    ButtonState buttons[InputButton_Count]{};
+    Facet       facet   {};
+    ButtonState buttons [InputButton_Count]{};
 };
 
 // Location of mouse cursor in screen coords (and world coords if relevant)
 struct InputCursor {
-    Facet facet{};
-    Vec2 screen{};       // position of cursor in screen coordinates
-
+    Facet facet       {};
+    Vec2  screen      {};  // position of cursor in screen coordinates
     // TODO: CameraSystem should probably populate this?
-    bool worldActive{};  // if false, world position is undefined
-    Vec2 world{};        // position of cursor in world coordinates
+    bool  worldActive {};  // if false, world position is undefined
+    Vec2  world       {};  // position of cursor in world coordinates
 };
 
 enum GameState {
@@ -135,6 +140,7 @@ enum GameState {
     GameState_UITextInputChat,
     GameState_Count
 };
+
 enum CommandType {
     Command_QuitRequested,
     Command_MoveUp,
@@ -145,18 +151,20 @@ enum CommandType {
     Command_Secondary,
     Command_Count
 };
+
 enum HotkeyTriggerFlags {
     HotkeyTriggerFlag_Trigger = 1 << 0,  // trigger when all keys first pressed
     HotkeyTriggerFlag_Active  = 1 << 1,  // trigget when all keys held down
     HotkeyTriggerFlag_Release = 1 << 2,  // trigger when all keys released after being active
 };
-struct InputHotkey {
-    int                keys[3]{};  // key scancodes that make up the hotkey (0 if unused)
-    HotkeyTriggerFlags flags{};    // when to treat the hotkey as active
-    CommandType        command{};  // the command that this hotkey triggers
-    ButtonState        state{};    // tracks hotkey state as if it were a button
 
-    InputHotkey(int key0, int key1, int key2, HotkeyTriggerFlags flags, CommandType command) {
+struct InputHotkey {
+    int                keys    [3]{};  // key scancodes that make up the hotkey (0 if unused)
+    HotkeyTriggerFlags flags   {};     // when to treat the hotkey as active
+    CommandType        command {};     // the command that this hotkey triggers
+    ButtonState        state   {};     // tracks hotkey state as if it were a button
+
+    inline InputHotkey(int key0, int key1, int key2, HotkeyTriggerFlags flags, CommandType command) {
         this->keys[0] = key0;
         this->keys[1] = key1;
         this->keys[2] = key2;
@@ -165,33 +173,39 @@ struct InputHotkey {
     }
 };
 struct InputKeymap {
-    Facet facet{};
-    std::vector<InputHotkey> hotkeys[GameState_Count]{};
+    Facet                    facet   {};
+    std::vector<InputHotkey> hotkeys [GameState_Count]{};
 };
 
 struct PhysicsBody {
-    Facet facet{};
-    float friction{};
-    float gravity{};
+    Facet facet    {};
+    float friction {};
+    float gravity  {};
 };
 
 struct Position {
-    Facet facet{};
-    Vec3 position{};
+    Facet facet    {};
+    Vec3  position {};
 
-    bool OnGround() { return position.z == 0; }
+    inline bool OnGround(void)
+    {
+        return position.z == 0;
+    }
 };
 
 struct Sprite {
-    Facet facet{};
-    float scale{};
+    Facet facet {};
+    float scale {};
 };
 
 struct Velocity {
-    Facet facet{};
-    Vec3 velocity{};
+    Facet facet    {};
+    Vec3  velocity {};
 
-    bool Moving() { return !velocity.IsZero(); }
+    inline bool Moving(void)
+    {
+        return !velocity.IsZero();
+    }
 };
 
 //-----------------------------------------------------------------------------

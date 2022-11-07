@@ -11,7 +11,7 @@ project(15days VERSION 0.0.1)
 add_executable(${PROJECT_NAME}
     #WIN32  # equivalent to /SUBSYSTEM:WINDOWS (will hide console)
     src/main.cpp
- "src/depot.h")
+)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"

@@ -1,4 +1,5 @@
 #include "depot.h"
+#include "input_system.h"
 #include "SDL/SDL.h"
 #include <cassert>
 #include <cstdio>
@@ -9,104 +10,6 @@ double clock_now(void) {
     double now = (double)counter / freq;
     return now;
 }
-
-struct InputEvent {
-    int scancode{};
-    bool down{};    // true for KEYDOWN, false for KEYUP
-};
-struct InputSystem {
-private:
-    std::vector<InputEvent> inputQueue{};
-
-public:
-    std::vector<CommandType> commandQueue{};
-
-    void BeginFrame(Depot &depot, GameState gameState)
-    {
-        inputQueue.clear();
-        commandQueue.clear();
-
-        InputButtons &inputButtons = depot.inputButtons.back();
-        for (int i = 0; i < InputButton_Count; i++) {
-            inputButtons.buttons[i].BeginFrame();
-        }
-
-        InputKeymap &inputKeymap = depot.inputKeymap.back();
-        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
-            hotkey.state.BeginFrame();
-        }
-    }
-
-    void Enqueue(int scancode, bool isDown)
-    {
-        inputQueue.push_back({ scancode, isDown });
-    }
-
-    void Update(Depot &depot, double now, GameState gameState)
-    {
-        // TODO: Maybe get gameState from a facet as well?? E.g. InputMode
-        InputButtons &inputButtons = depot.inputButtons.back();
-        InputKeymap &inputKeymap = depot.inputKeymap.back();
-
-        for (InputEvent &e : inputQueue) {
-            // Process a single event
-            inputButtons.buttons[e.scancode].Set(e.down, now);
-
-            // Check if the event triggered any new hotkeys
-            CheckHotkeys(depot, now, gameState);
-        }
-
-        // Trigger commands for repeating hotkeys that are still active but
-        // didn't change state (i.e. handled == false check in Active())
-        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
-            bool active = (hotkey.flags & HotkeyTriggerFlag_Active) && hotkey.state.Active();
-            if (active) {
-                commandQueue.push_back(hotkey.command);
-            }
-        }
-    }
-
-private:
-    void CheckHotkeys(Depot &depot, double now, GameState gameState)
-    {
-        // TODO: Maybe get gameState from a facet as well?? E.g. InputMode
-        InputButtons &inputButtons = depot.inputButtons.back();
-        InputKeymap &inputKeymap = depot.inputKeymap.back();
-
-        // Determine if that event caused any hotkeys to trigger.
-        // If so, queue a command.
-        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
-            int k0 = hotkey.keys[0];
-            int k1 = hotkey.keys[1];
-            int k2 = hotkey.keys[2];
-
-            if (k0) {
-                bool a = inputButtons.buttons[k0].Active();
-                bool b = !k1 || inputButtons.buttons[k1].Active();
-                bool c = !k2 || inputButtons.buttons[k2].Active();
-                bool active = a && b && c;
-
-                hotkey.state.Set(active, now);
-
-                bool triggered = (hotkey.flags & HotkeyTriggerFlag_Trigger) && hotkey.state.Triggered();
-                bool released = (hotkey.flags & HotkeyTriggerFlag_Release) && hotkey.state.Released();
-                if (triggered || released) {
-                    // NOTE: It's fine if these set buttons[0].handled to true
-                    inputButtons.buttons[k0].handled = true;
-                    inputButtons.buttons[k1].handled = true;
-                    inputButtons.buttons[k2].handled = true;
-                    commandQueue.push_back(hotkey.command);
-                    hotkey.state.handled = true;
-                    continue;
-                }
-            } else {
-                // Ignore unbound hotkeys
-                assert(!k1);
-                assert(!k2);
-            }
-        }
-    }
-} g_inputSystem{};
 
 int main(int argc, char *argv[])
 {
@@ -122,10 +25,8 @@ int main(int argc, char *argv[])
 
     SDL_Window *window = SDL_CreateWindow(
         "15days",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        1600,
-        900,
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        1600, 900,
         SDL_WINDOW_OPENGL
     );
     if (!window) {
@@ -220,30 +121,46 @@ int main(int argc, char *argv[])
         // TODO: Update GameState here based on requested GameState last frame
         // The gamestate can't change in the middle of the frame or the
         // InputSystem (and probably lots of other systems) will get confused.
+        GameState gameState = GameState_Play;
 
-        g_inputSystem.BeginFrame(depot, GameState_Play);
+        g_inputSystem.BeginFrame(depot, gameState);
 
+        // Redirect SDL events to their appropriate subsystem
         while (SDL_PollEvent(&evt)) {
             switch (evt.type) {
-                case SDL_QUIT: {
+                case SDL_QUIT:
+                {
                     g_inputSystem.Enqueue(FDOV_SCANCODE_QUIT, true);
                     break;
-                } case SDL_KEYDOWN: {
+                }
+                case SDL_KEYDOWN:
+                {
                     g_inputSystem.Enqueue(evt.key.keysym.scancode, true);
                     break;
-                } case SDL_KEYUP: {
+                }
+                case SDL_KEYUP:
+                {
                     g_inputSystem.Enqueue(evt.key.keysym.scancode, false);
                     break;
-                } case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: {
+                }
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                {
                     int scancode = 0;
-                    switch (evt.button.button) {
+
+                    // Map mouse button to custom scancode
+                    switch (evt.button.button)
+                    {
                         case SDL_BUTTON_LEFT   : scancode = FDOV_SCANCODE_MOUSE_LEFT;   break;
                         case SDL_BUTTON_MIDDLE : scancode = FDOV_SCANCODE_MOUSE_MIDDLE; break;
                         case SDL_BUTTON_RIGHT  : scancode = FDOV_SCANCODE_MOUSE_RIGHT;  break;
                         case SDL_BUTTON_X1     : scancode = FDOV_SCANCODE_MOUSE_X1;     break;
                         case SDL_BUTTON_X2     : scancode = FDOV_SCANCODE_MOUSE_X1;     break;
                     }
-                    if (scancode) {
+
+                    // If we mapped it successfully, queue it
+                    if (scancode)
+                    {
                         if (evt.button.state == SDL_PRESSED) {
                             g_inputSystem.Enqueue(scancode, true);
                         } else if (evt.button.state == SDL_RELEASED) {
@@ -252,28 +169,31 @@ int main(int argc, char *argv[])
                     }
                     break;
                 }
+                default: break;
             }
         }
 
-        g_inputSystem.Update(depot, now, GameState_Play);
+        g_inputSystem.Update(depot, now, gameState);
 
+        // Handle pending commands in the input system's command queue
         SDL_Color drawColor { 15, 50, 70, SDL_ALPHA_OPAQUE };
-        for (CommandType commandType : g_inputSystem.commandQueue) {
-            switch (commandType) {
-                case Command_QuitRequested: {
+        for (const CommandType &command : g_inputSystem.CommandQueue()) {
+            switch (command) {
+                case Command_QuitRequested:
+                {
                     quit = true;
                     break;
                 }
-                case Command_Primary: {
+                case Command_Primary:
+                {
                     drawColor = { 150, 70, 70, SDL_ALPHA_OPAQUE };
                     break;
                 }
-                default: {
-                    break;
-                }
+                default: break;
             }
         }
 
+        // TODO: RenderSystem
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
 
@@ -291,3 +211,5 @@ int main(int argc, char *argv[])
     printf("SDL reported %d unfreed allocations\n", SDL_GetNumAllocations());
     return 0;
 }
+
+#include "input_system.cpp"
