@@ -54,12 +54,28 @@ struct Attach {
 
 struct InputState {
     bool   active;      // input is currently active
-    bool   changed;     // state changed since last frame
+    bool   activePrev;  // input was active last frame
     double changed_at;  // time of last state change in milliseconds
     bool   handled;     // true if already handled by something this frame
 
-    bool Pressed() { return active && changed; }
-    bool Released() { return !active && changed; }
+    void NewFrame(void) {
+        activePrev = active;
+        handled = false;
+    }
+    void Trigger(void) {
+        active = true;
+    }
+    void Release(void) {
+        active = false;
+    }
+    void Update(double now) {
+        if (Changed()) {
+            changed_at = now;
+        }
+    }
+    inline bool Changed() { return active != activePrev; }
+    inline bool Triggered() { return active && Changed(); }
+    inline bool Released() { return !active && Changed(); }
 };
 
 // NOTE(dlb): Bit of a clever trick here to add some custom scancodes that
@@ -76,11 +92,38 @@ enum {
 struct InputButtons {
     Facet facet;
     InputState buttons[InputButton_Count];
+
+    void NewFrame(void) {
+        for (int i = 0; i < InputButton_Count; i++) {
+            buttons[i].NewFrame();
+        }
+    }
+    void Trigger(int scancode) {
+        buttons[scancode].Trigger();
+    }
+    void Release(int scancode) {
+        buttons[scancode].Release();
+    }
+    void Update(double now) {
+        for (int i = 0; i < InputButton_Count; i++) {
+            buttons[i].Update(now);
+        }
+    }
+    bool Triggered(int scancode) {
+        return buttons[scancode].Triggered();
+    }
+    bool Active(int scancode) {
+        return buttons[scancode].active;
+    }
+    bool Released(int scancode) {
+        return buttons[scancode].Released();
+    }
 };
 
 // TODO(dlb): Make a ControllerSystem that processes raw InputButton states
 // using a KeyMap and converts them into commands based on the game state.
 enum InputCommandType {
+    InputCommand_QuitRequested,
     InputCommand_MoveUp,
     InputCommand_MoveLeft,
     InputCommand_MoveDown,
@@ -92,6 +135,33 @@ enum InputCommandType {
 struct InputCommands {
     Facet facet;
     InputState commands[InputCommand_Count];
+
+    void NewFrame(void) {
+        for (int i = 0; i < InputCommand_Count; i++) {
+            commands[i].NewFrame();
+            commands[i].Release();
+        }
+    }
+    void Trigger(InputCommandType command) {
+        commands[command].Trigger();
+    }
+    void Release(InputCommandType command) {
+        commands[command].Release();
+    }
+    void Update(double now) {
+        for (int i = 0; i < InputCommand_Count; i++) {
+            commands[i].Update(now);
+        }
+    }
+    bool Triggered(InputCommandType command) {
+        return commands[command].Triggered();
+    }
+    bool Active(InputCommandType command) {
+        return commands[command].active;
+    }
+    bool Released(InputCommandType command) {
+        return commands[command].Released();
+    }
 };
 
 // Location of mouse cursor in screen coords (and world coords if relevant)

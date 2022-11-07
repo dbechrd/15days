@@ -1,6 +1,14 @@
 #include "depot.h"
 #include "SDL/SDL.h"
+#include <cassert>
 #include <cstdio>
+
+double clock_now(void) {
+    static uint64_t freq = SDL_GetPerformanceFrequency();
+    uint64_t counter = SDL_GetPerformanceCounter();
+    double now = (double)counter / freq;
+    return now;
+}
 
 int main(int argc, char *argv[])
 {
@@ -82,29 +90,78 @@ int main(int argc, char *argv[])
     // Useful to get window width/height before toggling fullscreen
     //SDL_GetCurrentDisplayMode();
 
+    Depot depot{};
+    depot.inputButtons.emplace_back();
+    depot.inputCommands.emplace_back();
+    InputButtons &inputButtons = depot.inputButtons.back();
+    InputCommands &inputCommands = depot.inputCommands.back();
+
+    double now = 0;
     bool quit = false;
     SDL_Event evt{};
     while (!quit) {
+        now = clock_now();
+        inputButtons.NewFrame();
+        inputCommands.NewFrame();
+
         while (SDL_PollEvent(&evt)) {
             switch (evt.type) {
-                case SDL_KEYDOWN: {
-                    switch (evt.key.keysym.scancode) {
-                        case SDL_SCANCODE_ESCAPE: {
-                            quit = true;
-                            break;
-                        }
-                        default: {
-                            break;
+                case SDL_QUIT: {
+                    inputCommands.Trigger(InputCommand_QuitRequested);
+                    break;
+                } case SDL_KEYDOWN: {
+                    inputButtons.Trigger(evt.key.keysym.scancode);
+                    break;
+                } case SDL_KEYUP: {
+                    inputButtons.Release(evt.key.keysym.scancode);
+                    break;
+                } case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: {
+                    int scancode = 0;
+                    switch (evt.button.button) {
+                        case SDL_BUTTON_LEFT   : scancode = FDOV_SCANCODE_MOUSE_LEFT;   break;
+                        case SDL_BUTTON_MIDDLE : scancode = FDOV_SCANCODE_MOUSE_MIDDLE; break;
+                        case SDL_BUTTON_RIGHT  : scancode = FDOV_SCANCODE_MOUSE_RIGHT;  break;
+                        case SDL_BUTTON_X1     : scancode = FDOV_SCANCODE_MOUSE_X1;     break;
+                        case SDL_BUTTON_X2     : scancode = FDOV_SCANCODE_MOUSE_X1;     break;
+                    }
+                    if (scancode) {
+                        if (evt.button.state == SDL_PRESSED) {
+                            inputButtons.Trigger(scancode);
+                        } else if (evt.button.state == SDL_RELEASED) {
+                            inputButtons.Release(scancode);
                         }
                     }
+                    break;
                 }
             }
+        }
+
+        inputButtons.Update(now);
+
+        // TODO: Process keymap hotkeys here (only for active mode?)
+        // TODO: Hotkey InputCommand_QuitRequested
+        if (inputButtons.Triggered(SDL_SCANCODE_ESCAPE)) {
+            inputCommands.Trigger(InputCommand_QuitRequested);
+        }
+        if (inputButtons.Active(FDOV_SCANCODE_MOUSE_LEFT)) {
+            inputCommands.Trigger(InputCommand_Primary);
+        }
+
+        // This will update commands generated both manually and by hotkeys
+        inputCommands.Update(now);
+
+        if (inputCommands.Triggered(InputCommand_QuitRequested)) {
+            quit = true;
         }
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
 
-        SDL_SetRenderDrawColor(renderer, 15, 50, 70, SDL_ALPHA_OPAQUE);
+        if (inputCommands.Active(InputCommand_Primary)) {
+            SDL_SetRenderDrawColor(renderer, 0, 70, 70, SDL_ALPHA_OPAQUE);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 15, 50, 70, SDL_ALPHA_OPAQUE);
+        }
         SDL_RenderFillRect(renderer, 0);
 
         SDL_RenderPresent(renderer);
