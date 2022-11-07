@@ -10,6 +10,104 @@ double clock_now(void) {
     return now;
 }
 
+struct InputEvent {
+    int scancode{};
+    bool down{};    // true for KEYDOWN, false for KEYUP
+};
+struct InputSystem {
+private:
+    std::vector<InputEvent> inputQueue{};
+
+public:
+    std::vector<CommandType> commandQueue{};
+
+    void BeginFrame(Depot &depot, GameState gameState)
+    {
+        inputQueue.clear();
+        commandQueue.clear();
+
+        InputButtons &inputButtons = depot.inputButtons.back();
+        for (int i = 0; i < InputButton_Count; i++) {
+            inputButtons.buttons[i].BeginFrame();
+        }
+
+        InputKeymap &inputKeymap = depot.inputKeymap.back();
+        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
+            hotkey.state.BeginFrame();
+        }
+    }
+
+    void Enqueue(int scancode, bool isDown)
+    {
+        inputQueue.push_back({ scancode, isDown });
+    }
+
+    void Update(Depot &depot, double now, GameState gameState)
+    {
+        // TODO: Maybe get gameState from a facet as well?? E.g. InputMode
+        InputButtons &inputButtons = depot.inputButtons.back();
+        InputKeymap &inputKeymap = depot.inputKeymap.back();
+
+        for (InputEvent &e : inputQueue) {
+            // Process a single event
+            inputButtons.buttons[e.scancode].Set(e.down, now);
+
+            // Check if the event triggered any new hotkeys
+            CheckHotkeys(depot, now, gameState);
+        }
+
+        // Trigger commands for repeating hotkeys that are still active but
+        // didn't change state (i.e. handled == false check in Active())
+        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
+            bool active = (hotkey.flags & HotkeyTriggerFlag_Active) && hotkey.state.Active();
+            if (active) {
+                commandQueue.push_back(hotkey.command);
+            }
+        }
+    }
+
+private:
+    void CheckHotkeys(Depot &depot, double now, GameState gameState)
+    {
+        // TODO: Maybe get gameState from a facet as well?? E.g. InputMode
+        InputButtons &inputButtons = depot.inputButtons.back();
+        InputKeymap &inputKeymap = depot.inputKeymap.back();
+
+        // Determine if that event caused any hotkeys to trigger.
+        // If so, queue a command.
+        for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
+            int k0 = hotkey.keys[0];
+            int k1 = hotkey.keys[1];
+            int k2 = hotkey.keys[2];
+
+            if (k0) {
+                bool a = inputButtons.buttons[k0].Active();
+                bool b = !k1 || inputButtons.buttons[k1].Active();
+                bool c = !k2 || inputButtons.buttons[k2].Active();
+                bool active = a && b && c;
+
+                hotkey.state.Set(active, now);
+
+                bool triggered = (hotkey.flags & HotkeyTriggerFlag_Trigger) && hotkey.state.Triggered();
+                bool released = (hotkey.flags & HotkeyTriggerFlag_Release) && hotkey.state.Released();
+                if (triggered || released) {
+                    // NOTE: It's fine if these set buttons[0].handled to true
+                    inputButtons.buttons[k0].handled = true;
+                    inputButtons.buttons[k1].handled = true;
+                    inputButtons.buttons[k2].handled = true;
+                    commandQueue.push_back(hotkey.command);
+                    hotkey.state.handled = true;
+                    continue;
+                }
+            } else {
+                // Ignore unbound hotkeys
+                assert(!k1);
+                assert(!k2);
+            }
+        }
+    }
+} g_inputSystem{};
+
 int main(int argc, char *argv[])
 {
     for (int i = 0; i < argc; i++) {
@@ -91,29 +189,39 @@ int main(int argc, char *argv[])
     //SDL_GetCurrentDisplayMode();
 
     Depot depot{};
-    depot.inputButtons.emplace_back();
-    depot.inputCommands.emplace_back();
-    InputButtons &inputButtons = depot.inputButtons.back();
-    InputCommands &inputCommands = depot.inputCommands.back();
+    depot.inputButtons.push_back({});
+    depot.inputKeymap.push_back({});
+    depot.inputKeymap.push_back({});
+
+    InputKeymap &keymap = depot.inputKeymap.back();
+    keymap.hotkeys[GameState_Play].emplace_back(SDL_SCANCODE_ESCAPE, 0, 0, HotkeyTriggerFlag_Trigger, Command_QuitRequested);
+    keymap.hotkeys[GameState_Play].emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, HotkeyTriggerFlag_Active, Command_Primary);
 
     double now = 0;
     bool quit = false;
     SDL_Event evt{};
     while (!quit) {
         now = clock_now();
-        inputButtons.NewFrame();
-        inputCommands.NewFrame();
+
+        // TODO: Update GameState here based on requested GameState last frame
+        // The gamestate can't change in the middle of the frame or the
+        // InputSystem (and probably lots of other systems) will get confused.
+
+        g_inputSystem.BeginFrame(depot, GameState_Play);
 
         while (SDL_PollEvent(&evt)) {
             switch (evt.type) {
                 case SDL_QUIT: {
-                    inputCommands.Trigger(InputCommand_QuitRequested);
+                    g_inputSystem.Enqueue(FDOV_SCANCODE_QUIT, true);
                     break;
                 } case SDL_KEYDOWN: {
-                    inputButtons.Trigger(evt.key.keysym.scancode);
+                    // TODO: We might want to track intra-frame DOWN/UP or
+                    // UP/DOWN events for anything bound to Triggered/Released
+                    g_inputSystem.Enqueue(evt.key.keysym.scancode, true);
+                    //g_inputSystem.
                     break;
                 } case SDL_KEYUP: {
-                    inputButtons.Release(evt.key.keysym.scancode);
+                    g_inputSystem.Enqueue(evt.key.keysym.scancode, false);
                     break;
                 } case SDL_MOUSEBUTTONDOWN: case SDL_MOUSEBUTTONUP: {
                     int scancode = 0;
@@ -126,9 +234,9 @@ int main(int argc, char *argv[])
                     }
                     if (scancode) {
                         if (evt.button.state == SDL_PRESSED) {
-                            inputButtons.Trigger(scancode);
+                            g_inputSystem.Enqueue(scancode, true);
                         } else if (evt.button.state == SDL_RELEASED) {
-                            inputButtons.Release(scancode);
+                            g_inputSystem.Enqueue(scancode, false);
                         }
                     }
                     break;
@@ -136,32 +244,45 @@ int main(int argc, char *argv[])
             }
         }
 
-        inputButtons.Update(now);
+        g_inputSystem.Update(depot, now, GameState_Play);
 
-        // TODO: Process keymap hotkeys here (only for active mode?)
-        // TODO: Hotkey InputCommand_QuitRequested
-        if (inputButtons.Triggered(SDL_SCANCODE_ESCAPE)) {
-            inputCommands.Trigger(InputCommand_QuitRequested);
-        }
-        if (inputButtons.Active(FDOV_SCANCODE_MOUSE_LEFT)) {
-            inputCommands.Trigger(InputCommand_Primary);
+        SDL_Color drawColor { 15, 50, 70, SDL_ALPHA_OPAQUE };
+        for (CommandType commandType : g_inputSystem.commandQueue) {
+            switch (commandType) {
+                case Command_QuitRequested: {
+                    quit = true;
+                    break;
+                }
+                case Command_Primary: {
+                    drawColor = { 150, 70, 70, SDL_ALPHA_OPAQUE };
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
         }
 
-        // This will update commands generated both manually and by hotkeys
-        inputCommands.Update(now);
+        //// TODO: Process keymap hotkeys here (only for active mode?)
+        //// TODO: Hotkey InputCommand_QuitRequested
+        //if (inputButtons.Triggered(SDL_SCANCODE_ESCAPE)) {
+        //    inputCommands.Trigger(InputCommand_QuitRequested);
+        //}
+        //if (inputButtons.Active(FDOV_SCANCODE_MOUSE_LEFT)) {
+        //    inputCommands.Trigger(InputCommand_Primary);
+        //}
 
-        if (inputCommands.Triggered(InputCommand_QuitRequested)) {
-            quit = true;
-        }
+        //// This will update commands generated both manually and by hotkeys
+        //inputCommands.Update(now);
+
+        //if (inputCommands.Triggered(InputCommand_QuitRequested)) {
+        //    quit = true;
+        //}
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
         SDL_RenderClear(renderer);
 
-        if (inputCommands.Active(InputCommand_Primary)) {
-            SDL_SetRenderDrawColor(renderer, 0, 70, 70, SDL_ALPHA_OPAQUE);
-        } else {
-            SDL_SetRenderDrawColor(renderer, 15, 50, 70, SDL_ALPHA_OPAQUE);
-        }
+        SDL_SetRenderDrawColor(renderer, drawColor.r, drawColor.g, drawColor.b, drawColor.a);
         SDL_RenderFillRect(renderer, 0);
 
         SDL_RenderPresent(renderer);
