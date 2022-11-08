@@ -21,7 +21,7 @@ private:
     std::vector<InputEvent>  inputQueue   {};
     std::vector<CommandType> commandQueue {};
 
-    void CheckHotkeys(Depot &depot, double now, GameState gameState);
+    void CheckHotkeys(InputButtons &buttons, InputKeymap &keymap, double now, GameState gameState);
 };
 
 extern InputSystem g_inputSystem;
