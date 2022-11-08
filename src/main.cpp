@@ -1,5 +1,5 @@
-#include "depot.h"
-#include "input_system.h"
+#include "facets/depot.h"
+#include "systems/input_system.h"
 #include "SDL/SDL.h"
 #include <cassert>
 #include <cstdio>
@@ -13,16 +13,20 @@ double clock_now(void) {
 
 int main(int argc, char *argv[])
 {
+    assert(FDOV_FIRST_SCANCODE == SDL_NUM_SCANCODES);
+
     for (int i = 0; i < argc; i++) {
         printf("argv[%d] = %s\n", i, argv[i]);
     }
 
+    // TODO: InitSystem
     int sdl_init = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     if (sdl_init < 0) {
         printf("Failed to initialize SDL: %s\n", SDL_GetError());
         return -1;
     }
 
+    // TODO: WindowSystem
     SDL_Window *window = SDL_CreateWindow(
         "15days",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -88,6 +92,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
+    // TODO: RenderSystem
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
@@ -211,5 +216,3 @@ int main(int argc, char *argv[])
     printf("SDL reported %d unfreed allocations\n", SDL_GetNumAllocations());
     return 0;
 }
-
-#include "input_system.cpp"

@@ -1,16 +1,18 @@
 #include "input_system.h"
 
+InputSystem g_inputSystem{};
+
 void InputSystem::BeginFrame(Depot &depot, GameState gameState)
 {
     inputQueue.clear();
     commandQueue.clear();
 
     InputButtons &inputButtons = depot.inputButtons.back();
+    InputKeymap &inputKeymap = depot.inputKeymap.back();
+
     for (int i = 0; i < InputButton_Count; i++) {
         inputButtons.buttons[i].BeginFrame();
     }
-
-    InputKeymap &inputKeymap = depot.inputKeymap.back();
     for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
         hotkey.state.BeginFrame();
     }

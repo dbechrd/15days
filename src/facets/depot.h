@@ -1,5 +1,5 @@
 #pragma once
-#include "SDL/SDL_scancode.h"
+#define FDOV_FIRST_SCANCODE 512
 #include <vector>
 #include <unordered_map>
 #include <cassert>
@@ -106,13 +106,15 @@ private:
 // buttons the same as any other kind of key.
 enum {
     // Mouse buttons
-    FDOV_SCANCODE_MOUSE_LEFT = SDL_NUM_SCANCODES,
+    FDOV_SCANCODE_MOUSE_LEFT = FDOV_FIRST_SCANCODE,
     FDOV_SCANCODE_MOUSE_RIGHT,
     FDOV_SCANCODE_MOUSE_MIDDLE,
     FDOV_SCANCODE_MOUSE_X1,
     FDOV_SCANCODE_MOUSE_X2,
+
     // Window "X" button (or Alt+F4, etc.)
     FDOV_SCANCODE_QUIT,
+
     InputButton_Count
 };
 struct InputButtons {
@@ -220,14 +222,14 @@ struct Depot {
     std::vector<UID> uidsByType[Facet_Count]{};
 
     // Dense facet data arrays
-    std::vector<Attach>        attach        {};
-    std::vector<InputButtons>  inputButtons  {};  // could be useful for multiplayer (net or local)
-    std::vector<InputCursor>   inputCursor   {};  // could be useful for multiplayer (net or local)
-    std::vector<InputKeymap>   inputKeymap   {};  // not a facet?
-    std::vector<PhysicsBody>   body          {};
-    std::vector<Position>      position      {};
-    std::vector<Sprite>        sprite        {};
-    std::vector<Velocity>      velocity      {};
+    std::vector<Attach>       attach       {};
+    std::vector<InputButtons> inputButtons {};  // could be useful for multiplayer (net or local)
+    std::vector<InputCursor>  inputCursor  {};  // could be useful for multiplayer (net or local)
+    std::vector<InputKeymap>  inputKeymap  {};  // not a facet?
+    std::vector<PhysicsBody>  body         {};
+    std::vector<Position>     position     {};
+    std::vector<Sprite>       sprite       {};
+    std::vector<Velocity>     velocity     {};
 };
 
 //-----------------------------------------------------------------------------

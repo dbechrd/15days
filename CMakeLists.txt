@@ -6,11 +6,13 @@ set(CMAKE_SUPPRESS_REGENERATION true)
 #set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
 
-project(15days VERSION 0.0.1)
+project(15DAYS VERSION 0.0.1)
+
+file (GLOB_RECURSE 15DAYS_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(${PROJECT_NAME}
     #WIN32  # equivalent to /SUBSYSTEM:WINDOWS (will hide console)
-    src/main.cpp
+    ${15DAYS_SOURCES}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
