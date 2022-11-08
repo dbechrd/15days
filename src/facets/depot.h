@@ -60,44 +60,44 @@ struct Attach {
 // - UI elements process input in topmost-first order
 // - If controller input goes unprocessed, it populates its InputWorld facet
 struct ButtonState {
-    bool   active     {};      // input is currently active
-    bool   activePrev {};  // input was active last frame
-    double changedAt  {};   // time of last state change in milliseconds
-    bool   handled    {};     // true if already handled by something this frame
+    bool   held       {};  // input is currently held
+    bool   heldPrev   {};  // input was held last frame
+    double changedAt  {};  // time of last state change in milliseconds
+    bool   handled    {};  // true if already handled by something this frame
 
     inline void BeginFrame(void)
     {
-        activePrev = active;
+        heldPrev = held;
         handled = false;
     }
 
-    inline void Set(bool activeNow, double now)
+    inline void Set(bool isDown, double now)
     {
-        if (activeNow != active) {
-            activePrev = active;
-            active = activeNow;
+        if (isDown != held) {
+            heldPrev = held;
+            held = isDown;
             changedAt = now;
             handled = false;
         }
     }
 
-    inline bool Triggered(void)
+    inline bool Pressed(void)
     {
-        return active && Changed();
+        return held && Changed();
     }
     inline bool Active(bool includeHandled = false)
     {
-        return active && (!handled || includeHandled);
+        return held && (!handled || includeHandled);
     }
     inline bool Released(void)
     {
-        return !active && Changed();
+        return !held && Changed();
     }
 
 private:
     inline bool Changed(void)
     {
-        return active != activePrev;
+        return held != heldPrev;
     }
 };
 
@@ -154,19 +154,19 @@ enum CommandType {
     Command_Count
 };
 
-enum HotkeyTriggerFlags {
-    HotkeyTriggerFlag_Trigger = 1 << 0,  // trigger when all keys first pressed
-    HotkeyTriggerFlag_Active  = 1 << 1,  // trigget when all keys held down
-    HotkeyTriggerFlag_Release = 1 << 2,  // trigger when all keys released after being active
+enum HotkeyFlags {
+    Hotkey_Press   = 1 << 0,  // trigger when all keys first pressed
+    Hotkey_Hold    = 1 << 1,  // trigget when all keys held down
+    Hotkey_Release = 1 << 2,  // trigger when all keys released after being active
 };
 
 struct InputHotkey {
-    int                keys    [3]{};  // key scancodes that make up the hotkey (0 if unused)
-    HotkeyTriggerFlags flags   {};     // when to treat the hotkey as active
-    CommandType        command {};     // the command that this hotkey triggers
-    ButtonState        state   {};     // tracks hotkey state as if it were a button
+    int         keys    [3]{};  // key scancodes that make up the hotkey (0 if unused)
+    HotkeyFlags flags   {};     // when to treat the hotkey as active
+    CommandType command {};     // the command that this hotkey triggers
+    ButtonState state   {};     // tracks hotkey state as if it were a button
 
-    inline InputHotkey(int key0, int key1, int key2, HotkeyTriggerFlags flags, CommandType command) {
+    inline InputHotkey(int key0, int key1, int key2, HotkeyFlags flags, CommandType command) {
         this->keys[0] = key0;
         this->keys[1] = key1;
         this->keys[2] = key2;

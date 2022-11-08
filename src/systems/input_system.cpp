@@ -40,7 +40,7 @@ void InputSystem::Update(Depot &depot, double now, GameState gameState)
     // Trigger commands for repeating hotkeys that are still active but
     // didn't change state (i.e. handled == false check in Active())
     for (InputHotkey &hotkey : inputKeymap.hotkeys[gameState]) {
-        bool active = (hotkey.flags & HotkeyTriggerFlag_Active) && hotkey.state.Active();
+        bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
         if (active) {
             commandQueue.push_back(hotkey.command);
         }
@@ -68,9 +68,9 @@ void InputSystem::CheckHotkeys(Depot &depot, double now, GameState gameState)
 
             hotkey.state.Set(active, now);
 
-            bool triggered = (hotkey.flags & HotkeyTriggerFlag_Trigger) && hotkey.state.Triggered();
-            bool released = (hotkey.flags & HotkeyTriggerFlag_Release) && hotkey.state.Released();
-            if (triggered || released) {
+            bool pressed = (hotkey.flags & Hotkey_Press) && hotkey.state.Pressed();
+            bool released = (hotkey.flags & Hotkey_Release) && hotkey.state.Released();
+            if (pressed || released) {
                 // NOTE: It's fine if these set buttons[0].handled to true
                 inputButtons.buttons[k0].handled = true;
                 inputButtons.buttons[k1].handled = true;

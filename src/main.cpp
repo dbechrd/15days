@@ -112,9 +112,9 @@ int main(int argc, char *argv[])
 
     InputKeymap &keymap = depot.inputKeymap.back();
     keymap.hotkeys[GameState_Play].emplace_back(
-        SDL_SCANCODE_ESCAPE, 0, 0, HotkeyTriggerFlag_Trigger, Command_QuitRequested);
+        SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, Command_QuitRequested);
     keymap.hotkeys[GameState_Play].emplace_back(
-        FDOV_SCANCODE_MOUSE_LEFT, 0, 0, HotkeyTriggerFlag_Active, Command_Primary);
+        FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Hold, Command_Primary);
 
     double now{};
     SDL_Event evt{};
