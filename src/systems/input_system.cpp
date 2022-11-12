@@ -1,45 +1,32 @@
 #include "input_system.h"
+#include <cassert>
 
-InputSystem g_inputSystem{};
-
-void InputSystem::BeginFrame(Depot &depot, GameState gameState)
+void InputSystem::TranslateEvents(
+    double now,
+    const InputQueue &inputQueue,
+    Keymap &keymap,
+    CommandQueue &commandQueue)
 {
-    inputQueue.clear();
-    commandQueue.clear();
-
-    InputButtons &buttons = depot.inputButtons.back();
-    InputKeymap &keymap = depot.inputKeymap.back();
-
-    for (int i = 0; i < InputButton_Count; i++) {
-        buttons.buttons[i].BeginFrame();
+    // Reset state
+    for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
+        buttons[i].BeginFrame();
     }
-    for (InputHotkey &hotkey : keymap.hotkeys[gameState]) {
+    for (KeymapHotkey &hotkey : keymap.hotkeys) {
         hotkey.state.BeginFrame();
     }
-}
 
-void InputSystem::Enqueue(int scancode, bool isDown)
-{
-    inputQueue.push_back({ scancode, isDown });
-}
-
-void InputSystem::Update(Depot &depot, double now, GameState gameState)
-{
-    // TODO: Maybe get gameState from a facet as well?? E.g. InputMode
-    InputButtons &buttons = depot.inputButtons.back();
-    InputKeymap &keymap = depot.inputKeymap.back();
-
-    for (InputEvent &e : inputQueue) {
+    // Process each input event
+    for (const InputEvent &e : inputQueue) {
         // Process a single event
-        buttons.buttons[e.scancode].Set(e.down, now);
+        buttons[e.scancode].Set(e.down, now);
 
         // Check if the event triggered any new hotkeys
-        CheckHotkeys(buttons, keymap, now, gameState);
+        CheckHotkeys(now, buttons, keymap, commandQueue);
     }
 
     // Trigger commands for repeating hotkeys that are still active but
     // didn't change state (i.e. handled == false check in Active())
-    for (InputHotkey &hotkey : keymap.hotkeys[gameState]) {
+    for (KeymapHotkey &hotkey : keymap.hotkeys) {
         bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
         if (active) {
             commandQueue.push_back(hotkey.command);
@@ -47,11 +34,15 @@ void InputSystem::Update(Depot &depot, double now, GameState gameState)
     }
 }
 
-void InputSystem::CheckHotkeys(InputButtons &buttons, InputKeymap &keymap, double now, GameState gameState)
+void InputSystem::CheckHotkeys(
+    double now,
+    ButtonState buttons[FDOV_SCANCODE_COUNT],
+    Keymap &keymap,
+    CommandQueue &commandQueue)
 {
     // Determine if that event caused any hotkeys to trigger.
     // If so, queue a command.
-    for (InputHotkey &hotkey : keymap.hotkeys[gameState]) {
+    for (KeymapHotkey &hotkey : keymap.hotkeys) {
         int k0 = hotkey.keys[0];
         int k1 = hotkey.keys[1];
         int k2 = hotkey.keys[2];
@@ -63,9 +54,9 @@ void InputSystem::CheckHotkeys(InputButtons &buttons, InputKeymap &keymap, doubl
             continue;
         }
 
-        bool a = buttons.buttons[k0].Active();
-        bool b = !k1 || buttons.buttons[k1].Active();
-        bool c = !k2 || buttons.buttons[k2].Active();
+        bool a = buttons[k0].Active();
+        bool b = !k1 || buttons[k1].Active();
+        bool c = !k2 || buttons[k2].Active();
         bool active = a && b && c;
 
         hotkey.state.Set(active, now);
@@ -74,9 +65,9 @@ void InputSystem::CheckHotkeys(InputButtons &buttons, InputKeymap &keymap, doubl
         bool released = (hotkey.flags & Hotkey_Release) && hotkey.state.Released();
         if (pressed || released) {
             // NOTE: It's fine if these set buttons[0].handled to true
-            buttons.buttons[k0].handled = true;
-            buttons.buttons[k1].handled = true;
-            buttons.buttons[k2].handled = true;
+            buttons[k0].handled = true;
+            buttons[k1].handled = true;
+            buttons[k2].handled = true;
             commandQueue.push_back(hotkey.command);
             hotkey.state.handled = true;
             continue;
