@@ -5,7 +5,8 @@
 struct Depot;
 
 struct SpriteSystem {
-    void InitSprite(Sprite &sprite);
+    static void InitSprite(Sprite &sprite);
+
     void Update(double now, Depot &depot);
     void Draw(double now, Depot &depot, DrawList &drawList);
 };

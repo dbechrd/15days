@@ -72,6 +72,11 @@ struct DepotSystem {
         gameState = gameStatePending;
     }
 
+    Depot &ForState(GameState state)
+    {
+        return depots[state];
+    }
+
     Depot &Current(void)
     {
         return depots[gameState];
