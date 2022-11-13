@@ -9,7 +9,7 @@ enum CommandType {
     //Command_MoveDown,
     //Command_MoveRight,
     Command_Primary,
-    //Command_Secondary,
+    Command_Secondary,
     Command_Count
 };
 

@@ -3,5 +3,7 @@
 
 struct Combat : public Facet {
     double attackStartedAt {};  // when current attack started
-    double attackDuration  {};  // length of time current attack will last
+    double attackCooldown  {};  // length of time active attack will last
+    double defendStartedAt {};  // when current block started
+    double defendCooldown  {};  // length of time active block will last
 };

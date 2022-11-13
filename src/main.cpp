@@ -31,7 +31,8 @@ void create_player(Depot &depot)
     UID player = depot.Alloc();
 
     Keymap *keymap = (Keymap *)depot.AddFacet(player, Facet_Keymap);
-    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Hold, Command_Primary);
+    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, Command_Primary);
+    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, Command_Secondary);
 
     Position *position = (Position *)depot.AddFacet(player, Facet_Position);
     position->pos = { 100, 100 };

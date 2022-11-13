@@ -57,6 +57,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
         printf("Failed to create renderer: %s\n", SDL_GetError());
         return FDOV_INIT_FAILED;
     }
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
 

@@ -7,6 +7,7 @@ void SpriteSystem::InitSprite(Sprite &sprite)
     sprite.size = { 200, 300 };
     sprite.color = { 15, 50, 70, 255 };
     sprite.attackColor = { 150, 70, 70, 255 };
+    sprite.defendColor = { 70, 70, 150, 255 };
 }
 
 void SpriteSystem::Update(double now, Depot &depot)
@@ -37,17 +38,30 @@ void SpriteSystem::Draw(double now, Depot &depot, DrawList &drawList)
         drawList.push_back(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);
-        if (combat && combat->attackStartedAt) {
-            assert(combat->attackDuration);
-            float attackAlpha = (now - combat->attackStartedAt) / combat->attackDuration;
-            float attackOverlayHeight = (1.0 - attackAlpha) * sprite.size.y;
-            if (attackOverlayHeight) {
-                DrawCommand drawAttackOverlay{};
-                drawAttackOverlay.color = sprite.attackColor;
-                drawAttackOverlay.rect = drawSprite.rect;
-                drawAttackOverlay.rect.y = position->pos.y + sprite.size.y - attackOverlayHeight;
-                drawAttackOverlay.rect.h = ceilf(attackOverlayHeight);
-                drawList.push_back(drawAttackOverlay);
+        if (combat) {
+            if (combat->attackStartedAt) {
+                assert(combat->attackCooldown);
+                float attackAlpha = (now - combat->attackStartedAt) / combat->attackCooldown;
+                float overlayHeight = (1.0 - attackAlpha) * sprite.size.y;
+
+                DrawCommand attackOverlay{};
+                attackOverlay.color = sprite.attackColor;
+                attackOverlay.rect = drawSprite.rect;
+                attackOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
+                attackOverlay.rect.h = ceilf(overlayHeight);
+                drawList.push_back(attackOverlay);
+            }
+            if (combat->defendStartedAt) {
+                assert(combat->defendCooldown);
+                float defendAlpha = (now - combat->defendStartedAt) / combat->defendCooldown;
+                float overlayHeight = (1.0 - defendAlpha) * sprite.size.y;
+
+                DrawCommand defendOverlay{};
+                defendOverlay.color = sprite.defendColor;
+                defendOverlay.rect = drawSprite.rect;
+                defendOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
+                defendOverlay.rect.h = ceilf(overlayHeight);
+                drawList.push_back(defendOverlay);
             }
         }
     }

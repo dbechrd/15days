@@ -6,5 +6,6 @@ struct Sprite : public Facet {
     Vec2  size        {};
     Color color       {};
     Color attackColor {};
+    Color defendColor {};
     //float scale {};
 };
