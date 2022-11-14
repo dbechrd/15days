@@ -6,6 +6,7 @@
 #include "systems/render_system.h"
 #include "systems/sprite_system.h"
 #include "SDL/SDL.h"
+#include "SDL/SDL_ttf.h"
 #include <cassert>
 #include <cstdio>
 
@@ -42,6 +43,30 @@ void create_player(Depot &depot)
     SpriteSystem::InitSprite(*sprite);
 }
 
+//void *fdov_malloc_func(size_t size)
+//{
+//    void *ptr = malloc(size);
+//    printf("malloc %p (%zu bytes)\n", ptr, size);
+//    return ptr;
+//}
+//void *fdov_calloc_func(size_t nmemb, size_t size)
+//{
+//    void *ptr = calloc(nmemb, size);
+//    printf("calloc %p (%zu bytes)\n", ptr, nmemb * size);
+//    return ptr;
+//}
+//void *fdov_realloc_func(void *mem, size_t size)
+//{
+//    void *ptr = realloc(mem, size);
+//    printf("realloc %p -> %p (%zu bytes)\n", mem, ptr, size);
+//    return ptr;
+//}
+//void fdov_free_func(void *mem)
+//{
+//    free(mem);
+//    printf("free %p\n", mem);
+//}
+
 int main(int argc, char *argv[])
 {
     int err;
@@ -51,9 +76,62 @@ int main(int argc, char *argv[])
         printf("argv[%d] = %s\n", i, argv[i]);
     }
 
+    //SDL_SetMemoryFunctions(
+    //    fdov_malloc_func,
+    //    fdov_calloc_func,
+    //    fdov_realloc_func,
+    //    fdov_free_func
+    //);
+
     RenderSystem renderSystem{};
     err = renderSystem.Init("15days", 1600, 900);
     if (err) return err;
+
+    if (TTF_Init() < 0) {
+        SDL_Log("Couldn't initialize TTF: %s\n", TTF_GetError());
+        return -1;
+    }
+
+    const char *fontFilename = "font/KarminaBold.otf";
+    TTF_Font *font = TTF_OpenFont(fontFilename, 64);
+    if (!font) {
+        SDL_Log("Failed to load font %s: %s\n", fontFilename, SDL_GetError());
+        return -1;
+    }
+
+    // TTF_STYLE_NORMAL        0x00
+    // TTF_STYLE_BOLD          0x01
+    // TTF_STYLE_ITALIC        0x02
+    // TTF_STYLE_UNDERLINE     0x04
+    // TTF_STYLE_STRIKETHROUGH 0x08
+    //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
+
+    Color cBeige  = { 224, 186, 139, 255 };
+    Color cPink   = { 255, 178, 223, 255 };
+    Color cPurple = {  55,  31,  69, 255 };
+    Color cGreen  = { 147, 255, 155, 255 };
+    Color cBlue   = { 130, 232, 255, 255 };
+    Color cYellow = { 255, 232, 150, 255 };
+    Color cOrange = { 255, 124,  30, 255 };
+
+    SDL_Texture *textTex{};
+    SDL_Rect textRect{};
+    {
+        const char *fontStr = "15 Days";
+        SDL_Surface *text = TTF_RenderText_Blended(font, fontStr, *(SDL_Color *)&cPink);
+        textTex = SDL_CreateTextureFromSurface(renderSystem.renderer, text);
+        SDL_FreeSurface(text);
+
+        int windowW = 0, windowH = 0;
+        SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
+
+        textRect = {
+            (windowW - text->w) / 2,
+            (windowH - text->h) / 2,
+            text->w,
+            text->h
+        };
+    }
 
     AudioSystem audioSystem{};
     err = audioSystem.Init();
@@ -114,13 +192,20 @@ int main(int argc, char *argv[])
         spriteSystem.Draw(now, depot, drawList);
 
         // Render draw list(s)
-        renderSystem.Clear();
+        renderSystem.Clear(cPurple);
         renderSystem.Render(drawList);
+
+        SDL_RenderCopy(renderSystem.renderer, textTex, NULL, &textRect);
+
         renderSystem.Flip();
 
         // If you disable v-sync, you'll want this to prevent global warming
         //SDL_Delay(1);
     }
+
+    SDL_DestroyTexture(textTex);
+    TTF_CloseFont(font);
+    TTF_Quit();
 
     // Clean up (other systems might want to do this in the future)
     renderSystem.Destroy();
@@ -128,5 +213,6 @@ int main(int argc, char *argv[])
     // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to
     // try to find it yet.
     printf("SDL reported %d unfreed allocations\n", SDL_GetNumAllocations());
+    //getchar();
     return 0;
 }

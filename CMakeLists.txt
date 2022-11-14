@@ -30,4 +30,5 @@ target_link_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME}
     SDL2main.lib
     SDL2.lib
+    SDL2_ttf.lib
 )
