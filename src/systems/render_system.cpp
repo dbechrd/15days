@@ -84,7 +84,7 @@ void RenderSystem::ProcessCommands(double now, const CommandQueue &commandQueue)
     }
 }
 
-void RenderSystem::Clear(Color color)
+void RenderSystem::Clear(vec4 color)
 {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_RenderClear(renderer);

@@ -1,37 +1,43 @@
-#include "combat_system.h"
+#include "movement_system.h"
+#include "../common/force.h"
 #include "../facets/depot.h"
 
-void CombatSystem::ProcessCommands(double now, Depot &depot, UID uid, const CommandQueue &commandQueue)
+void MovementSystem::ProcessCommands(double now, Depot &depot, UID uid,
+    const CommandQueue &commandQueue, ForceQueue &forceQueue)
 {
-    Combat *combat = (Combat *)depot.GetFacet(uid, Facet_Combat);
-    if (!combat) return;
+    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
+    if (!position) return;
 
-    bool canAttack = !(combat->attackStartedAt || combat->defendStartedAt);
-    bool canDefend = !(combat->attackStartedAt);
+    // TODO: Generate an ApplyForce message for the physics engine
+    Msg_ApplyForce msg{};
 
     for (const CommandType &command : commandQueue) {
         switch (command) {
-            case Command_Primary:
+            case Command_MoveUp:
             {
-                if (canAttack) {
-                    combat->attackStartedAt = now;
-                    combat->attackCooldown = 0.1;
-                }
+                msg.force.y -= 1.0f;
                 break;
             }
-            case Command_Secondary: {
-                if (canDefend) {
-                    combat->defendStartedAt = now;
-                    combat->defendCooldown = 0.6;
-                }
+            case Command_MoveLeft: {
+                msg.force.x -= 1.0f;
+                break;
+            }
+            case Command_MoveDown: {
+                msg.force.y += 1.0f;
+                break;
+            }
+            case Command_MoveRight: {
+                msg.force.x += 1.0f;
                 break;
             }
             default: break;
         }
     }
+
+    forceQueue.push_back(msg);
 }
 
-void CombatSystem::Update(double now, Depot &depot)
+void MovementSystem::Update(double now, Depot &depot)
 {
     for (Combat &combat : depot.combat) {
         if (combat.attackStartedAt) {

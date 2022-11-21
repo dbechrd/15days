@@ -10,7 +10,7 @@ struct RenderSystem {
     FDOVResult Init(const char *title, int width, int height);
     bool Running(void);
     void ProcessCommands(double now, const CommandQueue &commandQueue);
-    void Clear(Color color);
+    void Clear(vec4 color);
     void Render(const DrawList &drawList);
     void Flip(void);
     void Destroy(void);

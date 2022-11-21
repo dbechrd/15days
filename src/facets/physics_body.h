@@ -5,10 +5,10 @@
 struct PhysicsBody : public Facet {
     float friction {};
     float gravity  {};
-    Vec3  velocity {};
+    vec3  velocity {};
 
     inline bool Moving(void)
     {
-        return !velocity.IsZero();
+        return !v3_iszero(&velocity);
     }
 };

@@ -3,9 +3,9 @@
 #include "facet.h"
 
 struct Sprite : public Facet {
-    Vec2  size        {};
-    Color color       {};
-    Color attackColor {};
-    Color defendColor {};
+    vec2 size        {};
+    vec4 color       {};
+    vec4 attackColor {};
+    vec4 defendColor {};
     //float scale {};
 };

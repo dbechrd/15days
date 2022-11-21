@@ -3,8 +3,8 @@
 #include <vector>
 
 struct DrawCommand {
-    Color color {};
-    Rect  rect  {};
+    vec4 color {};
+    rect  rect  {};
 };
 
 typedef std::vector<DrawCommand> DrawList;

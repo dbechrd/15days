@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../common/basic.h"
 #include "../common/button_state.h"
 #include "../common/command.h"
@@ -21,10 +20,10 @@
 
 // Location of mouse cursor in screen coords (and world coords if relevant)
 struct InputCursor : public Facet {
-    Vec2  screen      {};  // position of cursor in screen coordinates
+    vec2  screen      {};  // position of cursor in screen coordinates
     // TODO: CameraSystem should probably populate this?
     bool  worldActive {};  // if false, world position is undefined
-    Vec2  world       {};  // position of cursor in world coordinates
+    vec2  world       {};  // position of cursor in world coordinates
 };
 
 //-----------------------------------------------------------------------------

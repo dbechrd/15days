@@ -3,7 +3,7 @@
 #include "../common/basic.h"
 
 struct Position : public Facet {
-    Vec3 pos{};
+    vec3 pos{};
 
     inline bool OnGround(void)
     {

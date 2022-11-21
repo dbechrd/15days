@@ -10,6 +10,11 @@
 #include <cassert>
 #include <cstdio>
 
+DLB_ASSERT_HANDLER(dlb_assert_callback) {
+    printf("[%s:%u] %s\n", filename, line, expr);
+}
+dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
+
 double clock_now(void)
 {
     static uint64_t freq = SDL_GetPerformanceFrequency();
@@ -106,19 +111,32 @@ int main(int argc, char *argv[])
     // TTF_STYLE_STRIKETHROUGH 0x08
     //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 
-    Color cBeige  = { 224, 186, 139, 255 };
-    Color cPink   = { 255, 178, 223, 255 };
-    Color cPurple = {  55,  31,  69, 255 };
-    Color cGreen  = { 147, 255, 155, 255 };
-    Color cBlue   = { 130, 232, 255, 255 };
-    Color cYellow = { 255, 232, 150, 255 };
-    Color cOrange = { 255, 124,  30, 255 };
+    vec4 cBlack  = {   0,   0,   0, 255 };
+    vec4 cWhite  = { 255, 255, 255, 255 };
+    vec4 cBeige  = { 224, 186, 139, 255 };
+    vec4 cPink   = { 255, 178, 223, 255 };
+    vec4 cPurple = {  55,  31,  69, 255 };
+    vec4 cGreen  = { 147, 255, 155, 255 };
+    vec4 cBlue   = { 130, 232, 255, 255 };
+    vec4 cYellow = { 255, 232, 150, 255 };
+    vec4 cOrange = { 255, 124,  30, 255 };
+
+    vec4 colors[] = {
+        cBlack,
+        cWhite,
+        cBeige ,
+        cPink  ,
+        cGreen ,
+        cBlue  ,
+        cYellow,
+        cOrange,
+    };
 
     SDL_Texture *textTex{};
     SDL_Rect textRect{};
     {
         const char *fontStr = "15 Days";
-        SDL_Surface *text = TTF_RenderText_Blended(font, fontStr, *(SDL_Color *)&cPink);
+        SDL_Surface *text = TTF_RenderText_Blended(font, fontStr, { 255, 255, 255, 255 });
         textTex = SDL_CreateTextureFromSurface(renderSystem.renderer, text);
         SDL_FreeSurface(text);
 
@@ -195,6 +213,14 @@ int main(int argc, char *argv[])
         renderSystem.Clear(cPurple);
         renderSystem.Render(drawList);
 
+        static int colorIdx = 1;
+        //static double colorLastChange = 0;
+        //if (now - colorLastChange > 0.5) {
+        //    colorIdx = (colorIdx + 1) % SDL_arraysize(colors);
+        //    colorLastChange = now;
+        //}
+
+        SDL_SetTextureColorMod(textTex, colors[colorIdx].r, colors[colorIdx].g, colors[colorIdx].b);
         SDL_RenderCopy(renderSystem.renderer, textTex, NULL, &textRect);
 
         renderSystem.Flip();
@@ -216,3 +242,6 @@ int main(int argc, char *argv[])
     //getchar();
     return 0;
 }
+
+#define DLB_MATH_IMPLEMENTATION
+#include "dlb/dlb_math.h"
