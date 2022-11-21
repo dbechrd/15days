@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "custom cmake build task",
+			"command": "cmake --build c:/Users/User/Documents/Development/15days/build --config Debug --target 15DAYS -j 8 --",
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+			},
+			"problemMatcher": [],
+			"detail": "CMake template build task",
+		}
+	]
+}
