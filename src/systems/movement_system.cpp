@@ -17,18 +17,22 @@ void MovementSystem::ProcessCommands(double now, Depot &depot, UID uid,
         switch (command) {
             case Command_MoveUp:
             {
+                msg.uid = uid;
                 msg.force.y -= vel;
                 break;
             }
             case Command_MoveLeft: {
+                msg.uid = uid;
                 msg.force.x -= vel;
                 break;
             }
             case Command_MoveDown: {
+                msg.uid = uid;
                 msg.force.y += vel;
                 break;
             }
             case Command_MoveRight: {
+                msg.uid = uid;
                 msg.force.x += vel;
                 break;
             }
@@ -36,7 +40,9 @@ void MovementSystem::ProcessCommands(double now, Depot &depot, UID uid,
         }
     }
 
-    forceQueue.push_back(msg);
+    if (msg.uid) {
+        forceQueue.push_back(msg);
+    }
 }
 
 void MovementSystem::Update(double now, Depot &depot)

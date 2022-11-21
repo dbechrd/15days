@@ -213,20 +213,28 @@ int main(int argc, char *argv[])
             inputSystem.TranslateEvents(now, inputQueue, keymap, commandQueue);
 
             // Forward commands to any system that might want to react to them
+            movementSystem.ProcessCommands(now, depot, keymap.uid, commandQueue, forceQueue);
             combatSystem.ProcessCommands(now, depot, keymap.uid, commandQueue);
             renderSystem.ProcessCommands(now, commandQueue);
+        }
 
-            movementSystem.ProcessCommands(now, depot, keymap.uid, commandQueue, forceQueue);
-
-            // TODO: Physics engine
-            for (Msg_ApplyForce &msg : forceQueue) {
-                Position *position = (Position *)depot.GetFacet(keymap.uid, Facet_Position);
-                if (position) {
-                    position->pos.x += msg.force.x;
-                    position->pos.y += msg.force.y;
-                }
+        // TODO: Physics engine
+        for (Msg_ApplyForce &msg : forceQueue) {
+            Position *position = (Position *)depot.GetFacet(msg.uid, Facet_Position);
+            if (position) {
+                position->pos.x += msg.force.x;
+                position->pos.y += msg.force.y;
             }
         }
+
+        // TODO: NarratorSystem
+        // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
+        //   - Checks if position.pos + sprite.size outside of screen w/h
+        // - NarratorSystem::Update();
+        //   - Iterate all NarratorTrigger facets and check triggers
+        //   - If any triggers fired, add Msg_NarratorSays to narratorQueue
+        // - NarratorSystem::Draw(narratorQueue, drawList);
+        //   - Generate draw commands from the message queue
 
         // Update systems
         movementSystem.Update(now, depot);

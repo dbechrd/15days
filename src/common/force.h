@@ -3,6 +3,7 @@
 #include <vector>
 
 struct Msg_ApplyForce {
+    UID  uid   {};
     vec2 force {};
 };
 
