@@ -23,8 +23,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     SDL_DISABLE_ANALYZE_MACROS
 )
-if(CMAKE_COMPILER_IS_GNUCC)
-    target_compile_options(${PROJECT_NAME} PRIVATE) #-Wall -Wextra)
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-missing-braces) #-Wall -Wextra)
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/include

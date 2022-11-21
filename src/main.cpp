@@ -3,6 +3,7 @@
 #include "systems/combat_system.h"
 #include "systems/event_system_sdl.h"
 #include "systems/input_system.h"
+#include "systems/movement_system.h"
 #include "systems/render_system.h"
 #include "systems/sprite_system.h"
 #include "SDL/SDL.h"
@@ -39,13 +40,20 @@ void create_player(Depot &depot)
     Keymap *keymap = (Keymap *)depot.AddFacet(player, Facet_Keymap);
     keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, Command_Primary);
     keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, Command_Secondary);
-
-    Position *position = (Position *)depot.AddFacet(player, Facet_Position);
-    position->pos = { 100, 100 };
+    keymap->hotkeys.emplace_back(SDL_SCANCODE_W, 0, 0, Hotkey_Hold, Command_MoveUp);
+    keymap->hotkeys.emplace_back(SDL_SCANCODE_A, 0, 0, Hotkey_Hold, Command_MoveLeft);
+    keymap->hotkeys.emplace_back(SDL_SCANCODE_S, 0, 0, Hotkey_Hold, Command_MoveDown);
+    keymap->hotkeys.emplace_back(SDL_SCANCODE_D, 0, 0, Hotkey_Hold, Command_MoveRight);
 
     depot.AddFacet(player, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(player, Facet_Sprite);
     SpriteSystem::InitSprite(*sprite);
+
+    Position *position = (Position *)depot.AddFacet(player, Facet_Position);
+    position->pos = {
+        SCREEN_W / 2.0f - sprite->size.x / 2.0f,
+        SCREEN_H / 2.0f - sprite->size.y / 2.0f,
+    };
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -89,7 +97,7 @@ int main(int argc, char *argv[])
     //);
 
     RenderSystem renderSystem{};
-    err = renderSystem.Init("15days", 1600, 900);
+    err = renderSystem.Init("15days", SCREEN_W, SCREEN_H);
     if (err) return err;
 
     if (TTF_Init() < 0) {
@@ -145,7 +153,7 @@ int main(int argc, char *argv[])
 
         textRect = {
             (windowW - text->w) / 2,
-            (windowH - text->h) / 2,
+            200, //(windowH - text->h) / 2,
             text->w,
             text->h
         };
@@ -159,6 +167,7 @@ int main(int argc, char *argv[])
     DepotSystem    depotSystem    {};
     EventSystemSDL eventSystemSDL {};
     InputSystem    inputSystem    {};
+    MovementSystem movementSystem {};
     SpriteSystem   spriteSystem   {};
     CombatSystem   combatSystem   {};
 
@@ -177,31 +186,50 @@ int main(int argc, char *argv[])
     // https://github.com/grimfang4/SDL_FontCache
     // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
 
+    InputQueue   inputQueue   {};
+    CommandQueue commandQueue {};
+    ForceQueue   forceQueue   {};
+
     double now{};
     while (renderSystem.Running()) {
         // Time is money
         now = clock_now();
+
+        // TODO: Frame arena
+        inputQueue.clear();
+        commandQueue.clear();
+        forceQueue.clear();
 
         // Update game state
         depotSystem.BeginFrame();
         Depot &depot = depotSystem.Current();
 
         // Collect SDL events into the appropriate queues
-        InputQueue inputQueue{};
         eventSystemSDL.CollectEvents(inputQueue);
 
         // Generate and process game commands
         for (Keymap &keymap : depot.keymap) {
             // Translate events into commands, based on the active keymap(s)
-            CommandQueue commandQueue{};
             inputSystem.TranslateEvents(now, inputQueue, keymap, commandQueue);
 
             // Forward commands to any system that might want to react to them
             combatSystem.ProcessCommands(now, depot, keymap.uid, commandQueue);
             renderSystem.ProcessCommands(now, commandQueue);
+
+            movementSystem.ProcessCommands(now, depot, keymap.uid, commandQueue, forceQueue);
+
+            // TODO: Physics engine
+            for (Msg_ApplyForce &msg : forceQueue) {
+                Position *position = (Position *)depot.GetFacet(keymap.uid, Facet_Position);
+                if (position) {
+                    position->pos.x += msg.force.x;
+                    position->pos.y += msg.force.y;
+                }
+            }
         }
 
         // Update systems
+        movementSystem.Update(now, depot);
         combatSystem.Update(now, depot);
         spriteSystem.Update(now, depot);
 
@@ -210,7 +238,7 @@ int main(int argc, char *argv[])
         spriteSystem.Draw(now, depot, drawList);
 
         // Render draw list(s)
-        renderSystem.Clear(cPurple);
+        renderSystem.Clear(C255(COLOR_AQUA));
         renderSystem.Render(drawList);
 
         static int colorIdx = 1;

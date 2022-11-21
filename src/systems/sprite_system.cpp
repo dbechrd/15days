@@ -4,10 +4,10 @@
 
 void SpriteSystem::InitSprite(Sprite &sprite)
 {
-    sprite.size = { 200, 300 };
-    sprite.color = { 15, 50, 70, 255 };
-    sprite.attackColor = { 150, 70, 70, 255 };
-    sprite.defendColor = { 70, 70, 150, 255 };
+    sprite.size = { 125, 200 };
+    sprite.color = C255(COLOR_WHEAT); // { 15, 70, 90, 255 };
+    sprite.attackColor = C255(COLOR_RED); // { 150, 70, 70, 255 };
+    sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
 }
 
 void SpriteSystem::Update(double now, Depot &depot)

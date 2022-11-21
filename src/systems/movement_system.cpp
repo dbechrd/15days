@@ -11,23 +11,25 @@ void MovementSystem::ProcessCommands(double now, Depot &depot, UID uid,
     // TODO: Generate an ApplyForce message for the physics engine
     Msg_ApplyForce msg{};
 
+    const float vel = 5.0f;
+
     for (const CommandType &command : commandQueue) {
         switch (command) {
             case Command_MoveUp:
             {
-                msg.force.y -= 1.0f;
+                msg.force.y -= vel;
                 break;
             }
             case Command_MoveLeft: {
-                msg.force.x -= 1.0f;
+                msg.force.x -= vel;
                 break;
             }
             case Command_MoveDown: {
-                msg.force.y += 1.0f;
+                msg.force.y += vel;
                 break;
             }
             case Command_MoveRight: {
-                msg.force.x += 1.0f;
+                msg.force.x += vel;
                 break;
             }
             default: break;
