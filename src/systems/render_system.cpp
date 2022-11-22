@@ -70,11 +70,11 @@ bool RenderSystem::Running(void)
     return running;
 }
 
-void RenderSystem::ProcessCommands(double now, const CommandQueue &commandQueue)
+void RenderSystem::ProcessMessages(double now, Depot &depot, const MsgQueue &msgQueue)
 {
-    for (const CommandType &command : commandQueue) {
-        switch (command) {
-            case Command_QuitRequested:
+    for (const Message &msg : msgQueue) {
+        switch (msg.type) {
+            case MsgType_Input_Quit:
             {
                 running = false;
                 break;

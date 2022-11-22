@@ -1,7 +1,5 @@
 #pragma once
 #include "../common/basic.h"
-#include "../common/button_state.h"
-#include "../common/command.h"
 #include "../common/game_state.h"
 
 #include "attach.h"
@@ -10,6 +8,7 @@
 #include "position.h"
 #include "physics_body.h"
 #include "sprite.h"
+#include "trigger.h"
 
 #include <vector>
 #include <unordered_map>
@@ -45,6 +44,7 @@ struct Depot {
     std::vector<PhysicsBody>  physicsBody {};
     std::vector<Position>     position    {};
     std::vector<Sprite>       sprite      {};
+    std::vector<Trigger>      trigger     {};
 
     UID Alloc(void);
     void *AddFacet(UID uid, FacetType type);

@@ -1,17 +1,22 @@
 #include "combat_system.h"
+#include "../common/message.h"
 #include "../facets/depot.h"
 
-void CombatSystem::ProcessCommands(double now, Depot &depot, UID uid, const CommandQueue &commandQueue)
+void CombatSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue)
 {
-    Combat *combat = (Combat *)depot.GetFacet(uid, Facet_Combat);
-    if (!combat) return;
+    size_t size = msgQueue.size();
+    for (int i = 0; i < size; i++) {
+        Message &msg = msgQueue[i];
+        Combat *combat = (Combat *)depot.GetFacet(msg.uid, Facet_Combat);
+        if (!combat) {
+            continue;
+        }
 
-    bool canAttack = !(combat->attackStartedAt || combat->defendStartedAt);
-    bool canDefend = !(combat->attackStartedAt);
+        bool canAttack = !(combat->attackStartedAt || combat->defendStartedAt);
+        bool canDefend = !(combat->attackStartedAt);
 
-    for (const CommandType &command : commandQueue) {
-        switch (command) {
-            case Command_Primary:
+        switch (msg.type) {
+            case MsgType_Input_Primary:
             {
                 if (canAttack) {
                     combat->attackStartedAt = now;
@@ -19,7 +24,7 @@ void CombatSystem::ProcessCommands(double now, Depot &depot, UID uid, const Comm
                 }
                 break;
             }
-            case Command_Secondary: {
+            case MsgType_Input_Secondary: {
                 if (canDefend) {
                     combat->defendStartedAt = now;
                     combat->defendCooldown = 0.6;

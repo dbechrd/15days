@@ -1,15 +1,17 @@
 #pragma once
-#include "../common/command.h"
+#include "../common/message.h"
 #include "../common/draw_list.h"
 #include "../common/error.h"
 
 struct SDL_Window;
 struct SDL_Renderer;
 
+struct Depot;
+
 struct RenderSystem {
     FDOVResult Init(const char *title, int width, int height);
     bool Running(void);
-    void ProcessCommands(double now, const CommandQueue &commandQueue);
+    void ProcessMessages(double now, Depot &depot, const MsgQueue &msgQueue);
     void Clear(vec4 color);
     void Render(const DrawList &drawList);
     void Flip(void);

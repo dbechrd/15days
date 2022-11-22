@@ -2,11 +2,13 @@
 #include "input_system.h"
 #include "SDL/SDL.h"
 
-void EventSystemSDL::CollectEvents(std::vector<InputEvent> &inputQueue)
+void EventSystemSDL::ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue)
 {
     SDL_Event evt{};
 
-    // Redirect SDL events to their appropriate subsystem
+    // TODO: Handle things like window resize event by generating a message
+    // instead of pushing InputEvent into input queue.
+
     while (SDL_PollEvent(&evt)) {
         switch (evt.type) {
             case SDL_QUIT:
@@ -16,12 +18,16 @@ void EventSystemSDL::CollectEvents(std::vector<InputEvent> &inputQueue)
             }
             case SDL_KEYDOWN:
             {
-                inputQueue.push_back({ evt.key.keysym.scancode, true });
+                if (!evt.key.repeat) {
+                    inputQueue.push_back({ evt.key.keysym.scancode, true });
+                }
                 break;
             }
             case SDL_KEYUP:
             {
-                inputQueue.push_back({ evt.key.keysym.scancode, false });
+                if (!evt.key.repeat) {
+                    inputQueue.push_back({ evt.key.keysym.scancode, false });
+                }
                 break;
             }
             case SDL_MOUSEBUTTONDOWN:

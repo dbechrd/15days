@@ -1,9 +1,9 @@
 #pragma once
+#include "../common/input.h"
+#include "../common/message.h"
 #include <vector>
-
-struct InputEvent;
 
 struct EventSystemSDL {
     // TODO: This should take windowEventQueue, textInputQueue, etc. perhaps
-    void CollectEvents(std::vector<InputEvent> &inputQueue);
+    void ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue);
 };

@@ -8,6 +8,7 @@ enum FacetType {
     Facet_PhysicsBody,
     Facet_Position,
     Facet_Sprite,
+    Facet_Trigger,
     Facet_Count,
 };
 

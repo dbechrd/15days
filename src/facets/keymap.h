@@ -1,7 +1,7 @@
 #pragma once
 #include "facet.h"
 #include "../common/button_state.h"
-#include "../common/command.h"
+#include "../common/message.h"
 #include <vector>
 
 enum HotkeyFlags {
@@ -13,15 +13,15 @@ enum HotkeyFlags {
 struct KeymapHotkey {
     int         keys    [3]{};  // key scancodes that make up the hotkey (0 if unused)
     HotkeyFlags flags   {};     // when to treat the hotkey as active
-    CommandType command {};     // the command that this hotkey triggers
+    MsgType     msgType {};     // the command that this hotkey triggers
     ButtonState state   {};     // tracks hotkey state as if it were a button
 
-    inline KeymapHotkey(int key0, int key1, int key2, HotkeyFlags flags, CommandType command) {
+    inline KeymapHotkey(int key0, int key1, int key2, HotkeyFlags flags, MsgType msgType) {
         this->keys[0] = key0;
         this->keys[1] = key1;
         this->keys[2] = key2;
         this->flags = flags;
-        this->command = command;
+        this->msgType = msgType;
     }
 };
 struct Keymap : public Facet {

@@ -1,11 +1,11 @@
 #include "input_system.h"
 #include <cassert>
 
-void InputSystem::TranslateEvents(
+void InputSystem::ProcessInput(
     double now,
     const InputQueue &inputQueue,
     Keymap &keymap,
-    CommandQueue &commandQueue)
+    MsgQueue &msgQueue)
 {
     // Reset state
     for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
@@ -21,7 +21,7 @@ void InputSystem::TranslateEvents(
         buttons[e.scancode].Set(e.down, now);
 
         // Check if the event triggered any new hotkeys
-        CheckHotkeys(now, buttons, keymap, commandQueue);
+        CheckHotkeys(now, buttons, keymap, msgQueue);
     }
 
     // Trigger commands for repeating hotkeys that are still active but
@@ -29,7 +29,11 @@ void InputSystem::TranslateEvents(
     for (KeymapHotkey &hotkey : keymap.hotkeys) {
         bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
         if (active) {
-            commandQueue.push_back(hotkey.command);
+            Message msg{};
+            msg.uid = keymap.uid;
+            msg.type = hotkey.msgType;
+            // TODO: Set msg.data if necessary? Hmm..
+            msgQueue.push_back(msg);
         }
     }
 }
@@ -38,7 +42,7 @@ void InputSystem::CheckHotkeys(
     double now,
     ButtonState buttons[FDOV_SCANCODE_COUNT],
     Keymap &keymap,
-    CommandQueue &commandQueue)
+    MsgQueue &msgQueue)
 {
     // Determine if that event caused any hotkeys to trigger.
     // If so, queue a command.
@@ -68,7 +72,10 @@ void InputSystem::CheckHotkeys(
             buttons[k0].handled = true;
             buttons[k1].handled = true;
             buttons[k2].handled = true;
-            commandQueue.push_back(hotkey.command);
+            Message msg{};
+            msg.uid = keymap.uid;
+            msg.type = hotkey.msgType;
+            msgQueue.push_back(msg);
             hotkey.state.handled = true;
             continue;
         }

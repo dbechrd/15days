@@ -1,70 +1,59 @@
 #include "movement_system.h"
-#include "../common/force.h"
 #include "../facets/depot.h"
+#include "../common/message.h"
 
-void MovementSystem::ProcessCommands(double now, Depot &depot, UID uid,
-    const CommandQueue &commandQueue, ForceQueue &forceQueue)
+void MovementSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue)
 {
-    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
-    if (!position) return;
-
-    // TODO: Generate an ApplyForce message for the physics engine
-    Msg_ApplyForce msg{};
-
     const float vel = 5.0f;
 
-    for (const CommandType &command : commandQueue) {
-        switch (command) {
-            case Command_MoveUp:
+    size_t size = msgQueue.size();
+    for (int i = 0; i < size; i++) {
+        Message &msg = msgQueue[i];
+        Position *position = (Position *)depot.GetFacet(msg.uid, Facet_Position);
+        if (!position) {
+            continue;
+        }
+
+        // TODO: "MessageFactory"
+        Message impulseMsg{};
+        impulseMsg.type = MsgType_Movement_Impulse;
+        Msg_Movement_Impulse &impulse = impulseMsg.data.movement_impulse;
+
+        switch (msg.type) {
+            case MsgType_Input_Up:
             {
-                msg.uid = uid;
-                msg.force.y -= vel;
+                impulseMsg.uid = msg.uid;
+                impulse.v.y -= vel;
                 break;
             }
-            case Command_MoveLeft: {
-                msg.uid = uid;
-                msg.force.x -= vel;
+            case MsgType_Input_Left: {
+                impulseMsg.uid = msg.uid;
+                impulse.v.x -= vel;
                 break;
             }
-            case Command_MoveDown: {
-                msg.uid = uid;
-                msg.force.y += vel;
+            case MsgType_Input_Down: {
+                impulseMsg.uid = msg.uid;
+                impulse.v.y += vel;
                 break;
             }
-            case Command_MoveRight: {
-                msg.uid = uid;
-                msg.force.x += vel;
+            case MsgType_Input_Right: {
+                impulseMsg.uid = msg.uid;
+                impulse.v.x += vel;
                 break;
             }
             default: break;
         }
-    }
 
-    if (msg.uid) {
-        forceQueue.push_back(msg);
+        // TODO: Modifying vector while iterating it won't work like this
+        if (impulseMsg.uid) {
+            msgQueue.push_back(impulseMsg);
+        }
     }
 }
 
 void MovementSystem::Update(double now, Depot &depot)
 {
-    for (Combat &combat : depot.combat) {
-        if (combat.attackStartedAt) {
-            float attackAlpha = (now - combat.attackStartedAt) / combat.attackCooldown;
-            if (attackAlpha < 1.0) {
-                // TOOD: Something interesting during attack
-            } else {
-                combat.attackStartedAt = 0;
-                combat.attackCooldown = 0;
-            }
-        }
-        if (combat.defendStartedAt) {
-            float defendAlpha = (now - combat.defendStartedAt) / combat.defendCooldown;
-            if (defendAlpha < 1.0) {
-                // TOOD: Something interesting during defend
-            } else {
-                combat.defendStartedAt = 0;
-                combat.defendCooldown = 0;
-            }
-        }
+    for (Position &position : depot.position) {
+
     }
 }

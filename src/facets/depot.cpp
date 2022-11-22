@@ -41,6 +41,12 @@ void *Depot::AddFacet(UID uid, FacetType type) {
             facet = &sprite.emplace_back();
             break;
         }
+        case Facet_Trigger:
+        {
+            index = trigger.size();
+            facet = &trigger.emplace_back();
+            break;
+        }
         default:
         {
             assert(!"what is that, mate?");
