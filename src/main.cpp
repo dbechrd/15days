@@ -255,17 +255,10 @@ int main(int argc, char *argv[])
         renderSystem.Clear(C255(COLOR_AQUA));
         renderSystem.Render(drawList);
 
-        static int colorIdx = 1;
-        //static double colorLastChange = 0;
-        //if (now - colorLastChange > 0.5) {
-        //    colorIdx = (colorIdx + 1) % SDL_arraysize(colors);
-        //    colorLastChange = now;
-        //}
-
         SDL_SetTextureColorMod(textTex, 255, 255, 255);
         SDL_RenderCopy(renderSystem.renderer, textTex, NULL, &textRect);
 
-#if 1
+#if 0
         if (inputQueue.size() || msgQueue.size()) {
             printf("Frame #%llu\n", frame);
             if (inputQueue.size()) {
