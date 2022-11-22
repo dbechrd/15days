@@ -5,6 +5,7 @@
 #include "systems/event_system_sdl.h"
 #include "systems/input_system.h"
 #include "systems/movement_system.h"
+#include "systems/physics_system.h"
 #include "systems/render_system.h"
 #include "systems/sprite_system.h"
 #include "SDL/SDL.h"
@@ -56,6 +57,10 @@ void create_player(Depot &depot)
         SCREEN_W / 2.0f - sprite->size.x / 2.0f,
         SCREEN_H / 2.0f - sprite->size.y / 2.0f,
     };
+
+    Body *body = (Body *)depot.AddFacet(player, Facet_Body);
+    //body->gravity = 0.0f;
+    body->friction = 0.2f;
 }
 
 void create_narrator(Depot &depot, UID subject)
@@ -142,17 +147,6 @@ int main(int argc, char *argv[])
     vec4 cYellow = { 255, 232, 150, 255 };
     vec4 cOrange = { 255, 124,  30, 255 };
 
-    vec4 colors[] = {
-        cBlack,
-        cWhite,
-        cBeige ,
-        cPink  ,
-        cGreen ,
-        cBlue  ,
-        cYellow,
-        cOrange,
-    };
-
     SDL_Texture *textTex{};
     SDL_Rect textRect{};
     {
@@ -177,12 +171,13 @@ int main(int argc, char *argv[])
     if (err) return err;
 
     // These aren't currently order-dependent, but might be one day
+    CombatSystem   combatSystem   {};
     DepotSystem    depotSystem    {};
     EventSystemSDL eventSystemSDL {};
     InputSystem    inputSystem    {};
     MovementSystem movementSystem {};
+    PhysicsSystem  physicsSystem  {};
     SpriteSystem   spriteSystem   {};
-    CombatSystem   combatSystem   {};
 
     Depot &playDepot = depotSystem.ForState(GameState_Play);
 
@@ -231,36 +226,12 @@ int main(int argc, char *argv[])
             inputSystem.ProcessInput(now, inputQueue, keymap, msgQueue);
         }
 
-        // InputEvent: SDL_SCANCODE_W isDown
-        //   - apply active keymaps (top-down stack order) -
-        // InputCommand: Command_Up
-        //   - movement system consumes command -
-        // PhysicsCommand: Impulse { 0, -1.0 }
-        //   - physics system handles event -
-        //   -> find(impulse.uid).position += impulse.v;
-
         // Forward commands to any system that might want to react to them
         // TODO: Should all messages in the queue be handled next frame?
         //       i.e. double-buffer the msgQueue to avoid order dependencies?
         movementSystem.ProcessMessages(now, depot, msgQueue);
         combatSystem.ProcessMessages(now, depot, msgQueue);
         renderSystem.ProcessMessages(now, depot, msgQueue);
-
-        // TODO: Physics engine
-        for (Message &msg : msgQueue) {
-            switch (msg.type) {
-                case MsgType_Movement_Impulse: {
-                    Msg_Movement_Impulse &impulse = msg.data.movement_impulse;
-                    Position *position = (Position *)depot.GetFacet(msg.uid, Facet_Position);
-                    if (position) {
-                        position->pos.x += impulse.v.x;
-                        position->pos.y += impulse.v.y;
-                    }
-                    break;
-                }
-                default: break;
-            }
-        }
 
         // TODO: NarratorSystem
         // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
@@ -272,7 +243,7 @@ int main(int argc, char *argv[])
         //   - Generate draw commands from the message queue
 
         // Update systems
-        movementSystem.Update(now, depot);
+        physicsSystem.Update(now, depot);
         combatSystem.Update(now, depot);
         spriteSystem.Update(now, depot);
 
@@ -294,8 +265,7 @@ int main(int argc, char *argv[])
         SDL_SetTextureColorMod(textTex, 255, 255, 255);
         SDL_RenderCopy(renderSystem.renderer, textTex, NULL, &textRect);
 
-        renderSystem.Flip();
-
+#if 1
         if (inputQueue.size() || msgQueue.size()) {
             printf("Frame #%llu\n", frame);
             if (inputQueue.size()) {
@@ -314,6 +284,9 @@ int main(int argc, char *argv[])
             }
             putchar('\n');
         }
+#endif
+
+        renderSystem.Flip();
 
         // If you disable v-sync, you'll want this to prevent global warming
         //SDL_Delay(1);

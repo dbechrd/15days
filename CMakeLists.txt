@@ -27,6 +27,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE
         -Wno-missing-braces
         -Wno-unused-variable
+        -Wno-unused-but-set-variable
     ) #-Wall -Wextra)
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE

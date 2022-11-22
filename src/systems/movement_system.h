@@ -6,5 +6,4 @@ struct Depot;
 
 struct MovementSystem {
     void ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue);
-    void Update(double now, Depot &depot);
 };

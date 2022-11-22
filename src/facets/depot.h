@@ -3,10 +3,10 @@
 #include "../common/game_state.h"
 
 #include "attach.h"
+#include "body.h"
 #include "combat.h"
 #include "keymap.h"
 #include "position.h"
-#include "physics_body.h"
 #include "sprite.h"
 #include "trigger.h"
 
@@ -38,10 +38,10 @@ struct Depot {
 
     // Dense facet data arrays
     std::vector<Attach>       attach      {};
+    std::vector<Body>         body        {};
     std::vector<Combat>       combat      {};
     std::vector<InputCursor>  inputCursor {};  // could be useful for multiplayer (net or local)
     std::vector<Keymap>       keymap      {};
-    std::vector<PhysicsBody>  physicsBody {};
     std::vector<Position>     position    {};
     std::vector<Sprite>       sprite      {};
     std::vector<Trigger>      trigger     {};

@@ -17,6 +17,12 @@ void *Depot::AddFacet(UID uid, FacetType type) {
             facet = &attach.emplace_back();
             break;
         }
+        case Facet_Body:
+        {
+            index = body.size();
+            facet = &body.emplace_back();
+            break;
+        }
         case Facet_Combat:
         {
             index = combat.size();
@@ -74,10 +80,13 @@ void *Depot::GetFacet(UID uid, FacetType type) {
 
     size_t index = indexByUid[type][uid];
     switch (type) {
+        case Facet_Attach:   return &attach[index];
+        case Facet_Body:     return &body[index];
         case Facet_Combat:   return &combat[index];
         case Facet_Keymap:   return &keymap[index];
         case Facet_Position: return &position[index];
         case Facet_Sprite:   return &sprite[index];
+        case Facet_Trigger:  return &trigger[index];
         default: assert(!"what is that, mate?");
     }
     return 0;
