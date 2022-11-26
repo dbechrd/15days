@@ -2,7 +2,7 @@
 #include "../common/message.h"
 #include "../facets/depot.h"
 
-void CombatSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue)
+void CombatSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
 {
     size_t size = msgQueue.size();
     for (int i = 0; i < size; i++) {
@@ -36,7 +36,7 @@ void CombatSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue)
     }
 }
 
-void CombatSystem::Update(double now, Depot &depot)
+void CombatSystem::Behave(double now, Depot &depot, double dt)
 {
     for (Combat &combat : depot.combat) {
         if (combat.attackStartedAt) {

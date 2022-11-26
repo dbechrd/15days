@@ -1,8 +1,10 @@
 #pragma once
 #include "../common/basic.h"
-
-struct Depot;
+#include "../common/message.h"
+#include "../facets/depot.h"
 
 struct PhysicsSystem {
-    void Update(double now, Depot &depot);
+    void React(double now, Depot &depot, MsgQueue &msgQueue);
+    void Behave(double now, Depot &depot, double dt);
+    //void Display(double now, Depot &depot, DrawQueue &drawQueue);
 };

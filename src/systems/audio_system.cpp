@@ -41,3 +41,13 @@ FDOVResult AudioSystem::Init(void)
     printf("Audio driver: %s\n", SDL_GetCurrentAudioDriver());
     return FDOV_SUCCESS;
 }
+
+void AudioSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+{
+
+}
+
+void AudioSystem::Behave(double now, Depot &depot, double dt)
+{
+
+}

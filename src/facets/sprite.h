@@ -1,6 +1,6 @@
 #pragma once
-#include "../common/basic.h"
 #include "facet.h"
+#include "../common/basic.h"
 
 struct Sprite : public Facet {
     vec2 size        {};

@@ -1,12 +1,10 @@
 #pragma once
-#include "../common/error.h"
+#include "../common/draw_list.h"
 #include "../common/message.h"
 #include "../facets/depot.h"
 
-struct AudioSystem {
-    FDOVResult Init(void);
-
+struct TextSystem {
     void React(double now, Depot &depot, MsgQueue &msgQueue);
     void Behave(double now, Depot &depot, double dt);
-    //void Display(double now, Depot &depot, DrawQueue &drawQueue);
+    void Display(double now, Depot &depot, DrawQueue &drawQueue);
 };

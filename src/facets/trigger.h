@@ -2,6 +2,7 @@
 #include "facet.h"
 #include "../common/basic.h"
 #include "../common/message.h"
+#include <vector>
 
 struct Msg_Trigger {
 
@@ -12,8 +13,10 @@ enum TriggerType {
 };
 
 struct Trigger : public Facet {
-    UID         subject {};  // who to watch
-    UID         target  {};  // who to affect
-    TriggerType type    {};  // when to trigger
-    MsgType     msgType {};  // what to do
+    MsgType trigger {};  // when to trigger
+    Message message {};  // what to do
+};
+
+struct TriggerList : public Facet {
+    std::vector<UID> triggers{};
 };

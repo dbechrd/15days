@@ -6,9 +6,11 @@ enum FacetType {
     Facet_Body,
     Facet_Combat,
     Facet_Keymap,
+    Facet_Text,
     Facet_Position,
     Facet_Sprite,
     Facet_Trigger,
+    Facet_TriggerList,
     Facet_Count,
 };
 

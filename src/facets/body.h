@@ -4,9 +4,9 @@
 
 struct Body : public Facet {
     float friction     {};
-    float gravity      {};
+    vec3  gravity      {};
     vec3  velocity     {};
-    vec3  acceleration {};
+    vec3  moveBuffer   {};
 
     inline bool Moving(void)
     {

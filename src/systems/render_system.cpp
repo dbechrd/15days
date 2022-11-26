@@ -1,11 +1,13 @@
 #include "render_system.h"
 #include "../common/draw_list.h"
 #include "SDL/SDL.h"
+#include "SDL/SDL_ttf.h"
 #include <cstdio>
 
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
 {
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "true");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
     int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
     if (sdl_init_err < 0) {
@@ -70,7 +72,13 @@ bool RenderSystem::Running(void)
     return running;
 }
 
-void RenderSystem::ProcessMessages(double now, Depot &depot, const MsgQueue &msgQueue)
+void RenderSystem::Clear(vec4 color)
+{
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderClear(renderer);
+}
+
+void RenderSystem::React(double now, Depot &depot, const MsgQueue &msgQueue)
 {
     for (const Message &msg : msgQueue) {
         switch (msg.type) {
@@ -84,30 +92,66 @@ void RenderSystem::ProcessMessages(double now, Depot &depot, const MsgQueue &msg
     }
 }
 
-void RenderSystem::Clear(vec4 color)
+void RenderSystem::Behave(double now, Depot &depot, double dt)
 {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderClear(renderer);
+    // Update textures for dirty text caches
+    for (Text &text : depot.text) {
+        if (text.isDirty()) {
+            // TTF_STYLE_NORMAL        0x00
+            // TTF_STYLE_BOLD          0x01
+            // TTF_STYLE_ITALIC        0x02
+            // TTF_STYLE_UNDERLINE     0x04
+            // TTF_STYLE_STRIKETHROUGH 0x08
+            //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
+
+            SDL_Surface *surface = TTF_RenderText_Blended(text.font, text.text, { 255, 255, 255, 255 });
+            SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+            SDL_DestroyTexture(text.cache.tex);
+
+            text.cache.font = text.font;
+            text.cache.text = text.text;
+            text.cache.color = text.color;
+            text.cache.tex = texture;
+            text.cache.texSize = { (float)surface->w, (float)surface->h };
+            SDL_FreeSurface(surface);
+        }
+    }
 }
 
-void RenderSystem::Render(const DrawList &drawList)
+void RenderSystem::Flush(DrawQueue &drawQueue)
 {
-    // TODO: Sort drawQueue by depth (or better.. insert in order instead, eh?)
+    while (!drawQueue.empty()) {
+        const DrawCommand &cmd = drawQueue.top();
 
-    for (const DrawCommand &cmd : drawList) {
-        SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
         SDL_Rect rect{};
         rect.x = cmd.rect.x;
         rect.y = cmd.rect.y;
         rect.w = cmd.rect.w;
         rect.h = cmd.rect.h;
-        SDL_RenderFillRect(renderer, &rect);
+
+        if (cmd.tex) {
+            SDL_SetTextureColorMod(cmd.tex, cmd.color.r, cmd.color.g, cmd.color.b);
+            SDL_SetTextureAlphaMod(cmd.tex, cmd.color.a);
+            SDL_RenderCopy(renderer, cmd.tex, NULL, &rect);
+        } else {
+            SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
+            SDL_RenderFillRect(renderer, &rect);
+        }
+
+        drawQueue.pop();
     }
 }
 
-void RenderSystem::Flip(void)
+void RenderSystem::Present(void)
 {
     SDL_RenderPresent(renderer);
+}
+
+void RenderSystem::DestroyDepot(const Depot &depot)
+{
+    for (const Text &text : depot.text) {
+        SDL_DestroyTexture(text.cache.tex);
+    }
 }
 
 void RenderSystem::Destroy(void)

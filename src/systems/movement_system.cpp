@@ -3,7 +3,7 @@
 #include "../common/message.h"
 #include "dlb/dlb_types.h"
 
-void MovementSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueue)
+void MovementSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
 {
     size_t size = msgQueue.size();
     for (int i = 0; i < size; i++) {
@@ -13,32 +13,30 @@ void MovementSystem::ProcessMessages(double now, Depot &depot, MsgQueue &msgQueu
             continue;
         }
 
-        vec3 acc{};
         switch (msg.type) {
             case MsgType_Input_Up:
             {
-                acc.y -= 1;
+                body->moveBuffer.y -= 1;
                 break;
             }
             case MsgType_Input_Left: {
-                acc.x -= 1;
+                body->moveBuffer.x -= 1;
                 break;
             }
             case MsgType_Input_Down: {
-                acc.y += 1;
+                body->moveBuffer.y += 1;
                 break;
             }
             case MsgType_Input_Right: {
-                acc.x += 1;
+                body->moveBuffer.x += 1;
                 break;
             }
             default: break;
         }
-
-        acc.x = CLAMP(acc.x, -1, 1);
-        acc.y = CLAMP(acc.y, -1, 1);
-        v3_normalize(&acc);
-        v3_scalef(&acc, 3.0f);  // TODO: body->speed ?
-        v3_add(&body->acceleration, &acc);
     }
+}
+
+void MovementSystem::Behave(double now, Depot &depot, double dt)
+{
+
 }

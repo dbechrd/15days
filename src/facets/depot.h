@@ -8,6 +8,7 @@
 #include "keymap.h"
 #include "position.h"
 #include "sprite.h"
+#include "text.h"
 #include "trigger.h"
 
 #include <vector>
@@ -37,14 +38,16 @@ struct Depot {
     //std::vector<UID> uidsByType[Facet_Count]{};
 
     // Dense facet data arrays
-    std::vector<Attach>       attach      {};
-    std::vector<Body>         body        {};
-    std::vector<Combat>       combat      {};
-    std::vector<InputCursor>  inputCursor {};  // could be useful for multiplayer (net or local)
-    std::vector<Keymap>       keymap      {};
-    std::vector<Position>     position    {};
-    std::vector<Sprite>       sprite      {};
-    std::vector<Trigger>      trigger     {};
+    std::vector<Attach>      attach      {};
+    std::vector<Body>        body        {};
+    std::vector<Combat>      combat      {};
+    std::vector<InputCursor> inputCursor {};  // could be useful for multiplayer (net or local)
+    std::vector<Keymap>      keymap      {};
+    std::vector<Position>    position    {};
+    std::vector<Sprite>      sprite      {};
+    std::vector<Text>        text        {};
+    std::vector<Trigger>     trigger     {};
+    std::vector<TriggerList> triggerList {};
 
     UID Alloc(void);
     void *AddFacet(UID uid, FacetType type);

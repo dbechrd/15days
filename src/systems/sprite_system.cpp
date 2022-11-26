@@ -10,7 +10,12 @@ void SpriteSystem::InitSprite(Sprite &sprite)
     sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
 }
 
-void SpriteSystem::Update(double now, Depot &depot)
+void SpriteSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+{
+    // TODO: Update sprite states based on game events (e.g. combat messages)
+}
+
+void SpriteSystem::Behave(double now, Depot &depot, double dt)
 {
 #if 0
     for (Sprite &sprite : depot.sprite) {
@@ -19,7 +24,7 @@ void SpriteSystem::Update(double now, Depot &depot)
 #endif
 }
 
-void SpriteSystem::Draw(double now, Depot &depot, DrawList &drawList)
+void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 {
     for (Sprite &sprite : depot.sprite) {
         Position *position = (Position *)depot.GetFacet(sprite.uid, Facet_Position);
@@ -35,7 +40,7 @@ void SpriteSystem::Draw(double now, Depot &depot, DrawList &drawList)
         drawSprite.rect.y = position->pos.y;
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
-        drawList.push_back(drawSprite);
+        drawQueue.push(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);
         if (combat) {
@@ -49,7 +54,7 @@ void SpriteSystem::Draw(double now, Depot &depot, DrawList &drawList)
                 attackOverlay.rect = drawSprite.rect;
                 attackOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
                 attackOverlay.rect.h = ceilf(overlayHeight);
-                drawList.push_back(attackOverlay);
+                drawQueue.push(attackOverlay);
             }
             if (combat->defendStartedAt) {
                 assert(combat->defendCooldown);
@@ -61,7 +66,7 @@ void SpriteSystem::Draw(double now, Depot &depot, DrawList &drawList)
                 defendOverlay.rect = drawSprite.rect;
                 defendOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
                 defendOverlay.rect.h = ceilf(overlayHeight);
-                drawList.push_back(defendOverlay);
+                drawQueue.push(defendOverlay);
             }
         }
     }
