@@ -48,6 +48,10 @@ struct Msg_Physics_Collide {
     // TODO: manifold? (i.e. depth, normal)
 };
 
+struct Msg_Trigger_Sound_Play {
+    bool override {};
+};
+
 struct Msg_Trigger_Text_Change {
     const char *text  {};
     vec4        color {};
@@ -61,6 +65,7 @@ struct Message {
         Msg_Combat_Defend_Start combat_defend_start;
         Msg_Movement_Impulse movement_impulse;
         Msg_Physics_Collide physics_collide;
+        Msg_Trigger_Sound_Play trigger_sound_play;
         Msg_Trigger_Text_Change trigger_text_change;
     } data {};
 

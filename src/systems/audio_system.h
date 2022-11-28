@@ -17,5 +17,5 @@ struct AudioSystem {
 private:
     SDL_AudioDeviceID playbackDeviceId{};
 
-    void PlaySound(Depot &depot, UID soundUid);
+    void PlaySound(Depot &depot, UID soundUid, bool override = false);
 };

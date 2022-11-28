@@ -83,11 +83,12 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     triggerInputPrimary->trigger = MsgType_Input_Primary;
     triggerInputPrimary->message.uid = uidSoundPrimary;
     triggerInputPrimary->message.type = MsgType_Trigger_Sound_Play;
+    triggerInputPrimary->message.data.trigger_sound_play.override = true;
 
     UID uidTriggerSecondary = depot.Alloc();
     printf("%u: player trigger secondary sound\n", uidTriggerSecondary);
     Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
-    triggerInputSecondary->trigger = MsgType_Input_Secondary_Press;
+    triggerInputSecondary->trigger = MsgType_Input_Secondary;
     triggerInputSecondary->message.uid = uidSoundSecondary;
     triggerInputSecondary->message.type = MsgType_Trigger_Sound_Play;
 

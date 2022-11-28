@@ -133,7 +133,7 @@ void AudioSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
         switch (msg.type) {
             case MsgType_Trigger_Sound_Play:
             {
-                PlaySound(depot, msg.uid);
+                PlaySound(depot, msg.uid, msg.data.trigger_sound_play.override);
                 break;
             }
             default: break;
@@ -146,7 +146,7 @@ void AudioSystem::Behave(double now, Depot &depot, double dt)
 
 }
 
-void AudioSystem::PlaySound(Depot &depot, UID soundUid)
+void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
 {
     SDL_AudioStatus status = SDL_GetAudioDeviceStatus(playbackDeviceId);
     if (status != SDL_AUDIO_PLAYING) {
@@ -159,6 +159,13 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid)
         return;
     }
 
-    SDL_ClearQueuedAudio(playbackDeviceId);
+    if (override) {
+        SDL_ClearQueuedAudio(playbackDeviceId);
+    } else {
+        Uint32 queueSize = SDL_GetQueuedAudioSize(playbackDeviceId);
+        if (queueSize > 0) {
+            return;
+        }
+    }
     SDL_QueueAudio(playbackDeviceId, sound->audio_buf, sound->audio_len);
 }
