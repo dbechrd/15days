@@ -7,6 +7,7 @@
 #include "combat.h"
 #include "keymap.h"
 #include "position.h"
+#include "sound.h"
 #include "sprite.h"
 #include "text.h"
 #include "trigger.h"
@@ -44,6 +45,7 @@ struct Depot {
     std::vector<InputCursor> inputCursor {};  // could be useful for multiplayer (net or local)
     std::vector<Keymap>      keymap      {};
     std::vector<Position>    position    {};
+    std::vector<Sound>       sound       {};
     std::vector<Sprite>      sprite      {};
     std::vector<Text>        text        {};
     std::vector<Trigger>     trigger     {};

@@ -9,6 +9,9 @@ struct SDL_Renderer;
 
 struct RenderSystem {
     FDOVResult Init(const char *title, int width, int height);
+    void DestroyDepot(const Depot &depot);
+    void Destroy();
+
     bool Running(void);
     void Clear(vec4 color);
 
@@ -17,10 +20,7 @@ struct RenderSystem {
     void Flush(DrawQueue &drawQueue);
     void Present(void);
 
-    void DestroyDepot(const Depot &depot);
-    void Destroy();
-
-//private:
+private:
     bool          running     {false};
     SDL_Window   *window      {};
     SDL_Renderer *renderer    {};

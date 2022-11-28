@@ -67,6 +67,20 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     return FDOV_SUCCESS;
 }
 
+void RenderSystem::DestroyDepot(const Depot &depot)
+{
+    for (const Text &text : depot.text) {
+        SDL_DestroyTexture(text.cache.tex);
+    }
+}
+
+void RenderSystem::Destroy(void)
+{
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
 bool RenderSystem::Running(void)
 {
     return running;
@@ -145,18 +159,4 @@ void RenderSystem::Flush(DrawQueue &drawQueue)
 void RenderSystem::Present(void)
 {
     SDL_RenderPresent(renderer);
-}
-
-void RenderSystem::DestroyDepot(const Depot &depot)
-{
-    for (const Text &text : depot.text) {
-        SDL_DestroyTexture(text.cache.tex);
-    }
-}
-
-void RenderSystem::Destroy(void)
-{
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
 }

@@ -41,42 +41,69 @@ UID create_global_keymap(Depot &depot)
     return uid;
 }
 
-UID create_player(Depot &depot)
+UID create_player(Depot &depot, AudioSystem &audioSystem)
 {
-    UID uid = depot.Alloc();
-    printf("%u: player\n", uid);
+    UID uidPlayer = depot.Alloc();
+    printf("%u: player\n", uidPlayer);
 
-    Keymap *keymap = (Keymap *)depot.AddFacet(uid, Facet_Keymap);
+    Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
     keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
     keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
+    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
     keymap->hotkeys.emplace_back(SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_Up);
     keymap->hotkeys.emplace_back(SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_Left);
     keymap->hotkeys.emplace_back(SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_Down);
     keymap->hotkeys.emplace_back(SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_Right);
 
-    depot.AddFacet(uid, Facet_Combat);
-    Sprite *sprite = (Sprite *)depot.AddFacet(uid, Facet_Sprite);
+    depot.AddFacet(uidPlayer, Facet_Combat);
+    Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
     SpriteSystem::InitSprite(*sprite);
 
-    Position *position = (Position *)depot.AddFacet(uid, Facet_Position);
+    Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
     position->pos = {
         SCREEN_W / 2.0f - sprite->size.x / 2.0f,
         SCREEN_H / 2.0f - sprite->size.y / 2.0f,
     };
 
-    Body *body = (Body *)depot.AddFacet(uid, Facet_Body);
+    Body *body = (Body *)depot.AddFacet(uidPlayer, Facet_Body);
     //body->gravity = 0.0f;
     body->friction = 0.2f;
 
-    return uid;
+    UID uidSoundPrimary = depot.Alloc();
+    Sound *soundPrimary = (Sound *)depot.AddFacet(uidSoundPrimary, Facet_Sound);
+    audioSystem.InitSound(*soundPrimary, "audio/primary.wav");
+
+    UID uidSoundSecondary = depot.Alloc();
+    Sound *soundSecondary = (Sound *)depot.AddFacet(uidSoundSecondary, Facet_Sound);
+    audioSystem.InitSound(*soundSecondary, "audio/secondary.wav");
+
+    UID uidTriggerPrimary = depot.Alloc();
+    printf("%u: player trigger primary sound\n", uidTriggerPrimary);
+    Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
+    triggerInputPrimary->trigger = MsgType_Input_Primary;
+    triggerInputPrimary->message.uid = uidSoundPrimary;
+    triggerInputPrimary->message.type = MsgType_Trigger_Sound_Play;
+
+    UID uidTriggerSecondary = depot.Alloc();
+    printf("%u: player trigger secondary sound\n", uidTriggerSecondary);
+    Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
+    triggerInputSecondary->trigger = MsgType_Input_Secondary_Press;
+    triggerInputSecondary->message.uid = uidSoundSecondary;
+    triggerInputSecondary->message.type = MsgType_Trigger_Sound_Play;
+
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList);
+    triggerList->triggers.push_back(uidTriggerPrimary);
+    triggerList->triggers.push_back(uidTriggerSecondary);
+
+    return uidPlayer;
 }
 
 UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
 {
-    UID uid = depot.Alloc();
-    printf("%u: narrator\n", uid);
+    UID uidNarrator = depot.Alloc();
+    printf("%u: narrator\n", uidNarrator);
 
-    Position *position = (Position *)depot.AddFacet(uid, Facet_Position);
+    Position *position = (Position *)depot.AddFacet(uidNarrator, Facet_Position);
     //int windowW = 0, windowH = 0;
     //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
     //position->pos.x = windowW / 2.0f;
@@ -84,10 +111,32 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     position->pos.x = SCREEN_W / 2.0f;
     position->pos.y = 200;
 
-    Text *text = (Text *)depot.AddFacet(uid, Facet_Text);
+    Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = font;
     text->text = "15 Days";
     text->color = C255(COLOR_WHITE);
+
+    UID uidTriggerPrimary = depot.Alloc();
+    printf("%u: narrator trigger primary text change\n", uidTriggerPrimary);
+    Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
+    triggerInputPrimary->trigger = MsgType_Input_Primary;
+    triggerInputPrimary->message.uid = uidNarrator;
+    triggerInputPrimary->message.type = MsgType_Trigger_Text_Change;
+    triggerInputPrimary->message.data.trigger_text_change.text = "Primary";
+    triggerInputPrimary->message.data.trigger_text_change.color = C255(COLOR_RED);
+
+    UID uidTriggerSecondary = depot.Alloc();
+    printf("%u: narrator trigger secondary text change\n", uidTriggerSecondary);
+    Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
+    triggerInputSecondary->trigger = MsgType_Input_Secondary;
+    triggerInputSecondary->message.uid = uidNarrator;
+    triggerInputSecondary->message.type = MsgType_Trigger_Text_Change;
+    triggerInputSecondary->message.data.trigger_text_change.text = "Secondary";
+    triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_BLUE);
+
+    TriggerList *triggerList = (TriggerList *)depot.GetFacet(subject, Facet_TriggerList);
+    triggerList->triggers.push_back(uidTriggerPrimary);
+    triggerList->triggers.push_back(uidTriggerSecondary);
 
     // TODO: NarratorSystem
     // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
@@ -98,32 +147,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     // - NarratorSystem::Draw(narratorQueue, drawList);
     //   - Generate draw commands from the message queue
 
-    return uid;
-}
-
-void add_trigger(Depot &depot, UID subject, UID target)
-{
-    UID uidPrimary = depot.Alloc();
-    printf("%u: trigger primary\n", uidPrimary);
-    Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidPrimary, Facet_Trigger);
-    triggerInputPrimary->trigger = MsgType_Input_Primary;
-    triggerInputPrimary->message.uid = target;
-    triggerInputPrimary->message.type = MsgType_Trigger_Text_Change;
-    triggerInputPrimary->message.data.trigger_text_change.text = "Primary";
-    triggerInputPrimary->message.data.trigger_text_change.color = C255(COLOR_RED);
-
-    UID uidSecondary = depot.Alloc();
-    printf("%u: trigger secondary\n", uidSecondary);
-    Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidSecondary, Facet_Trigger);
-    triggerInputSecondary->trigger = MsgType_Input_Secondary;
-    triggerInputSecondary->message.uid = target;
-    triggerInputSecondary->message.type = MsgType_Trigger_Text_Change;
-    triggerInputSecondary->message.data.trigger_text_change.text = "Secondary";
-    triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_BLUE);
-
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList);
-    triggerList->triggers.push_back(uidPrimary);
-    triggerList->triggers.push_back(uidSecondary);
+    return uidNarrator;
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -217,9 +241,8 @@ int main(int argc, char *argv[])
     create_global_keymap(playDepot);
 
     // Create player/narrator
-    UID player = create_player(playDepot);
+    UID player = create_player(playDepot, audioSystem);
     UID narrator = create_narrator(playDepot, player, font);
-    add_trigger(playDepot, player, narrator);
 
     // Start the game
     depotSystem.TransitionTo(GameState_Play);
@@ -328,7 +351,9 @@ int main(int argc, char *argv[])
 
     // Clean up (other systems might want to do this in the future)
     renderSystem.DestroyDepot(playDepot);
+    audioSystem.DestroyDepot(playDepot);
     renderSystem.Destroy();
+    audioSystem.Destroy();
 
     TTF_CloseFont(font);
     TTF_Quit();

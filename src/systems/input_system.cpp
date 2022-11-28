@@ -58,9 +58,9 @@ void InputSystem::CheckHotkeys(
             continue;
         }
 
-        bool a = buttons[k0].Active();
-        bool b = !k1 || buttons[k1].Active();
-        bool c = !k2 || buttons[k2].Active();
+        bool a = buttons[k0].Active(hotkey.flags & Hotkey_Handled);
+        bool b = !k1 || buttons[k1].Active(hotkey.flags & Hotkey_Handled);
+        bool c = !k2 || buttons[k2].Active(hotkey.flags & Hotkey_Handled);
         bool active = a && b && c;
 
         hotkey.state.Set(active, now);

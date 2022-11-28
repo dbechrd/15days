@@ -8,6 +8,7 @@ enum FacetType {
     Facet_Keymap,
     Facet_Text,
     Facet_Position,
+    Facet_Sound,
     Facet_Sprite,
     Facet_Trigger,
     Facet_TriggerList,

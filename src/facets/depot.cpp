@@ -8,68 +8,36 @@ UID Depot::Alloc(void) {
 }
 
 void *Depot::AddFacet(UID uid, FacetType type) {
+    void *existingFacet = GetFacet(uid, type);
+    if (existingFacet) {
+        printf("WARN: AddFacet called more than once for same uid/type pair.\n");
+        return existingFacet;
+    }
+
+#define EMPLACE(label, pool) \
+    case label: { \
+        index = pool.size(); \
+        facet = &pool.emplace_back(); \
+        break; \
+    }
+
     size_t index = 0;
     Facet *facet = 0;
     switch (type) {
-        case Facet_Attach:
-        {
-            index = attach.size();
-            facet = &attach.emplace_back();
-            break;
-        }
-        case Facet_Body:
-        {
-            index = body.size();
-            facet = &body.emplace_back();
-            break;
-        }
-        case Facet_Combat:
-        {
-            index = combat.size();
-            facet = &combat.emplace_back();
-            break;
-        }
-        case Facet_Keymap:
-        {
-            index = keymap.size();
-            facet = &keymap.emplace_back();
-            break;
-        }
-        case Facet_Position:
-        {
-            index = position.size();
-            facet = &position.emplace_back();
-            break;
-        }
-        case Facet_Sprite:
-        {
-            index = sprite.size();
-            facet = &sprite.emplace_back();
-            break;
-        }
-        case Facet_Text:
-        {
-            index = text.size();
-            facet = &text.emplace_back();
-            break;
-        }
-        case Facet_Trigger:
-        {
-            index = trigger.size();
-            facet = &trigger.emplace_back();
-            break;
-        }
-        case Facet_TriggerList:
-        {
-            index = triggerList.size();
-            facet = &triggerList.emplace_back();
-            break;
-        }
-        default:
-        {
-            assert(!"what is that, mate?");
-        }
+        EMPLACE(Facet_Attach,       attach);
+        EMPLACE(Facet_Body,         body);
+        EMPLACE(Facet_Combat,       combat);
+        EMPLACE(Facet_Keymap,       keymap);
+        EMPLACE(Facet_Position,     position);
+        EMPLACE(Facet_Sound,        sound);
+        EMPLACE(Facet_Sprite,       sprite);
+        EMPLACE(Facet_Text,         text);
+        EMPLACE(Facet_Trigger,      trigger);
+        EMPLACE(Facet_TriggerList,  triggerList);
+        default: assert(!"what is that, mate?");
     }
+
+#undef EMPLACE
 
     if (!facet) {
         // TODO: Log this instead of printing
@@ -92,15 +60,16 @@ void *Depot::GetFacet(UID uid, FacetType type) {
 
     size_t index = indexByUid[type][uid];
     switch (type) {
-        case Facet_Attach:      return &attach[index];
-        case Facet_Body:        return &body[index];
-        case Facet_Combat:      return &combat[index];
-        case Facet_Keymap:      return &keymap[index];
-        case Facet_Position:    return &position[index];
-        case Facet_Sprite:      return &sprite[index];
-        case Facet_Text:        return &text[index];
-        case Facet_Trigger:     return &trigger[index];
-        case Facet_TriggerList: return &triggerList[index];
+        case Facet_Attach:      return &attach      [index];
+        case Facet_Body:        return &body        [index];
+        case Facet_Combat:      return &combat      [index];
+        case Facet_Keymap:      return &keymap      [index];
+        case Facet_Position:    return &position    [index];
+        case Facet_Sound:       return &sound       [index];
+        case Facet_Sprite:      return &sprite      [index];
+        case Facet_Text:        return &text        [index];
+        case Facet_Trigger:     return &trigger     [index];
+        case Facet_TriggerList: return &triggerList [index];
         default: assert(!"what is that, mate?");
     }
     return 0;
