@@ -20,7 +20,7 @@ void CombatSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
             {
                 if (canAttack) {
                     combat->attackStartedAt = now;
-                    combat->attackCooldown = 0.1;
+                    combat->attackCooldown = 0.2;
                 }
                 break;
             }

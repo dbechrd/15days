@@ -82,7 +82,7 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
     triggerInputPrimary->trigger = MsgType_Input_Primary;
     triggerInputPrimary->message.uid = uidSoundPrimary;
-    triggerInputPrimary->message.type = MsgType_Trigger_Sound_Play;
+    triggerInputPrimary->message.type = MsgType_Sound_Play;
     triggerInputPrimary->message.data.trigger_sound_play.override = true;
 
     UID uidTriggerSecondary = depot.Alloc();
@@ -90,7 +90,7 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
     triggerInputSecondary->trigger = MsgType_Input_Secondary;
     triggerInputSecondary->message.uid = uidSoundSecondary;
-    triggerInputSecondary->message.type = MsgType_Trigger_Sound_Play;
+    triggerInputSecondary->message.type = MsgType_Sound_Play;
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList);
     triggerList->triggers.push_back(uidTriggerPrimary);
@@ -115,6 +115,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = font;
     text->text = "15 Days";
+    text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_WHITE);
 
     UID uidTriggerPrimary = depot.Alloc();
@@ -122,7 +123,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
     triggerInputPrimary->trigger = MsgType_Input_Primary;
     triggerInputPrimary->message.uid = uidNarrator;
-    triggerInputPrimary->message.type = MsgType_Trigger_Text_Change;
+    triggerInputPrimary->message.type = MsgType_Text_Change;
     triggerInputPrimary->message.data.trigger_text_change.text = "Primary";
     triggerInputPrimary->message.data.trigger_text_change.color = C255(COLOR_RED);
 
@@ -131,7 +132,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
     triggerInputSecondary->trigger = MsgType_Input_Secondary;
     triggerInputSecondary->message.uid = uidNarrator;
-    triggerInputSecondary->message.type = MsgType_Trigger_Text_Change;
+    triggerInputSecondary->message.type = MsgType_Text_Change;
     triggerInputSecondary->message.data.trigger_text_change.text = "Secondary";
     triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_BLUE);
 
@@ -149,6 +150,37 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     //   - Generate draw commands from the message queue
 
     return uidNarrator;
+}
+
+UID create_fps_counter(Depot &depot, TTF_Font *font)
+{
+    UID uidFpsCounter = depot.Alloc();
+    printf("%u: fps counter\n", uidFpsCounter);
+
+    Position *position = (Position *)depot.AddFacet(uidFpsCounter, Facet_Position);
+    //int windowW = 0, windowH = 0;
+    //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
+    //position->pos.x = windowW / 2.0f;
+    //position->pos.y = 200.0f;
+    position->pos.x = 10;
+    position->pos.y = 10;
+
+    Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
+    text->font = font;
+    text->text = "00 fps (00.00 ms)";
+    text->align = TextAlign_VTop_HLeft;
+    text->color = C255(COLOR_WHITE);
+
+    // TODO: NarratorSystem
+    // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
+    //   - Checks if position.pos + sprite.size outside of screen w/h
+    // - NarratorSystem::Update();
+    //   - Iterate all NarratorTrigger facets and check triggers
+    //   - If any triggers fired, add Msg_NarratorSays to narratorQueue
+    // - NarratorSystem::Draw(narratorQueue, drawList);
+    //   - Generate draw commands from the message queue
+
+    return uidFpsCounter;
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -228,10 +260,16 @@ int main(int argc, char *argv[])
     if (err) return err;
 
     // TODO: Resource loader (maybe RenderSystem::LoadFont()?)
-    const char *fontFilename = "font/KarminaBold.otf";
-    TTF_Font *font = TTF_OpenFont(fontFilename, 64);
-    if (!font) {
-        SDL_Log("Failed to load font %s: %s\n", fontFilename, SDL_GetError());
+    const char *fontFancyFilename = "font/KarminaBold.otf";
+    TTF_Font *fontFancy = TTF_OpenFont(fontFancyFilename, 64);
+    if (!fontFancy) {
+        SDL_Log("Failed to load font %s: %s\n", fontFancyFilename, SDL_GetError());
+        return -1;
+    }
+    const char *fontFixedFilename = "font/Hack-Bold.ttf";
+    TTF_Font *fontFixed = TTF_OpenFont(fontFixedFilename, 16);
+    if (!fontFixed) {
+        SDL_Log("Failed to load font %s: %s\n", fontFixedFilename, SDL_GetError());
         return -1;
     }
 
@@ -243,7 +281,8 @@ int main(int argc, char *argv[])
 
     // Create player/narrator
     UID player = create_player(playDepot, audioSystem);
-    UID narrator = create_narrator(playDepot, player, font);
+    UID narrator = create_narrator(playDepot, player, fontFancy);
+    UID fpsCounter = create_fps_counter(playDepot, fontFixed);
 
     // Start the game
     depotSystem.TransitionTo(GameState_Play);
@@ -255,22 +294,37 @@ int main(int argc, char *argv[])
     MsgQueue   msgQueue   {};  // messages generated by commands/systems
 
     uint64_t frame{};
+    double nowPrev{};
     double now{};
-    const double dt = 1.0 / 60.0;
+    const double fixedDt = 1.0 / 60.0;
     while (renderSystem.Running()) {
         frame++;
 
         // Time is money
+        nowPrev = now;
         now = clock_now();
+        double realDt = now - nowPrev;
+        double dt = MIN(realDt, fixedDt * 2.0);
 
         // TODO: Frame arena
         inputQueue.clear();
         msgQueue.clear();
 
-        // Reset text
+        // Update FPS counter text
+        char fpsCounterBuf[32]{};
+        snprintf(CSTR0(fpsCounterBuf), "%.2f (%.2f ms)", 1.0f / dt, dt * 1000.0f);
+
+        Message updateFpsCounter{};
+        updateFpsCounter.uid = fpsCounter;
+        updateFpsCounter.type = MsgType_Text_Change;
+        updateFpsCounter.data.trigger_text_change.text = fpsCounterBuf;
+        updateFpsCounter.data.trigger_text_change.color = C255(COLOR_WHITE);
+        msgQueue.push_back(updateFpsCounter);
+
+        // Reset narrator text
         Message resetNarrator{};
         resetNarrator.uid = narrator;
-        resetNarrator.type = MsgType_Trigger_Text_Change;
+        resetNarrator.type = MsgType_Text_Change;
         resetNarrator.data.trigger_text_change.text = "Neutral";
         resetNarrator.data.trigger_text_change.color = C255(COLOR_GRAY_4);
         msgQueue.push_back(resetNarrator);
@@ -356,7 +410,8 @@ int main(int argc, char *argv[])
     renderSystem.Destroy();
     audioSystem.Destroy();
 
-    TTF_CloseFont(font);
+    TTF_CloseFont(fontFancy);
+    TTF_CloseFont(fontFixed);
     TTF_Quit();
 
     // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to

@@ -15,11 +15,14 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
         return FDOV_INIT_FAILED;
     }
 
-    window = SDL_CreateWindow(
-        title,
+    int flags = SDL_WINDOW_OPENGL;
+#if FDOV_FULLSCREEN
+    flags |= SDL_WINDOW_FULLSCREEN;
+#endif
+    window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         width, height,
-        SDL_WINDOW_OPENGL
+        flags
     );
     if (!window) {
         printf("Failed to create window: %s\n", SDL_GetError());
@@ -54,7 +57,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     }
 #endif
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED); // | SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
         return FDOV_INIT_FAILED;
@@ -123,7 +126,10 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             SDL_DestroyTexture(text.cache.tex);
 
             text.cache.font = text.font;
-            text.cache.text = text.text;
+            free((void *)text.cache.text);
+            size_t textLen = strlen(text.text);
+            text.cache.text = (char *)malloc(strlen(text.text));
+            memcpy(text.cache.text, text.text, textLen);
             text.cache.color = text.color;
             text.cache.tex = texture;
             text.cache.texSize = { (float)surface->w, (float)surface->h };

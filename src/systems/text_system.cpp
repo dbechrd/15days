@@ -13,7 +13,7 @@ void TextSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
         }
 
         switch (msg.type) {
-            case MsgType_Trigger_Text_Change:
+            case MsgType_Text_Change:
             {
                 text->text = msg.data.trigger_text_change.text;
                 text->color = msg.data.trigger_text_change.color;
@@ -38,13 +38,32 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
+        float x = position->pos.x;
+        float y = position->pos.y;
+        float w = text.cache.texSize.w;
+        float h = text.cache.texSize.h;
+        float halfW = w * 0.5f;
+        //float halfH = h * 0.5f;
+
+        switch (text.align) {
+            case TextAlign_VTop_HLeft: {
+                // no-op
+                break;
+            }
+            case TextAlign_VBottom_HCenter: {
+                x -= halfW;
+                y -= h;
+                break;
+            }
+        }
+
         DrawCommand drawText{};
         drawText.color = text.color;
         // TODO: TextAlign (always centered along x and y for now)
-        drawText.rect.x = position->pos.x - (text.cache.texSize.w / 2);
-        drawText.rect.y = position->pos.y - (text.cache.texSize.h / 2);
-        drawText.rect.w = text.cache.texSize.w;
-        drawText.rect.h = text.cache.texSize.h;
+        drawText.rect.x = x;
+        drawText.rect.y = y;
+        drawText.rect.w = w;
+        drawText.rect.h = h;
         drawText.tex = text.cache.tex;
         drawQueue.push(drawText);
     }
