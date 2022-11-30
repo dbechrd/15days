@@ -7,6 +7,13 @@
 // represent mouse input to the SDL scancode enum so that we can treat mouse
 // buttons the same as any other kind of key.
 enum {
+#if 0
+    // Abstract modifier keys
+    FDOV_SCANCODE_SHIFT,
+    FDOV_SCANCODE_CTRL,
+    FDOV_SCANCODE_ALT,
+#endif
+
     // Mouse buttons
     FDOV_SCANCODE_MOUSE_LEFT = FDOV_FIRST_SCANCODE,
     FDOV_SCANCODE_MOUSE_RIGHT,

@@ -9,6 +9,13 @@ void EventSystemSDL::ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue)
     // TODO: Handle things like window resize event by generating a message
     // instead of pushing InputEvent into input queue.
 
+#if 0
+    SDL_Keymod mod = SDL_GetModState();
+    inputQueue.push_back({ FDOV_SCANCODE_SHIFT, (bool)(mod & KMOD_SHIFT) });
+    inputQueue.push_back({ FDOV_SCANCODE_CTRL, (bool)(mod & KMOD_CTRL) });
+    inputQueue.push_back({ FDOV_SCANCODE_ALT, (bool)(mod & KMOD_ALT) });
+#endif
+
     while (SDL_PollEvent(&evt)) {
         switch (evt.type) {
             case SDL_QUIT:

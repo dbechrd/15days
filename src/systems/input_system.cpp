@@ -58,10 +58,34 @@ void InputSystem::CheckHotkeys(
             continue;
         }
 
-        bool a = buttons[k0].Active(hotkey.flags & Hotkey_Handled);
-        bool b = !k1 || buttons[k1].Active(hotkey.flags & Hotkey_Handled);
-        bool c = !k2 || buttons[k2].Active(hotkey.flags & Hotkey_Handled);
-        bool active = a && b && c;
+        bool includehandled = hotkey.flags & Hotkey_Handled;
+
+#if 0
+        bool shift = buttons[FDOV_SCANCODE_SHIFT].Active(includehandled);
+        bool ctrl = buttons[FDOV_SCANCODE_CTRL].Active(includehandled);
+        bool alt = buttons[FDOV_SCANCODE_ALT].Active(includehandled);
+#else
+        bool lShift = buttons[SDL_SCANCODE_LSHIFT].Active(includehandled);
+        bool rShift = buttons[SDL_SCANCODE_RSHIFT].Active(includehandled);
+        bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(includehandled);
+        bool rCtrl = buttons[SDL_SCANCODE_RCTRL].Active(includehandled);
+        bool lAlt = buttons[SDL_SCANCODE_LALT].Active(includehandled);
+        bool rAlt = buttons[SDL_SCANCODE_RALT].Active(includehandled);
+        bool shift = lShift || rShift;
+        bool ctrl = lCtrl || rCtrl;
+        bool alt = lAlt || rAlt;
+#endif
+        bool modShift = shift == (hotkey.modMask & HotkeyMod_Shift);
+        bool modCtrl = ctrl == (hotkey.modMask & HotkeyMod_Ctrl);
+        bool modAlt = alt == (hotkey.modMask & HotkeyMod_Alt);
+        bool modMatch = modShift && modCtrl && modAlt;
+
+        bool key0 = buttons[k0].Active(includehandled);
+        bool key1 = !k1 || buttons[k1].Active(includehandled);
+        bool key2 = !k2 || buttons[k2].Active(includehandled);
+        bool keyMatch = key0 && key1 && key2;
+
+        bool active = modMatch && keyMatch;
 
         hotkey.state.Set(active, now);
 

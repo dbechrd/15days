@@ -35,8 +35,8 @@ UID create_global_keymap(Depot &depot)
     printf("%u: global keymap\n", uid);
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uid, Facet_Keymap);
-    keymap->hotkeys.emplace_back(FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Input_Quit);
-    keymap->hotkeys.emplace_back(SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Input_Quit);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Input_Quit);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Input_Quit);
 
     return uid;
 }
@@ -47,13 +47,13 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     printf("%u: player\n", uidPlayer);
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
-    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
-    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
-    keymap->hotkeys.emplace_back(FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
-    keymap->hotkeys.emplace_back(SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_Up);
-    keymap->hotkeys.emplace_back(SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_Left);
-    keymap->hotkeys.emplace_back(SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_Down);
-    keymap->hotkeys.emplace_back(SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_Right);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_Up);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_Left);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_Down);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_Right);
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
