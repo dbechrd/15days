@@ -22,3 +22,5 @@ typedef uint32_t UID;
     color.b * 255, \
     color.a * 255  \
 }
+
+#define C_GRASS { 38, 43, 25, 255 }

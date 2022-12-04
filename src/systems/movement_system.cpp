@@ -14,23 +14,15 @@ void MovementSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
         }
 
         switch (msg.type) {
-            case MsgType_Input_Up:
-            {
-                body->moveBuffer.y -= 1;
-                break;
-            }
-            case MsgType_Input_Left: {
-                body->moveBuffer.x -= 1;
-                break;
-            }
-            case MsgType_Input_Down: {
-                body->moveBuffer.y += 1;
-                break;
-            }
-            case MsgType_Input_Right: {
-                body->moveBuffer.x += 1;
-                break;
-            }
+            case MsgType_Input_WalkUp: body->moveBuffer.y -= 1; break;
+            case MsgType_Input_WalkLeft: body->moveBuffer.x -= 1; break;
+            case MsgType_Input_WalkDown: body->moveBuffer.y += 1; break;
+            case MsgType_Input_WalkRight: body->moveBuffer.x += 1; break;
+            case MsgType_Input_RunUp: body->moveBuffer.y -= 1; body->runBuffer = true; break;
+            case MsgType_Input_RunLeft: body->moveBuffer.x -= 1; body->runBuffer = true; break;
+            case MsgType_Input_RunDown: body->moveBuffer.y += 1; body->runBuffer = true; break;
+            case MsgType_Input_RunRight: body->moveBuffer.x += 1; body->runBuffer = true; break;
+            case MsgType_Input_Jump: body->jumpBuffer = true; break;
             default: break;
         }
     }

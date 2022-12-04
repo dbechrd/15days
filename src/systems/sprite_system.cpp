@@ -4,7 +4,7 @@
 
 void SpriteSystem::InitSprite(Sprite &sprite)
 {
-    sprite.size = { 125, 200 };
+    sprite.size = { 70, 140 };
     sprite.color = C255(COLOR_WHEAT); // { 15, 70, 90, 255 };
     sprite.attackColor = C255(COLOR_RED); // { 150, 70, 70, 255 };
     sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
@@ -37,7 +37,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         DrawCommand drawSprite{};
         drawSprite.color = sprite.color;
         drawSprite.rect.x = position->pos.x;
-        drawSprite.rect.y = position->pos.y;
+        drawSprite.rect.y = position->pos.y - position->pos.z;
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
         drawQueue.push(drawSprite);
@@ -52,7 +52,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 DrawCommand attackOverlay{};
                 attackOverlay.color = sprite.attackColor;
                 attackOverlay.rect = drawSprite.rect;
-                attackOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
+                attackOverlay.rect.y += sprite.size.y - overlayHeight;
                 attackOverlay.rect.h = ceilf(overlayHeight);
                 drawQueue.push(attackOverlay);
             }
@@ -64,7 +64,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 DrawCommand defendOverlay{};
                 defendOverlay.color = sprite.defendColor;
                 defendOverlay.rect = drawSprite.rect;
-                defendOverlay.rect.y = position->pos.y + sprite.size.y - overlayHeight;
+                defendOverlay.rect.y += sprite.size.y - overlayHeight;
                 defendOverlay.rect.h = ceilf(overlayHeight);
                 drawQueue.push(defendOverlay);
             }

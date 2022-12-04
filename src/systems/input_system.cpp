@@ -75,10 +75,11 @@ void InputSystem::CheckHotkeys(
         bool ctrl = lCtrl || rCtrl;
         bool alt = lAlt || rAlt;
 #endif
+        bool modAny = hotkey.modMask == HotkeyMod_Any;
         bool modShift = shift == (hotkey.modMask & HotkeyMod_Shift);
         bool modCtrl = ctrl == (hotkey.modMask & HotkeyMod_Ctrl);
         bool modAlt = alt == (hotkey.modMask & HotkeyMod_Alt);
-        bool modMatch = modShift && modCtrl && modAlt;
+        bool modMatch = modAny || (modShift && modCtrl && modAlt);
 
         bool key0 = buttons[k0].Active(includehandled);
         bool key1 = !k1 || buttons[k1].Active(includehandled);

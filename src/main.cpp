@@ -47,13 +47,18 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     printf("%u: player\n", uidPlayer);
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_Up);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_Left);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_Down);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_Right);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_RunUp);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_RunLeft);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_RunDown);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_RunRight);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_WalkUp);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_WalkLeft);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_WalkDown);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_WalkRight);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Input_Jump);
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
@@ -66,8 +71,13 @@ UID create_player(Depot &depot, AudioSystem &audioSystem)
     };
 
     Body *body = (Body *)depot.AddFacet(uidPlayer, Facet_Body);
-    //body->gravity = 0.0f;
+    body->gravity = -3.0f;
     body->friction = 0.2f;
+    body->drag = 0.15f;
+    body->restitution = 0.0f;
+    body->jumpImpulse = 50.0f;
+    body->speed = 1.5f;
+    body->runMult = 1.5f;
 
     UID uidSoundPrimary = depot.Alloc();
     Sound *soundPrimary = (Sound *)depot.AddFacet(uidSoundPrimary, Facet_Sound);
@@ -134,7 +144,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     triggerInputSecondary->message.uid = uidNarrator;
     triggerInputSecondary->message.type = MsgType_Text_Change;
     triggerInputSecondary->message.data.trigger_text_change.text = "Secondary";
-    triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_BLUE);
+    triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_DODGER);
 
     TriggerList *triggerList = (TriggerList *)depot.GetFacet(subject, Facet_TriggerList);
     triggerList->triggers.push_back(uidTriggerPrimary);
@@ -395,7 +405,7 @@ int main(int argc, char *argv[])
 #endif
 
         // Render draw queue(s)
-        renderSystem.Clear(C255(COLOR_AQUA));
+        renderSystem.Clear(C_GRASS);
         renderSystem.Flush(spriteQueue);
         renderSystem.Flush(textQueue);
         renderSystem.Present();

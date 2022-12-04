@@ -16,6 +16,7 @@ enum HotkeyModifiers {
     HotkeyMod_Shift = 1 << 0,
     HotkeyMod_Ctrl  = 1 << 1,
     HotkeyMod_Alt   = 1 << 2,
+    HotkeyMod_Any   = HotkeyMod_Shift | HotkeyMod_Ctrl | HotkeyMod_Alt
 };
 
 struct KeymapHotkey {
