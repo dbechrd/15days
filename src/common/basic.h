@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #define FDOV_FULLSCREEN 0
+#define FDOV_DEBUG_BBOX 0
 
 // TODO: These need to be queried from rendersystem or something
 #if FDOV_FULLSCREEN

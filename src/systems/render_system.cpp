@@ -133,7 +133,7 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             text.cache.str = (char *)malloc(strlen(text.str));
             memcpy(text.cache.str, text.str, strLen);
 
-            SDL_Surface *surface = TTF_RenderText_Blended(text.font, text.str, { 255, 255, 255, 255 });
+            SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(text.font, text.str, { 255, 255, 255, 255 }, 300);
             text.cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
             text.cache.textureSize = { (float)surface->w, (float)surface->h };
             SDL_FreeSurface(surface);
@@ -160,6 +160,64 @@ void RenderSystem::Flush(DrawQueue &drawQueue)
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
             SDL_RenderFillRect(renderer, &rect);
         }
+#if 0
+        vec2 verts[] = {
+            { (float)rect.x         , (float)rect.y + rect.h },
+            { (float)rect.x + rect.w, (float)rect.y + rect.h },
+            { (float)rect.x + rect.w, (float)rect.y },
+            { (float)rect.x         , (float)rect.y },
+        };
+
+        vec4 colors_f32[4] = {
+            C255(COLOR_RED),
+            C255(COLOR_GREEN),
+            C255(COLOR_BLUE),
+            C255(COLOR_YELLOW)
+        };
+
+        SDL_Color colors_u8[4]{};
+        for (int i = 0; i < 4; i++) {
+            colors_u8[i] = {
+                (Uint8)colors_f32[i].r,
+                (Uint8)colors_f32[i].g,
+                (Uint8)colors_f32[i].b,
+                (Uint8)colors_f32[i].a
+            };
+        }
+
+        vec2 uvs[] = {
+            { 0, 0 },
+            { 1, 0 },
+            { 1, 1 },
+            { 0, 1 }
+        };
+
+        int indices[] = { 0, 1, 2, 0, 2, 3 };
+
+        int err = SDL_RenderGeometryRaw(renderer,
+            0, //cmd.tex,
+            (float *)verts, sizeof(*verts),
+            colors_u8, sizeof(*colors_u8),
+            (float *)uvs, sizeof(*uvs),
+            ARRAY_SIZE(verts),
+            (void *)indices, ARRAY_SIZE(indices), sizeof(*indices));
+        if (err) {
+            printf("ERROR: Failed to render raw geometry: [%d] %s\n", err, SDL_GetError());
+        }
+#endif
+
+#if FDOV_DEBUG_BBOX
+        SDL_Point points[] = {
+            { rect.x         , rect.y + rect.h },
+            { rect.x + rect.w, rect.y + rect.h },
+            { rect.x + rect.w, rect.y },
+            { rect.x         , rect.y },
+            { rect.x         , rect.y + rect.h },
+        };
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderDrawLines(renderer, points, ARRAY_SIZE(points));
+#endif
 
         drawQueue.pop();
     }

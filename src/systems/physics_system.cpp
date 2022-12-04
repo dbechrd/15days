@@ -3,39 +3,6 @@
 
 void PhysicsSystem::React(double now, Depot &depot)
 {
-    for (Body &body : depot.body) {
-        Text *text = (Text *)depot.GetFacet(body.uid, Facet_Text);
-        if (!text) continue;
-
-        Sprite *sprite = (Sprite *)depot.GetFacet(body.uid, Facet_Sprite);
-
-       /* size_t maxLen = 1024;
-        char *debugText = (char *)depot.frameArena.Alloc(maxLen);
-        if (!debugText) {
-            printf("ERROR: failed to allocate space on frame arena for physics debug text for entity %u\n", body.uid);
-            continue;
-        }
-
-        snprintf(debugText, maxLen,
-            "vel: %.2f %.2f %.2f",
-            body.velocity.x,
-            body.velocity.y,
-            body.velocity.z
-        );
-
-        Message updateBodyDebugText{};
-        updateBodyDebugText.uid = body.uid;
-        updateBodyDebugText.type = MsgType_Text_Change;
-        updateBodyDebugText.data.trigger_text_change.text = debugText;
-        updateBodyDebugText.data.trigger_text_change.color = C255(COLOR_WHITE);
-        if (sprite) {
-            updateBodyDebugText.data.trigger_text_change.offset = {
-                sprite->size.w / 2,
-                -10
-            };
-        }
-        depot.msgQueue.push_back(updateBodyDebugText);*/
-    }
 }
 
 void PhysicsSystem::Behave(double now, Depot &depot, double dt)
@@ -127,9 +94,9 @@ void PhysicsSystem::Behave(double now, Depot &depot, double dt)
         }
 
         snprintf(debugText, maxLen,
-            "drg: %.2f %.2f %.2f "
-            "frc: %.2f %.2f %.2f "
-            "vel: %.2f %.2f %.12f",
+            "drg: %7.2f %7.2f %7.2f\n"
+            "frc: %7.2f %7.2f %7.2f\n"
+            "vel: %7.2f %7.2f %7.2f",
             drag.x,
             drag.y,
             drag.z,
