@@ -3,11 +3,11 @@
 #include "../common/message.h"
 #include "dlb/dlb_types.h"
 
-void MovementSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+void MovementSystem::React(double now, Depot &depot)
 {
-    size_t size = msgQueue.size();
+    size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = msgQueue[i];
+        Message &msg = depot.msgQueue[i];
         Body *body = (Body *)depot.GetFacet(msg.uid, Facet_Body);
         if (!body) {
             continue;

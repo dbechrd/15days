@@ -57,7 +57,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     }
 #endif
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, -1, 0); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
         return FDOV_INIT_FAILED;
@@ -70,10 +70,10 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     return FDOV_SUCCESS;
 }
 
-void RenderSystem::DestroyDepot(const Depot &depot)
+void RenderSystem::DestroyDepot(Depot &depot)
 {
-    for (const Text &text : depot.text) {
-        SDL_DestroyTexture(text.cache.tex);
+    for (Text &text : depot.text) {
+        text.cache.Destroy();
     }
 }
 
@@ -95,9 +95,9 @@ void RenderSystem::Clear(vec4 color)
     SDL_RenderClear(renderer);
 }
 
-void RenderSystem::React(double now, Depot &depot, const MsgQueue &msgQueue)
+void RenderSystem::React(double now, Depot &depot)
 {
-    for (const Message &msg : msgQueue) {
+    for (const Message &msg : depot.msgQueue) {
         switch (msg.type) {
             case MsgType_Input_Quit:
             {
@@ -121,18 +121,21 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             // TTF_STYLE_STRIKETHROUGH 0x08
             //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 
-            SDL_Surface *surface = TTF_RenderText_Blended(text.font, text.text, { 255, 255, 255, 255 });
-            SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-            SDL_DestroyTexture(text.cache.tex);
+            text.cache.Destroy();
+            if (!text.str) {
+                continue;
+            }
 
             text.cache.font = text.font;
-            free((void *)text.cache.text);
-            size_t textLen = strlen(text.text);
-            text.cache.text = (char *)malloc(strlen(text.text));
-            memcpy(text.cache.text, text.text, textLen);
             text.cache.color = text.color;
-            text.cache.tex = texture;
-            text.cache.texSize = { (float)surface->w, (float)surface->h };
+
+            size_t strLen = strlen(text.str);
+            text.cache.str = (char *)malloc(strlen(text.str));
+            memcpy(text.cache.str, text.str, strLen);
+
+            SDL_Surface *surface = TTF_RenderText_Blended(text.font, text.str, { 255, 255, 255, 255 });
+            text.cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
+            text.cache.textureSize = { (float)surface->w, (float)surface->h };
             SDL_FreeSurface(surface);
         }
     }

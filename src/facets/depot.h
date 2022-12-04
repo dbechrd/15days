@@ -1,4 +1,5 @@
 #pragma once
+#include "../common/arena.h"
 #include "../common/basic.h"
 #include "../common/game_state.h"
 
@@ -51,6 +52,9 @@ struct Depot {
     std::vector<Trigger>     trigger     {};
     std::vector<TriggerList> triggerList {};
 
+    MsgQueue msgQueue{};
+    Arena frameArena{};
+
     UID Alloc(void);
     void *AddFacet(UID uid, FacetType type);
     void *GetFacet(UID uid, FacetType type);
@@ -68,12 +72,30 @@ struct DepotSystem {
     {
         gameState = state;
         gameStatePending = gameState;
+        for (Depot &depot : depots) {
+            depot.frameArena.Init(KB(16));
+        }
+    }
+
+    void Destroy(void)
+    {
+        for (Depot &depot : depots) {
+            depot.frameArena.Destroy();
+        }
     }
 
     void BeginFrame(void)
     {
         // TODO: Other state change stuff if these differ?
         gameState = gameStatePending;
+    }
+
+    void EndFrame(void)
+    {
+        for (Depot &depot : depots) {
+            depot.msgQueue.clear();
+            depot.frameArena.Clear();
+        }
     }
 
     Depot &ForState(GameState state)

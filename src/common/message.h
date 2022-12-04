@@ -57,9 +57,14 @@ struct Msg_Trigger_Sound_Play {
     bool override {};
 };
 
+struct Depot;
+struct Msg_Trigger_Text_Change;
+typedef void (*TextChangeCallback)(Depot &depot, UID subject, Msg_Trigger_Text_Change *data);
 struct Msg_Trigger_Text_Change {
-    const char *text  {};
-    vec4        color {};
+    const char         *str      {};
+    vec2                offset   {};
+    vec4                color    {};
+    TextChangeCallback  callback {};
 };
 
 struct Message {

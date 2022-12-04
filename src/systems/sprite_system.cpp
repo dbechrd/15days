@@ -10,7 +10,7 @@ void SpriteSystem::InitSprite(Sprite &sprite)
     sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
 }
 
-void SpriteSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+void SpriteSystem::React(double now, Depot &depot)
 {
     // TODO: Update sprite states based on game events (e.g. combat messages)
 }

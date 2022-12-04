@@ -2,11 +2,11 @@
 #include "../common/message.h"
 #include "../facets/depot.h"
 
-void CombatSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+void CombatSystem::React(double now, Depot &depot)
 {
-    size_t size = msgQueue.size();
+    size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = msgQueue[i];
+        Message &msg = depot.msgQueue[i];
         Combat *combat = (Combat *)depot.GetFacet(msg.uid, Facet_Combat);
         if (!combat) {
             continue;

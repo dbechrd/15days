@@ -1,13 +1,15 @@
 #include "depot.h"
 #include <cassert>
 
-UID Depot::Alloc(void) {
+UID Depot::Alloc(void)
+{
     UID uid = nextUid;
     nextUid++;
     return uid;
 }
 
-void *Depot::AddFacet(UID uid, FacetType type) {
+void *Depot::AddFacet(UID uid, FacetType type)
+{
     void *existingFacet = GetFacet(uid, type);
     if (existingFacet) {
         printf("WARN: AddFacet called more than once for same uid/type pair.\n");
@@ -53,7 +55,8 @@ void *Depot::AddFacet(UID uid, FacetType type) {
     return facet;
 }
 
-void *Depot::GetFacet(UID uid, FacetType type) {
+void *Depot::GetFacet(UID uid, FacetType type)
+{
     if (!indexByUid[type].contains(uid)) {
         return 0;
     }

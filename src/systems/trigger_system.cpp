@@ -1,10 +1,10 @@
 #include "trigger_system.h"
 
-void TriggerSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
+void TriggerSystem::React(double now, Depot &depot)
 {
-    size_t size = msgQueue.size();
+    size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = msgQueue[i];
+        Message &msg = depot.msgQueue[i];
         TriggerList *triggerList = (TriggerList *)depot.GetFacet(msg.uid, Facet_TriggerList);
         if (!triggerList) {
             continue;
@@ -17,7 +17,7 @@ void TriggerSystem::React(double now, Depot &depot, MsgQueue &msgQueue)
                 continue;
             }
             if (trigger->trigger == msg.type) {
-                msgQueue.push_back(trigger->message);
+                depot.msgQueue.push_back(trigger->message);
             }
         }
     }

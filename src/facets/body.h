@@ -10,6 +10,7 @@ struct Body : public Facet {
     float speed        {};
     float runMult      {};
     float gravity      {};
+    float invMass      {};
 
     vec3  velocity     {};
     vec2  moveBuffer   {};
