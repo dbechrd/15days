@@ -3,11 +3,10 @@
 
 void InputSystem::ProcessInput(
     double now,
-    const InputQueue &inputQueue,
-    Keymap &keymap,
-    MsgQueue &msgQueue)
+    Depot &depot,
+    const InputQueue &inputQueue)
 {
-#if 0
+#if 1
     bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(true);
     static bool ctrlWasPressed = 0;
     if (lCtrl && lCtrl != ctrlWasPressed) {
@@ -20,8 +19,10 @@ void InputSystem::ProcessInput(
     for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
         buttons[i].BeginFrame();
     }
-    for (KeymapHotkey &hotkey : keymap.hotkeys) {
-        hotkey.state.BeginFrame();
+    for (Keymap &keymap : depot.keymap) {
+        for (KeymapHotkey &hotkey : keymap.hotkeys) {
+            hotkey.state.BeginFrame();
+        }
     }
 
     // Process each input event
@@ -29,20 +30,24 @@ void InputSystem::ProcessInput(
         // Process a single event
         buttons[e.scancode].Set(e.down, now);
 
-        // Check if the event triggered any new hotkeys
-        CheckHotkeys(now, buttons, keymap, msgQueue);
+        for (Keymap &keymap : depot.keymap) {
+            // Check if the event triggered any new hotkeys
+            CheckHotkeys(now, buttons, keymap, depot.msgQueue);
+        }
     }
 
-    // Trigger commands for repeating hotkeys that are still active but
-    // didn't change state (i.e. handled == false check in Active())
-    for (KeymapHotkey &hotkey : keymap.hotkeys) {
-        bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
-        if (active) {
-            Message msg{};
-            msg.uid = keymap.uid;
-            msg.type = hotkey.msgType;
-            // TODO: Set msg.data if necessary? Hmm..
-            msgQueue.push_back(msg);
+    for (Keymap &keymap : depot.keymap) {
+        // Trigger commands for repeating hotkeys that are still active but
+        // didn't change state (i.e. handled == false check in Active())
+        for (KeymapHotkey &hotkey : keymap.hotkeys) {
+            bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
+            if (active) {
+                Message msg{};
+                msg.uid = keymap.uid;
+                msg.type = hotkey.msgType;
+                // TODO: Set msg.data if necessary? Hmm..
+                depot.msgQueue.push_back(msg);
+            }
         }
     }
 }

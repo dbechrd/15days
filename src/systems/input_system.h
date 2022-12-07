@@ -7,9 +7,8 @@ struct InputSystem {
 public:
     void ProcessInput(
         double now,
-        const InputQueue &inputQueue,
-        Keymap &keymap,
-        MsgQueue &msgQueue);
+        Depot &depot,
+        const InputQueue &inputQueue);
 
 private:
     ButtonState buttons[FDOV_SCANCODE_COUNT]{};

@@ -29,7 +29,7 @@ double clock_now(void)
     return now;
 }
 
-UID create_global_keymap(Depot &depot)
+UID create_global_keymap(Depot &depot, AudioSystem &audioSystem)
 {
     // TODO: This is maybe "Menu" or something?
     UID uid = depot.Alloc();
@@ -40,6 +40,40 @@ UID create_global_keymap(Depot &depot)
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_V, 0, 0, Hotkey_Press, MsgType_Render_ToggleVsync);
 
+    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Card_DragBegin);
+    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Card_DragEnd);
+
+    Cursor *cursor = (Cursor *)depot.AddFacet(uid, Facet_Cursor);
+    UNUSED(cursor);
+
+    UID uidSoundDragBegin = depot.Alloc();
+    Sound *soundDragBegin = (Sound *)depot.AddFacet(uidSoundDragBegin, Facet_Sound);
+    audioSystem.InitSound(*soundDragBegin, "audio/drag_begin.wav");
+
+    UID uidSoundDragEnd = depot.Alloc();
+    Sound *soundDragEnd = (Sound *)depot.AddFacet(uidSoundDragEnd, Facet_Sound);
+    audioSystem.InitSound(*soundDragEnd, "audio/drag_end.wav");
+
+    UID uidTriggerDragBegin = depot.Alloc();
+    printf("%u: card trigger drag begin sound\n", uidTriggerDragBegin);
+    Trigger *triggerInputDragBegin = (Trigger *)depot.AddFacet(uidTriggerDragBegin, Facet_Trigger);
+    triggerInputDragBegin->trigger = MsgType_Card_DragBegin;
+    triggerInputDragBegin->message.uid = uidSoundDragBegin;
+    triggerInputDragBegin->message.type = MsgType_Audio_PlaySound;
+    triggerInputDragBegin->message.data.audio_playsound.override = true;
+
+    UID uidTriggerDragEnd = depot.Alloc();
+    printf("%u: card trigger drag end sound\n", uidTriggerDragEnd);
+    Trigger *triggerInputDragEnd = (Trigger *)depot.AddFacet(uidTriggerDragEnd, Facet_Trigger);
+    triggerInputDragEnd->trigger = MsgType_Card_DragEnd;
+    triggerInputDragEnd->message.uid = uidSoundDragEnd;
+    triggerInputDragEnd->message.type = MsgType_Audio_PlaySound;
+    triggerInputDragEnd->message.data.audio_playsound.override = true;
+
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uid, Facet_TriggerList);
+    triggerList->triggers.push_back(uidTriggerDragBegin);
+    triggerList->triggers.push_back(uidTriggerDragEnd);
+
     return uid;
 }
 
@@ -48,17 +82,10 @@ UID create_player(Depot &depot, AudioSystem &audioSystem, TTF_Font *font)
     UID uidPlayer = depot.Alloc();
     printf("%u: player\n", uidPlayer);
 
-    Cursor *cursor = (Cursor *)depot.AddFacet(uidPlayer, Facet_Cursor);
-    UNUSED(cursor);
-    // TODO: Assign specific input pointer device to this player?
-
     // TODO: Make keymaps be per-mode *not* Depots. There should only be 1 depot.
     // TODO: Make a "card drag" mode that has a different keymap for the player
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
-
-    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Card_DragBegin);
-    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Card_DragEnd);
 
     keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
     keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
@@ -245,34 +272,6 @@ UID create_card(Depot &depot, AudioSystem &audioSystem, TTF_Font *font)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    UID uidSoundDragBegin = depot.Alloc();
-    Sound *soundDragBegin = (Sound *)depot.AddFacet(uidSoundDragBegin, Facet_Sound);
-    audioSystem.InitSound(*soundDragBegin, "audio/primary.wav");
-
-    UID uidSoundDragEnd = depot.Alloc();
-    Sound *soundDragEnd = (Sound *)depot.AddFacet(uidSoundDragEnd, Facet_Sound);
-    audioSystem.InitSound(*soundDragEnd, "audio/secondary.wav");
-
-    UID uidTriggerDragBegin = depot.Alloc();
-    printf("%u: card trigger drag begin sound\n", uidTriggerDragBegin);
-    Trigger *triggerInputDragBegin = (Trigger *)depot.AddFacet(uidTriggerDragBegin, Facet_Trigger);
-    triggerInputDragBegin->trigger = MsgType_Card_DragBegin;
-    triggerInputDragBegin->message.uid = uidSoundDragBegin;
-    triggerInputDragBegin->message.type = MsgType_Audio_PlaySound;
-    triggerInputDragBegin->message.data.audio_playsound.override = true;
-
-    UID uidTriggerDragEnd = depot.Alloc();
-    printf("%u: card trigger drag end sound\n", uidTriggerDragEnd);
-    Trigger *triggerInputDragEnd = (Trigger *)depot.AddFacet(uidTriggerDragEnd, Facet_Trigger);
-    triggerInputDragEnd->trigger = MsgType_Card_DragEnd;
-    triggerInputDragEnd->message.uid = uidSoundDragEnd;
-    triggerInputDragEnd->message.type = MsgType_Audio_PlaySound;
-    triggerInputDragEnd->message.data.audio_playsound.override = true;
-
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCard, Facet_TriggerList);
-    triggerList->triggers.push_back(uidTriggerDragBegin);
-    triggerList->triggers.push_back(uidTriggerDragEnd);
-
     return uidCard;
 }
 
@@ -372,7 +371,7 @@ int main(int argc, char *argv[])
 
     // Create an entity to hold the global keymap (the plan is to have a global
     // keymap per gamestate eventually)
-    create_global_keymap(playDepot);
+    create_global_keymap(playDepot, audioSystem);
 
     // Create player/narrator
     UID player = create_player(playDepot, audioSystem, fontFixed);
@@ -450,9 +449,7 @@ int main(int argc, char *argv[])
             // only if the mouse is within the window bounds or smth)
             //
             // Translate inputs into messages using the active keymap(s)
-            for (Keymap &keymap : depot.keymap) {
-                inputSystem.ProcessInput(now, inputQueue, keymap, depot.msgQueue);
-            }
+            inputSystem.ProcessInput(now, depot, inputQueue);
             inputQueue.clear();
         }
 
