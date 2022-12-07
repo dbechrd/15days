@@ -1,7 +1,7 @@
 #pragma once
+#include "../common/basic.h"
 #include "../common/draw_list.h"
 #include "../common/error.h"
-#include "../facets/depot.h"
 
 struct SDL_Window;
 struct SDL_Renderer;

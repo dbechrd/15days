@@ -1,7 +1,7 @@
 #pragma once
 #include "../common/basic.h"
 #include "../common/error.h"
-#include "../facets/depot.h"
+#include "../facets/sound.h"
 
 struct AudioSystem {
     FDOVResult Init(void);

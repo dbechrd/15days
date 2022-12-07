@@ -1,7 +1,11 @@
 #pragma once
 #define DLB_MATH_EXTERN
 #include "dlb/dlb_math.h"
+#include "SDL/SDL.h"
+#include "SDL/SDL_ttf.h"
+#include <cassert>
 #include <cstdint>
+#include <cstdio>
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0
@@ -19,6 +23,7 @@
 #endif
 
 typedef uint32_t UID;
+struct Depot;
 
 #define C255(color) {\
     color.r * 255, \

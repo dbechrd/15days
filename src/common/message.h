@@ -14,6 +14,11 @@ enum MsgType {
     MsgType_Combat_Notify_AttackBegin,
     MsgType_Combat_Notify_DefendBegin,
 
+    MsgType_FpsCounter_UpdateText,
+
+    MsgType_Global_PrimaryPress,
+    MsgType_Global_PrimaryRelease,
+
     MsgType_Movement_WalkUp,
     MsgType_Movement_WalkLeft,
     MsgType_Movement_WalkDown,
@@ -28,6 +33,7 @@ enum MsgType {
     MsgType_Physics_Notify_Collide,
     MsgType_Physics_Notify_Position_Change,  // TODO: Use this to update overhead text
 
+    MsgType_Render_FrameBegin,
     MsgType_Render_Quit,
     MsgType_Render_ToggleVsync,
 
@@ -53,6 +59,10 @@ struct Msg_Combat_Notify_DefendBegin {
     int shield {};  // or whatever
 };
 
+struct Msg_Render_FrameBegin {
+    double realDtSmooth {};
+};
+
 struct Msg_Physics_ApplyImpulse {
     vec2 v {};  // impulse vector (dir + mag)
 };
@@ -76,11 +86,12 @@ struct Message {
     UID     uid  {};  // primary subject of interest
     MsgType type {};
     union {
+        Msg_Audio_PlaySound audio_playsound;
         Msg_Combat_Notify_AttackBegin combat_attackbegin;
         Msg_Combat_Notify_DefendBegin combat_defendbegin;
         Msg_Physics_ApplyImpulse physics_applyimpulse;
         Msg_Physics_Notify_Collide physics_notify_collide;
-        Msg_Audio_PlaySound audio_playsound;
+        Msg_Render_FrameBegin render_framebegin;
         Msg_Text_UpdateText text_updatetext;
     } data {};
 

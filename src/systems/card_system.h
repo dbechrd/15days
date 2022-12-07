@@ -1,5 +1,5 @@
 #pragma once
-#include "../facets/depot.h"
+#include "../common/basic.h"
 
 struct CardSystem {
     void React(double now, Depot &depot);

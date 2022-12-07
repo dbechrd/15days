@@ -1,5 +1,5 @@
 #include "input_system.h"
-#include <cassert>
+#include "../facets/depot.h"
 
 void InputSystem::ProcessInput(
     double now,

@@ -1,8 +1,5 @@
 #include "render_system.h"
-#include "../common/draw_list.h"
-#include "SDL/SDL.h"
-#include "SDL/SDL_ttf.h"
-#include <cstdio>
+#include "../facets/depot.h"
 
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
 {

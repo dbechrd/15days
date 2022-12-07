@@ -1,6 +1,5 @@
 #include "text_system.h"
-#include "../facets/position.h"
-#include "../facets/text.h"
+#include "../facets/depot.h"
 
 void TextSystem::React(double now, Depot &depot)
 {

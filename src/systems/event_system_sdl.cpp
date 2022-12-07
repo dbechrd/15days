@@ -1,6 +1,5 @@
 #include "event_system_sdl.h"
 #include "input_system.h"
-#include "SDL/SDL.h"
 
 void EventSystemSDL::ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue)
 {

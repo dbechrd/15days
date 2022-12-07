@@ -2,7 +2,7 @@
 #include "facet.h"
 #include "../common/basic.h"
 #include "../common/message.h"
-#include <vector>
+#include <unordered_set>
 
 struct Msg_Trigger {
 
@@ -18,5 +18,5 @@ struct Trigger : public Facet {
 };
 
 struct TriggerList : public Facet {
-    std::vector<UID> triggers{};
+    std::unordered_set<UID> triggers{};
 };

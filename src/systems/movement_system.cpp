@@ -1,7 +1,5 @@
 #include "movement_system.h"
 #include "../facets/depot.h"
-#include "../common/message.h"
-#include "dlb/dlb_types.h"
 
 void MovementSystem::React(double now, Depot &depot)
 {

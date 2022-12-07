@@ -1,6 +1,6 @@
 #pragma once
+#include "../common/basic.h"
 #include "../common/draw_list.h"
-#include "../facets/depot.h"
 #include "../facets/sprite.h"
 
 struct SpriteSystem {

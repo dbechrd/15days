@@ -1,5 +1,4 @@
 #include "combat_system.h"
-#include "../common/message.h"
 #include "../facets/depot.h"
 
 void CombatSystem::React(double now, Depot &depot)

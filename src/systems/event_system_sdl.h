@@ -1,4 +1,5 @@
 #pragma once
+#include "../common/basic.h"
 #include "../common/input.h"
 #include "../common/message.h"
 

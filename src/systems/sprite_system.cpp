@@ -1,6 +1,5 @@
 #include "sprite_system.h"
 #include "../facets/depot.h"
-#include <cassert>
 
 void SpriteSystem::InitSprite(Sprite &sprite)
 {

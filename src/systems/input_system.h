@@ -1,7 +1,8 @@
 #pragma once
+#include "../facets/keymap.h"
+#include "../common/button_state.h"
 #include "../common/input.h"
 #include "../common/message.h"
-#include "../facets/depot.h"
 
 struct InputSystem {
 public:

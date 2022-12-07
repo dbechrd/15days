@@ -1,7 +1,5 @@
 #include "card_system.h"
 #include "../facets/depot.h"
-#include "../common/message.h"
-#include "dlb/dlb_types.h"
 
 void CardSystem::React(double now, Depot &depot)
 {
@@ -13,16 +11,31 @@ void CardSystem::React(double now, Depot &depot)
             continue;
         }
 
+        // This seems like it should generate Card_DragBegin.. not receive it..
+        // Perhaps there's a missing layer of Msg_Input_DragRequest or something?
         switch (msg.type) {
-            case MsgType_Card_DragBegin: {
+            case MsgType_Global_PrimaryPress: {
                 int x = 0;
                 int y = 0;
                 SDL_GetMouseState(&x, &y);
                 cursor->uidDragSubject = FindCardAtScreenPos(depot, x, y, &cursor->dragOffset);
+                if (cursor->uidDragSubject) {
+                    Message dragBegin{};
+                    dragBegin.type = MsgType_Card_DragBegin;
+                    dragBegin.uid = cursor->uidDragSubject;
+                    depot.msgQueue.push_back(dragBegin);
+                }
                 break;
             }
-            case MsgType_Card_DragEnd: {
-                cursor->uidDragSubject = 0;
+            case MsgType_Global_PrimaryRelease: {
+                if (cursor->uidDragSubject) {
+                    Message dragEnd{};
+                    dragEnd.type = MsgType_Card_DragEnd;
+                    dragEnd.uid = cursor->uidDragSubject;
+                    depot.msgQueue.push_back(dragEnd);
+
+                    cursor->uidDragSubject = 0;
+                }
                 break;
             }
             default: break;
@@ -48,6 +61,9 @@ UID CardSystem::FindCardAtScreenPos(Depot &depot, int x, int y, vec2 *offset)
     for (Position &position : depot.position) {
         vec2 pos = { position.pos.x, position.pos.y - position.pos.z };
         vec2 size = { 20, 20 };
+
+        // TODO: If entity has Sprite *and* Text, check *both* bounding boxes
+        // and allow drag if either is clicked
         Sprite *sprite = (Sprite *)depot.GetFacet(position.uid, Facet_Sprite);
         if (sprite) {
             size = sprite->size;

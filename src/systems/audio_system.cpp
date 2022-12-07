@@ -1,6 +1,5 @@
 #include "audio_system.h"
-#include "SDL/SDL.h"
-#include <cstdio>
+#include "../facets/depot.h"
 
 void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
 {
