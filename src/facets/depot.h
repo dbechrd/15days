@@ -6,6 +6,7 @@
 #include "attach.h"
 #include "body.h"
 #include "combat.h"
+#include "cursor.h"
 #include "keymap.h"
 #include "position.h"
 #include "sound.h"
@@ -15,18 +16,6 @@
 
 #include <vector>
 #include <unordered_map>
-
-//-----------------------------------------------------------------------------
-// Facets
-//-----------------------------------------------------------------------------
-
-// Location of mouse cursor in screen coords (and world coords if relevant)
-struct InputCursor : public Facet {
-    vec2  screen      {};  // position of cursor in screen coordinates
-    // TODO: CameraSystem should probably populate this?
-    bool  worldActive {};  // if false, world position is undefined
-    vec2  world       {};  // position of cursor in world coordinates
-};
 
 //-----------------------------------------------------------------------------
 // Facet Depot
@@ -43,7 +32,7 @@ struct Depot {
     std::vector<Attach>      attach      {};
     std::vector<Body>        body        {};
     std::vector<Combat>      combat      {};
-    std::vector<InputCursor> inputCursor {};  // could be useful for multiplayer (net or local)
+    std::vector<Cursor>      cursor      {};
     std::vector<Keymap>      keymap      {};
     std::vector<Position>    position    {};
     std::vector<Sound>       sound       {};

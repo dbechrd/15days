@@ -7,6 +7,15 @@ void InputSystem::ProcessInput(
     Keymap &keymap,
     MsgQueue &msgQueue)
 {
+#if 0
+    bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(true);
+    static bool ctrlWasPressed = 0;
+    if (lCtrl && lCtrl != ctrlWasPressed) {
+        printf("");
+    }
+    ctrlWasPressed = lCtrl;
+#endif
+
     // Reset state
     for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
         buttons[i].BeginFrame();
@@ -76,9 +85,9 @@ void InputSystem::CheckHotkeys(
         bool alt = lAlt || rAlt;
 #endif
         bool modAny = hotkey.modMask == HotkeyMod_Any;
-        bool modShift = shift == (hotkey.modMask & HotkeyMod_Shift);
-        bool modCtrl = ctrl == (hotkey.modMask & HotkeyMod_Ctrl);
-        bool modAlt = alt == (hotkey.modMask & HotkeyMod_Alt);
+        bool modShift = shift == ((hotkey.modMask & HotkeyMod_Shift) > 0);
+        bool modCtrl  = ctrl  == ((hotkey.modMask & HotkeyMod_Ctrl ) > 0);
+        bool modAlt   = alt   == ((hotkey.modMask & HotkeyMod_Alt  ) > 0);
         bool modMatch = modAny || (modShift && modCtrl && modAlt);
 
         bool key0 = buttons[k0].Active(includehandled);

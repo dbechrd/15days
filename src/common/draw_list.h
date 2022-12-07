@@ -6,6 +6,7 @@
 struct SDL_Texture;
 
 struct DrawCommand {
+    UID          uid   {};  // uid of entity that generated this draw command
     vec4         color {};
     rect         rect  {};
     SDL_Texture *tex   {};  // if null, draws colored rect

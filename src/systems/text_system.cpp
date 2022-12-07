@@ -13,11 +13,11 @@ void TextSystem::React(double now, Depot &depot)
         }
 
         switch (msg.type) {
-            case MsgType_Text_Change:
+            case MsgType_Text_UpdateText:
             {
-                text->str = msg.data.trigger_text_change.str;
-                text->offset = msg.data.trigger_text_change.offset;
-                text->color = msg.data.trigger_text_change.color;
+                text->str = msg.data.text_updatetext.str;
+                text->offset = msg.data.text_updatetext.offset;
+                text->color = msg.data.text_updatetext.color;
                 break;
             }
             default: break;
@@ -63,6 +63,7 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         }
 
         DrawCommand drawText{};
+        drawText.uid = text.uid;
         drawText.color = text.color;
         // TODO: TextAlign (always centered along x and y for now)
         drawText.rect.x = x;

@@ -6,7 +6,9 @@
 
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
 {
+#if FDOV_VSYNC
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "true");
+#endif
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
     int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
@@ -99,9 +101,16 @@ void RenderSystem::React(double now, Depot &depot)
 {
     for (const Message &msg : depot.msgQueue) {
         switch (msg.type) {
-            case MsgType_Input_Quit:
+            case MsgType_Render_Quit:
             {
                 running = false;
+                break;
+            }
+            case MsgType_Render_ToggleVsync:
+            {
+                static int vsync = FDOV_VSYNC;
+                vsync = !vsync;
+                SDL_RenderSetVSync(renderer, vsync);
                 break;
             }
             default: break;
@@ -141,7 +150,7 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
     }
 }
 
-void RenderSystem::Flush(DrawQueue &drawQueue)
+void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 {
     while (!drawQueue.empty()) {
         const DrawCommand &cmd = drawQueue.top();
@@ -217,6 +226,27 @@ void RenderSystem::Flush(DrawQueue &drawQueue)
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawLines(renderer, points, ARRAY_SIZE(points));
+#elif FDOV_DRAG_BBOX
+        bool uidBeingDragged = false;
+        for (Cursor &cursor : depot.cursor) {
+            if (cursor.uidDragSubject == cmd.uid) {
+                uidBeingDragged = true;
+                break;
+            }
+        }
+
+        if (uidBeingDragged) {
+            SDL_Point points[] = {
+                { rect.x         , rect.y + rect.h },
+                { rect.x + rect.w, rect.y + rect.h },
+                { rect.x + rect.w, rect.y },
+                { rect.x         , rect.y },
+                { rect.x         , rect.y + rect.h },
+            };
+
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawLines(renderer, points, ARRAY_SIZE(points));
+        }
 #endif
 
         drawQueue.pop();

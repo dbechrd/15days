@@ -16,7 +16,7 @@ struct RenderSystem {
 
     void React(double now, Depot &depot);
     void Behave(double now, Depot &depot, double dt);
-    void Flush(DrawQueue &drawQueue);
+    void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
 
 private:

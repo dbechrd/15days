@@ -1,6 +1,7 @@
 #include "common/message.h"
 #include "facets/depot.h"
 #include "systems/audio_system.h"
+#include "systems/card_system.h"
 #include "systems/combat_system.h"
 #include "systems/event_system_sdl.h"
 #include "systems/input_system.h"
@@ -35,8 +36,9 @@ UID create_global_keymap(Depot &depot)
     printf("%u: global keymap\n", uid);
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uid, Facet_Keymap);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Input_Quit);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Input_Quit);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Render_Quit);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Render_Quit);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_V, 0, 0, Hotkey_Press, MsgType_Render_ToggleVsync);
 
     return uid;
 }
@@ -46,19 +48,31 @@ UID create_player(Depot &depot, AudioSystem &audioSystem, TTF_Font *font)
     UID uidPlayer = depot.Alloc();
     printf("%u: player\n", uidPlayer);
 
+    Cursor *cursor = (Cursor *)depot.AddFacet(uidPlayer, Facet_Cursor);
+    UNUSED(cursor);
+    // TODO: Assign specific input pointer device to this player?
+
+    // TODO: Make keymaps be per-mode *not* Depots. There should only be 1 depot.
+    // TODO: Make a "card drag" mode that has a different keymap for the player
+
     Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Input_Primary);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Input_Secondary);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Input_Secondary_Press);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_RunUp);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_RunLeft);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_RunDown);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_RunRight);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Input_WalkUp);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Input_WalkLeft);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Input_WalkDown);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Input_WalkRight);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Input_Jump);
+
+    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Card_DragBegin);
+    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Card_DragEnd);
+
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
+    //keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Combat_Secondary_Press);
+
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_RunUp);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_RunLeft);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_RunDown);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_RunRight);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_WalkUp);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_WalkLeft);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_WalkDown);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_WalkRight);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
@@ -99,17 +113,17 @@ UID create_player(Depot &depot, AudioSystem &audioSystem, TTF_Font *font)
     UID uidTriggerPrimary = depot.Alloc();
     printf("%u: player trigger primary sound\n", uidTriggerPrimary);
     Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
-    triggerInputPrimary->trigger = MsgType_Input_Primary;
+    triggerInputPrimary->trigger = MsgType_Combat_Primary;
     triggerInputPrimary->message.uid = uidSoundPrimary;
-    triggerInputPrimary->message.type = MsgType_Sound_Play;
-    triggerInputPrimary->message.data.trigger_sound_play.override = true;
+    triggerInputPrimary->message.type = MsgType_Audio_PlaySound;
+    triggerInputPrimary->message.data.audio_playsound.override = true;
 
     UID uidTriggerSecondary = depot.Alloc();
     printf("%u: player trigger secondary sound\n", uidTriggerSecondary);
     Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
-    triggerInputSecondary->trigger = MsgType_Input_Secondary;
+    triggerInputSecondary->trigger = MsgType_Combat_Secondary;
     triggerInputSecondary->message.uid = uidSoundSecondary;
-    triggerInputSecondary->message.type = MsgType_Sound_Play;
+    triggerInputSecondary->message.type = MsgType_Audio_PlaySound;
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList);
     triggerList->triggers.push_back(uidTriggerPrimary);
@@ -140,20 +154,20 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *font)
     UID uidTriggerPrimary = depot.Alloc();
     printf("%u: narrator trigger primary text change\n", uidTriggerPrimary);
     Trigger *triggerInputPrimary = (Trigger *)depot.AddFacet(uidTriggerPrimary, Facet_Trigger);
-    triggerInputPrimary->trigger = MsgType_Input_Primary;
+    triggerInputPrimary->trigger = MsgType_Combat_Primary;
     triggerInputPrimary->message.uid = uidNarrator;
-    triggerInputPrimary->message.type = MsgType_Text_Change;
-    triggerInputPrimary->message.data.trigger_text_change.str = "Primary";
-    triggerInputPrimary->message.data.trigger_text_change.color = C255(COLOR_RED);
+    triggerInputPrimary->message.type = MsgType_Text_UpdateText;
+    triggerInputPrimary->message.data.text_updatetext.str = "Primary";
+    triggerInputPrimary->message.data.text_updatetext.color = C255(COLOR_RED);
 
     UID uidTriggerSecondary = depot.Alloc();
     printf("%u: narrator trigger secondary text change\n", uidTriggerSecondary);
     Trigger *triggerInputSecondary = (Trigger *)depot.AddFacet(uidTriggerSecondary, Facet_Trigger);
-    triggerInputSecondary->trigger = MsgType_Input_Secondary;
+    triggerInputSecondary->trigger = MsgType_Combat_Secondary;
     triggerInputSecondary->message.uid = uidNarrator;
-    triggerInputSecondary->message.type = MsgType_Text_Change;
-    triggerInputSecondary->message.data.trigger_text_change.str = "Secondary";
-    triggerInputSecondary->message.data.trigger_text_change.color = C255(COLOR_DODGER);
+    triggerInputSecondary->message.type = MsgType_Text_UpdateText;
+    triggerInputSecondary->message.data.text_updatetext.str = "Secondary";
+    triggerInputSecondary->message.data.text_updatetext.color = C255(COLOR_DODGER);
 
     TriggerList *triggerList = (TriggerList *)depot.GetFacet(subject, Facet_TriggerList);
     triggerList->triggers.push_back(uidTriggerPrimary);
@@ -200,6 +214,66 @@ UID create_fps_counter(Depot &depot, TTF_Font *font)
     //   - Generate draw commands from the message queue
 
     return uidFpsCounter;
+}
+
+UID create_card(Depot &depot, AudioSystem &audioSystem, TTF_Font *font)
+{
+    UID uidCard = depot.Alloc();
+    printf("%u: card\n", uidCard);
+
+    Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
+    SpriteSystem::InitSprite(*sprite);
+
+    Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
+    position->pos = { 100, 100 };
+
+    Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
+    body->gravity = -50.0f;
+    body->friction = 0.001f;
+    //body->drag = 0.001f;
+    body->drag = 0.05f;
+    body->restitution = 0.0f;
+    body->jumpImpulse = 800.0f;
+    body->speed = 20.0f;
+    body->runMult = 2.0f;
+    float mass = 1.0f;
+    body->invMass = 1.0f / mass;
+
+    Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
+    debugText->font = font;
+    debugText->str = 0;
+    debugText->align = TextAlign_VBottom_HCenter;
+    debugText->color = C255(COLOR_WHITE);
+
+    UID uidSoundDragBegin = depot.Alloc();
+    Sound *soundDragBegin = (Sound *)depot.AddFacet(uidSoundDragBegin, Facet_Sound);
+    audioSystem.InitSound(*soundDragBegin, "audio/primary.wav");
+
+    UID uidSoundDragEnd = depot.Alloc();
+    Sound *soundDragEnd = (Sound *)depot.AddFacet(uidSoundDragEnd, Facet_Sound);
+    audioSystem.InitSound(*soundDragEnd, "audio/secondary.wav");
+
+    UID uidTriggerDragBegin = depot.Alloc();
+    printf("%u: card trigger drag begin sound\n", uidTriggerDragBegin);
+    Trigger *triggerInputDragBegin = (Trigger *)depot.AddFacet(uidTriggerDragBegin, Facet_Trigger);
+    triggerInputDragBegin->trigger = MsgType_Card_DragBegin;
+    triggerInputDragBegin->message.uid = uidSoundDragBegin;
+    triggerInputDragBegin->message.type = MsgType_Audio_PlaySound;
+    triggerInputDragBegin->message.data.audio_playsound.override = true;
+
+    UID uidTriggerDragEnd = depot.Alloc();
+    printf("%u: card trigger drag end sound\n", uidTriggerDragEnd);
+    Trigger *triggerInputDragEnd = (Trigger *)depot.AddFacet(uidTriggerDragEnd, Facet_Trigger);
+    triggerInputDragEnd->trigger = MsgType_Card_DragEnd;
+    triggerInputDragEnd->message.uid = uidSoundDragEnd;
+    triggerInputDragEnd->message.type = MsgType_Audio_PlaySound;
+    triggerInputDragEnd->message.data.audio_playsound.override = true;
+
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCard, Facet_TriggerList);
+    triggerList->triggers.push_back(uidTriggerDragBegin);
+    triggerList->triggers.push_back(uidTriggerDragEnd);
+
+    return uidCard;
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -258,6 +332,7 @@ int main(int argc, char *argv[])
     InputSystem    inputSystem    {};
 
     // These are probably order-dependent
+    CardSystem     cardSystem     {};
     MovementSystem movementSystem {};
     PhysicsSystem  physicsSystem  {};
     CombatSystem   combatSystem   {};
@@ -303,6 +378,8 @@ int main(int argc, char *argv[])
     UID player = create_player(playDepot, audioSystem, fontFixed);
     UID narrator = create_narrator(playDepot, player, fontFancy);
     UID fpsCounter = create_fps_counter(playDepot, fontFixed);
+    UID card = create_card(playDepot, audioSystem, fontFixed);
+    UNUSED(card);
 
     // Start the game
     depotSystem.TransitionTo(GameState_Play);
@@ -313,9 +390,11 @@ int main(int argc, char *argv[])
     InputQueue inputQueue {};  // raw input (abstracted from platform)
 
     uint64_t frame{};
+    double physicsAccum{};
     double nowPrev{};
     double now{};
     const double fixedDt = 1.0 / 60.0;
+    double realDtSmooth = fixedDt;
     while (renderSystem.Running()) {
         frame++;
 
@@ -323,7 +402,15 @@ int main(int argc, char *argv[])
         nowPrev = now;
         now = clock_now();
         double realDt = now - nowPrev;
-        double dt = MIN(realDt, fixedDt * 2.0);
+        realDt = MIN(realDt, fixedDt);  // cap to prevent spiral while debugging
+        realDtSmooth = LERP(realDtSmooth, realDt, 0.1);
+
+        physicsAccum += realDt;
+        int physicsIters = 0;
+        while (physicsAccum >= fixedDt) {
+            physicsIters++;
+            physicsAccum -= fixedDt;
+        }
 
         // Update game state
         depotSystem.BeginFrame();
@@ -333,13 +420,13 @@ int main(int argc, char *argv[])
         size_t fpsCounterMaxLen = 32;
         char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
         if (fpsCounterBuf) {
-            snprintf(fpsCounterBuf, fpsCounterMaxLen, "%.2f (%.2f ms)", 1.0f / dt, dt * 1000.0f);
+            snprintf(fpsCounterBuf, fpsCounterMaxLen, "%.2f fps (%.2f ms)", 1.0f / realDtSmooth, realDtSmooth * 1000.0f);
 
             Message updateFpsCounter{};
             updateFpsCounter.uid = fpsCounter;
-            updateFpsCounter.type = MsgType_Text_Change;
-            updateFpsCounter.data.trigger_text_change.str = fpsCounterBuf;
-            updateFpsCounter.data.trigger_text_change.color = C255(COLOR_WHITE);
+            updateFpsCounter.type = MsgType_Text_UpdateText;
+            updateFpsCounter.data.text_updatetext.str = fpsCounterBuf;
+            updateFpsCounter.data.text_updatetext.color = C255(COLOR_WHITE);
             depot.msgQueue.push_back(updateFpsCounter);
         } else {
             printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
@@ -348,9 +435,9 @@ int main(int argc, char *argv[])
         // Reset narrator text
         Message resetNarrator{};
         resetNarrator.uid = narrator;
-        resetNarrator.type = MsgType_Text_Change;
-        resetNarrator.data.trigger_text_change.str = "Neutral";
-        resetNarrator.data.trigger_text_change.color = C255(COLOR_GRAY_4);
+        resetNarrator.type = MsgType_Text_UpdateText;
+        resetNarrator.data.text_updatetext.str = "Neutral";
+        resetNarrator.data.text_updatetext.color = C255(COLOR_GRAY_4);
         depot.msgQueue.push_back(resetNarrator);
 
         {
@@ -369,28 +456,33 @@ int main(int argc, char *argv[])
             inputQueue.clear();
         }
 
-        // TODO: Should all messages in the queue be handled next frame?
-        //       i.e. double-buffer the msgQueue to avoid order dependencies?
         // Forward commands to any system that might want to react to them
+        // NOTE: Maybe this should be double-buffered with 1 frame delay?
+        cardSystem.React(now, depot);
         movementSystem.React(now, depot);
         physicsSystem.React(now, depot);
         combatSystem.React(now, depot);
         spriteSystem.React(now, depot);
         triggerSystem.React(now, depot);
         audioSystem.React(now, depot);
+        renderSystem.React(now, depot);
 
         // Update systems
-        movementSystem.Behave(now, depot, dt);
-        physicsSystem.Behave(now, depot, dt);
-        combatSystem.Behave(now, depot, dt);
-        spriteSystem.Behave(now, depot, dt);
-        audioSystem.Behave(now, depot, dt);
+        for (int i = 0; i < physicsIters; i++) {
+            cardSystem.Behave(now, depot, fixedDt);
+            movementSystem.Behave(now, depot, fixedDt);
+            physicsSystem.Behave(now, depot, fixedDt);
+            combatSystem.Behave(now, depot, fixedDt);
+            spriteSystem.Behave(now, depot, fixedDt);
+            audioSystem.Behave(now, depot, fixedDt);
+            renderSystem.Behave(now, depot, fixedDt);
+        }
 
-        // Debug info may need to be updated, so do these last
+        // Debug text may need to be updated, so update textSystem last
         textSystem.React(now, depot);
-        renderSystem.React(now, depot);
-        textSystem.Behave(now, depot, dt);
-        renderSystem.Behave(now, depot, dt);
+        for (int i = 0; i < physicsIters; i++) {
+            textSystem.Behave(now, depot, fixedDt);
+        }
 
         // Populate draw queue(s)
         DrawQueue spriteQueue{};
@@ -399,7 +491,7 @@ int main(int argc, char *argv[])
         textSystem.Display(now, depot, textQueue);
 
 #if 0
-        if (inputQueue.size() || msgQueue.size()) {
+        if (inputQueue.size() || depot.msgQueue.size()) {
             printf("Frame #%llu\n", frame);
             if (inputQueue.size()) {
                 printf("  input   : ");
@@ -408,9 +500,9 @@ int main(int argc, char *argv[])
                 }
                 putchar('\n');
             }
-            if (msgQueue.size()) {
+            if (depot.msgQueue.size()) {
                 printf("  messages: ");
-                for (const auto &msg : msgQueue) {
+                for (const auto &msg : depot.msgQueue) {
                     printf(" %3d", msg.type);
                 }
                 putchar('\n');
@@ -421,8 +513,8 @@ int main(int argc, char *argv[])
 
         // Render draw queue(s)
         renderSystem.Clear(C_GRASS);
-        renderSystem.Flush(spriteQueue);
-        renderSystem.Flush(textQueue);
+        renderSystem.Flush(playDepot, spriteQueue);
+        renderSystem.Flush(playDepot, textQueue);
         renderSystem.Present();
         depotSystem.EndFrame();
 

@@ -63,6 +63,13 @@ void EventSystemSDL::ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue)
                 }
                 break;
             }
+            case SDL_MOUSEMOTION:
+            {
+                // whenever mouse moves, store x/y position somewhere
+                // - OR -
+                // whenever i need mouse position, request it from SDL
+                //    compare to previously queried position, if different, generate mouse move trigger
+            }
             default: break;
         }
     }

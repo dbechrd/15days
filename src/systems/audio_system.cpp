@@ -131,9 +131,9 @@ void AudioSystem::React(double now, Depot &depot)
         //}
 
         switch (msg.type) {
-            case MsgType_Sound_Play:
+            case MsgType_Audio_PlaySound:
             {
-                PlaySound(depot, msg.uid, msg.data.trigger_sound_play.override);
+                PlaySound(depot, msg.uid, msg.data.audio_playsound.override);
                 break;
             }
             default: break;

@@ -35,6 +35,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         }
 
         DrawCommand drawSprite{};
+        drawSprite.uid = sprite.uid;
         drawSprite.color = sprite.color;
         drawSprite.rect.x = position->pos.x;
         drawSprite.rect.y = position->pos.y - position->pos.z;
@@ -50,6 +51,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 float overlayHeight = (1.0 - attackAlpha) * sprite.size.y;
 
                 DrawCommand attackOverlay{};
+                attackOverlay.uid = sprite.uid;
                 attackOverlay.color = sprite.attackColor;
                 attackOverlay.rect = drawSprite.rect;
                 attackOverlay.rect.y += sprite.size.y - overlayHeight;
@@ -62,6 +64,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 float overlayHeight = (1.0 - defendAlpha) * sprite.size.y;
 
                 DrawCommand defendOverlay{};
+                defendOverlay.uid = sprite.uid;
                 defendOverlay.color = sprite.defendColor;
                 defendOverlay.rect = drawSprite.rect;
                 defendOverlay.rect.y += sprite.size.y - overlayHeight;

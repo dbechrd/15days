@@ -16,7 +16,7 @@ void CombatSystem::React(double now, Depot &depot)
         bool canDefend = !(combat->attackStartedAt);
 
         switch (msg.type) {
-            case MsgType_Input_Primary:
+            case MsgType_Combat_Primary:
             {
                 if (canAttack) {
                     combat->attackStartedAt = now;
@@ -24,7 +24,7 @@ void CombatSystem::React(double now, Depot &depot)
                 }
                 break;
             }
-            case MsgType_Input_Secondary: {
+            case MsgType_Combat_Secondary: {
                 if (canDefend) {
                     combat->defendStartedAt = now;
                     combat->defendCooldown = 0.6;

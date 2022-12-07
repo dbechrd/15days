@@ -85,6 +85,7 @@ void PhysicsSystem::Behave(double now, Depot &depot, double dt)
             body.velocity.z *= -body.restitution;
         }
 
+#if FDOV_DEBUG_BODY
         // Update debug text
         size_t maxLen = 1024;
         char *debugText = (char *)depot.frameArena.Alloc(maxLen);
@@ -95,7 +96,7 @@ void PhysicsSystem::Behave(double now, Depot &depot, double dt)
 
         snprintf(debugText, maxLen,
             "drg: %7.2f %7.2f %7.2f\n"
-            "frc: %7.2f %7.2f %7.2f\n"
+            "fri: %7.2f %7.2f %7.2f\n"
             "vel: %7.2f %7.2f %7.2f",
             drag.x,
             drag.y,
@@ -110,16 +111,17 @@ void PhysicsSystem::Behave(double now, Depot &depot, double dt)
 
         Message updateBodyDebugText{};
         updateBodyDebugText.uid = body.uid;
-        updateBodyDebugText.type = MsgType_Text_Change;
-        updateBodyDebugText.data.trigger_text_change.str = debugText;
-        updateBodyDebugText.data.trigger_text_change.color = C255(COLOR_WHITE);
+        updateBodyDebugText.type = MsgType_Text_UpdateText;
+        updateBodyDebugText.data.text_updatetext.str = debugText;
+        updateBodyDebugText.data.text_updatetext.color = C255(COLOR_WHITE);
         if (sprite) {
-            updateBodyDebugText.data.trigger_text_change.offset = {
+            updateBodyDebugText.data.text_updatetext.offset = {
                 sprite->size.w / 2,
                 -10
             };
         }
         depot.msgQueue.push_back(updateBodyDebugText);
+#endif
 
         // Reset input buffers
         body.moveBuffer = VEC2_ZERO;

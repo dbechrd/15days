@@ -26,16 +26,17 @@ void *Depot::AddFacet(UID uid, FacetType type)
     size_t index = 0;
     Facet *facet = 0;
     switch (type) {
-        EMPLACE(Facet_Attach,       attach);
-        EMPLACE(Facet_Body,         body);
-        EMPLACE(Facet_Combat,       combat);
-        EMPLACE(Facet_Keymap,       keymap);
-        EMPLACE(Facet_Position,     position);
-        EMPLACE(Facet_Sound,        sound);
-        EMPLACE(Facet_Sprite,       sprite);
-        EMPLACE(Facet_Text,         text);
-        EMPLACE(Facet_Trigger,      trigger);
-        EMPLACE(Facet_TriggerList,  triggerList);
+        EMPLACE(Facet_Attach,      attach);
+        EMPLACE(Facet_Body,        body);
+        EMPLACE(Facet_Combat,      combat);
+        EMPLACE(Facet_Cursor,      cursor);
+        EMPLACE(Facet_Keymap,      keymap);
+        EMPLACE(Facet_Position,    position);
+        EMPLACE(Facet_Sound,       sound);
+        EMPLACE(Facet_Sprite,      sprite);
+        EMPLACE(Facet_Text,        text);
+        EMPLACE(Facet_Trigger,     trigger);
+        EMPLACE(Facet_TriggerList, triggerList);
         default: assert(!"what is that, mate?");
     }
 
@@ -66,6 +67,7 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Attach:      return &attach      [index];
         case Facet_Body:        return &body        [index];
         case Facet_Combat:      return &combat      [index];
+        case Facet_Cursor:      return &cursor      [index];
         case Facet_Keymap:      return &keymap      [index];
         case Facet_Position:    return &position    [index];
         case Facet_Sound:       return &sound       [index];

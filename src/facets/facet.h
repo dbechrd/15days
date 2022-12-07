@@ -5,6 +5,7 @@ enum FacetType {
     Facet_Attach,
     Facet_Body,
     Facet_Combat,
+    Facet_Cursor,
     Facet_Keymap,
     Facet_Text,
     Facet_Position,
