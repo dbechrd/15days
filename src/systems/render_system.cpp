@@ -136,7 +136,7 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             text.cache.color = text.color;
 
             size_t strLen = strlen(text.str);
-            text.cache.str = (char *)malloc(strlen(text.str));
+            text.cache.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cache.str));
             memcpy(text.cache.str, text.str, strLen);
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);

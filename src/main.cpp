@@ -188,13 +188,10 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy)
     // Self triggers
     add_text_update_trigger(depot, uidNarrator, MsgType_Render_FrameBegin,
         uidNarrator, "Neutral", C255(COLOR_GRAY_4));
-
     // Subject triggers
-    add_text_update_trigger(depot,
-        subject, MsgType_Combat_Primary,
+    add_text_update_trigger(depot, subject, MsgType_Combat_Primary,
         uidNarrator, "Primary", C255(COLOR_RED));
-    add_text_update_trigger(depot,
-        subject, MsgType_Combat_Secondary,
+    add_text_update_trigger(depot, subject, MsgType_Combat_Secondary,
         uidNarrator, "Secondary", C255(COLOR_DODGER));
 
     // TODO: NarratorSystem
