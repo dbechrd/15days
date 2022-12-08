@@ -8,14 +8,22 @@ UID Depot::Alloc(void)
     return uid;
 }
 
-void *Depot::AddFacet(UID uid, FacetType type, bool canExist)
+void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
 {
     void *existingFacet = GetFacet(uid, type);
     if (existingFacet) {
-        if (!canExist) {
-            printf("WARN: AddFacet called more than once for same uid/type pair.\n");
+        if (warnDupe) {
+            printf("WARN: AddFacet called more than once for same uid/type pair: %u/%d.\n", uid, type);
         }
         return existingFacet;
+    }
+
+    if (name) {
+        if (indexByName[type].contains(*name)) {
+            printf("ERROR: There is already a facet of type %d with name %s. It has uid %u.\n",
+                type, name->c_str(), indexByName[type][*name]);
+            return 0;
+        }
     }
 
 #define EMPLACE(label, pool) \
@@ -29,9 +37,11 @@ void *Depot::AddFacet(UID uid, FacetType type, bool canExist)
     Facet *facet = 0;
     switch (type) {
         EMPLACE(Facet_Attach,      attach);
+        EMPLACE(Facet_AudioBuffer, audioBuffer);
         EMPLACE(Facet_Body,        body);
         EMPLACE(Facet_Combat,      combat);
         EMPLACE(Facet_Cursor,      cursor);
+        EMPLACE(Facet_Font,        font);
         EMPLACE(Facet_FpsCounter,  fpsCounter);
         EMPLACE(Facet_Keymap,      keymap);
         EMPLACE(Facet_Position,    position);
@@ -53,9 +63,13 @@ void *Depot::AddFacet(UID uid, FacetType type, bool canExist)
         exit(-1);  // fatal error
     }
 
-    indexByUid[type][uid] = index;
     facet->uid = uid;
     facet->type = type;
+    if (name) {
+        facet->name = *name;
+        indexByName[type][*name] = uid;
+    }
+    indexByUid[type][uid] = index;
     return facet;
 }
 
@@ -68,9 +82,11 @@ void *Depot::GetFacet(UID uid, FacetType type)
     size_t index = indexByUid[type][uid];
     switch (type) {
         case Facet_Attach:      return &attach      [index];
+        case Facet_AudioBuffer: return &audioBuffer [index];
         case Facet_Body:        return &body        [index];
         case Facet_Combat:      return &combat      [index];
         case Facet_Cursor:      return &cursor      [index];
+        case Facet_Font:        return &font        [index];
         case Facet_FpsCounter:  return &fpsCounter  [index];
         case Facet_Keymap:      return &keymap      [index];
         case Facet_Position:    return &position    [index];
@@ -80,6 +96,15 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Trigger:     return &trigger     [index];
         case Facet_TriggerList: return &triggerList [index];
         default: assert(!"what is that, mate?");
+    }
+    return 0;
+}
+
+void *Depot::GetFacetByName(FacetType type, std::string &name)
+{
+    if (indexByName[type].contains(name)) {
+        UID uid = indexByName[type][name];
+        return GetFacet(uid, type);
     }
     return 0;
 }

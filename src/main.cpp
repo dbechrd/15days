@@ -36,7 +36,7 @@ void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
     trigger->message.data.audio_playsound.override = override;
 
 
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, true);
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, 0, false);
     triggerList->triggers.insert(uidTrigger);
 }
 
@@ -52,7 +52,7 @@ void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
     triggerFrameReset->message.data.text_updatetext.str = str;
     triggerFrameReset->message.data.text_updatetext.color = color;
 
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, true);
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, 0, false);
     triggerList->triggers.insert(uidTrigger);
 }
 
@@ -76,9 +76,9 @@ UID create_global_keymap(Depot &depot)
     return uid;
 }
 
-UID create_narrator(Depot &depot, UID subject, TTF_Font *fontFancy);
+UID create_narrator(Depot &depot, UID subject, UID fontFancy);
 
-UID create_player(Depot &depot, TTF_Font *fontFixed, TTF_Font *fontFancy)
+UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 {
     UID uidPlayer = depot.Alloc();
     printf("%u: player\n", uidPlayer);
@@ -140,7 +140,7 @@ UID create_player(Depot &depot, TTF_Font *fontFixed, TTF_Font *fontFancy)
     return uidPlayer;
 }
 
-UID create_narrator(Depot &depot, UID subject, TTF_Font *fontFancy)
+UID create_narrator(Depot &depot, UID subject, UID fontFancy)
 {
     UID uidNarrator = depot.Alloc();
     printf("%u: narrator\n", uidNarrator);
@@ -189,7 +189,7 @@ UID create_narrator(Depot &depot, UID subject, TTF_Font *fontFancy)
     return uidNarrator;
 }
 
-UID create_fps_counter(Depot &depot, TTF_Font *font)
+UID create_fps_counter(Depot &depot, UID font)
 {
     UID uidFpsCounter = depot.Alloc();
     printf("%u: fps counter\n", uidFpsCounter);
@@ -226,7 +226,7 @@ UID create_fps_counter(Depot &depot, TTF_Font *font)
     return uidFpsCounter;
 }
 
-UID create_card(Depot &depot, TTF_Font *font)
+UID create_card(Depot &depot, UID font)
 {
     UID uidCard = depot.Alloc();
     printf("%u: card\n", uidCard);
@@ -259,6 +259,31 @@ UID create_card(Depot &depot, TTF_Font *font)
     add_sound_trigger(depot, uidCard, MsgType_Card_DragEnd, "audio/drag_end.wav");
 
     return uidCard;
+}
+
+UID create_font(Depot &depot, std::string filename, int ptsize)
+{
+    std::string key = filename + "?ptsize=" + std::to_string(ptsize);
+
+    // Check if already loaded
+    Font *existingFont = (Font *)depot.GetFacetByName(Facet_Font, key);
+    if (existingFont) {
+        return existingFont->uid;
+    }
+
+    // Load a new font
+    UID uidFont = 0;
+    TTF_Font *ttfFont = TTF_OpenFont(filename.c_str(), ptsize);
+    if (ttfFont) {
+        uidFont = depot.Alloc();
+        Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, &key);
+        fontFancy->filename = &filename;
+        fontFancy->ptsize = ptsize;
+        fontFancy->ttf_font = ttfFont;
+    } else {
+        SDL_Log("Failed to load font %s: %s\n", filename.c_str(), SDL_GetError());
+    }
+    return uidFont;
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -322,21 +347,15 @@ int main(int argc, char *argv[])
     }
 
     err = depot.audioSystem.Init();
-    if (err) return err;
+    if (err) {
+        SDL_Log("Failed to initalize audio subsystem\n");
+    }
 
     // TODO: Resource loader (maybe RenderSystem::LoadFont()?)
-    const char *fontFancyFilename = "font/KarminaBold.otf";
-    TTF_Font *fontFancy = TTF_OpenFont(fontFancyFilename, 64);
-    if (!fontFancy) {
-        SDL_Log("Failed to load font %s: %s\n", fontFancyFilename, SDL_GetError());
-        return -1;
-    }
-    const char *fontFixedFilename = "font/Hack-Bold.ttf";
-    TTF_Font *fontFixed = TTF_OpenFont(fontFixedFilename, 16);
-    if (!fontFixed) {
-        SDL_Log("Failed to load font %s: %s\n", fontFixedFilename, SDL_GetError());
-        return -1;
-    }
+    // https://github.com/grimfang4/SDL_FontCache
+    // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
+    UID uidFontFixed = create_font(depot, "font/Hack-Bold.ttf", 16);
+    UID uidFontFancy = create_font(depot, "font/KarminaBold.otf", 64);
 
     depot.Init(GameState_Play);
 
@@ -345,23 +364,15 @@ int main(int argc, char *argv[])
     create_global_keymap(depot);
 
     // Create player/narrator
-    UID player = create_player(depot, fontFixed, fontFancy);
-    create_fps_counter(depot, fontFixed);
-    create_card(depot, fontFixed);
+    create_player(depot, uidFontFixed, uidFontFancy);
+    create_fps_counter(depot, uidFontFixed);
+    create_card(depot, uidFontFixed);
 
-    // Start the game
+    // Run the game
     depot.TransitionTo(GameState_Play);
-
-    // https://github.com/grimfang4/SDL_FontCache
-    // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
-
-
     depot.Run();
-
     depot.Destroy();
 
-    TTF_CloseFont(fontFancy);
-    TTF_CloseFont(fontFixed);
     TTF_Quit();
 
     // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to

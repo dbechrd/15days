@@ -2,6 +2,7 @@
 #include "../common/arena.h"
 #include "../common/basic.h"
 #include "../common/game_state.h"
+
 #include "../systems/audio_system.h"
 #include "../systems/card_system.h"
 #include "../systems/combat_system.h"
@@ -16,9 +17,11 @@
 #include "../systems/trigger_system.h"
 
 #include "attach.h"
+#include "audio_buffer.h"
 #include "body.h"
 #include "combat.h"
 #include "cursor.h"
+#include "font.h"
 #include "fps_counter.h"
 #include "keymap.h"
 #include "position.h"
@@ -27,21 +30,18 @@
 #include "text.h"
 #include "trigger.h"
 
-#include <vector>
-#include <unordered_map>
-
 struct Depot {
-    // Map of pool indices for each active UID, per facet type
-    std::unordered_map<UID, uint32_t> indexByUid[Facet_Count]{};
-
-    //// List of active UIDs for each facet type
-    //std::vector<UID> uidsByType[Facet_Count]{};
+    // Map of pool indices for each active facet; by UID, per type
+    std::unordered_map<UID, uint32_t>         indexByUid  [Facet_Count]{};
+    std::unordered_map<std::string, uint32_t> indexByName [Facet_Count]{};
 
     // Dense facet data arrays
     std::vector<Attach>      attach      {};
+    std::vector<AudioBuffer> audioBuffer {};
     std::vector<Body>        body        {};
     std::vector<Combat>      combat      {};
     std::vector<Cursor>      cursor      {};
+    std::vector<Font>        font        {};
     std::vector<FpsCounter>  fpsCounter  {};
     std::vector<Keymap>      keymap      {};
     std::vector<Position>    position    {};
@@ -71,8 +71,9 @@ struct Depot {
     RenderSystem     renderSystem     {};
 
     UID Alloc(void);
-    void *AddFacet(UID uid, FacetType type, bool canExist = false);
+    void *AddFacet(UID uid, FacetType type, std::string *name = nullptr, bool warnDupe = true);
     void *GetFacet(UID uid, FacetType type);
+    void *GetFacetByName(FacetType type, std::string &name);
 
     void Init(GameState state)
     {
@@ -89,6 +90,11 @@ struct Depot {
         audioSystem.DestroyDepot(*this);
         renderSystem.Destroy();
         audioSystem.Destroy();
+
+        // TODO: FontSystem?
+        for (Font &font : font) {
+            TTF_CloseFont(font.ttf_font);
+        }
 
         frameArena.Destroy();
     }

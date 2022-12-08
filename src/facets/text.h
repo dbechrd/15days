@@ -11,9 +11,9 @@ enum TextAlign {
 
 struct CachedText {
     // values of relevant properties when cached texture was last generated
-    TTF_Font  *font  {};
-    vec4       color {};
-    char      *str   {};
+    UID   font  {};
+    vec4  color {};
+    char *str   {};
 
     // cached texture info
     SDL_Texture *texture     {};
@@ -27,12 +27,14 @@ struct CachedText {
 };
 
 struct Text : public Facet {
-    TTF_Font   *font   {};  // will invalidate cache
+    UID         font   {};  // will invalidate cache
+    vec4        color  {};  // will invalidate cache
     const char *str    {};  // will invalidate cache
+
+    CachedText  cache  {};  // created/used by RenderSystem
+
     TextAlign   align  {};  // how to calculate relative offset of text
     vec2        offset {};  // apply arbitrary offset from calculated position
-    vec4        color  {};  // will invalidate cache
-    CachedText  cache  {};  // created/used by RenderSystem
 
     bool isDirty(void);
 };

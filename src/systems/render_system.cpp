@@ -139,10 +139,15 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             text.cache.str = (char *)malloc(strlen(text.str));
             memcpy(text.cache.str, text.str, strLen);
 
-            SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(text.font, text.str, { 255, 255, 255, 255 }, 300);
-            text.cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
-            text.cache.textureSize = { (float)surface->w, (float)surface->h };
-            SDL_FreeSurface(surface);
+            Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
+            if (font) {
+                SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, 300);
+                text.cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
+                text.cache.textureSize = { (float)surface->w, (float)surface->h };
+                SDL_FreeSurface(surface);
+            } else {
+                SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
+            }
         }
     }
 }

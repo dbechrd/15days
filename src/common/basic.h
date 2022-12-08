@@ -1,11 +1,18 @@
 #pragma once
+
 #define DLB_MATH_EXTERN
 #include "dlb/dlb_math.h"
+
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
+
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
+
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0

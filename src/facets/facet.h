@@ -2,6 +2,10 @@
 #include "../common/basic.h"
 
 enum FacetType {
+    // Resources
+    Facet_AudioBuffer,
+    Facet_Font,
+    // Components
     Facet_Attach,
     Facet_Body,
     Facet_Combat,
@@ -18,6 +22,7 @@ enum FacetType {
 };
 
 struct Facet {
-    UID       uid  {};
-    FacetType type {};
+    UID          uid  {};
+    FacetType    type {};
+    std::string  name {};
 };

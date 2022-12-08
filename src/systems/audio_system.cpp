@@ -87,6 +87,10 @@ FDOVResult AudioSystem::Init(void)
     SDL_AudioSpec obtainedPlaybackSpec{};
     playbackDeviceId =
         SDL_OpenAudioDevice(0, 0, &desiredPlaybackSpec, &obtainedPlaybackSpec, 0);
+    if (!playbackDeviceId) {
+        SDL_Log("Failed to open audio device: %s\n", SDL_GetError());
+        return FDOV_INIT_FAILED;
+    }
 
     printf("\nobtained playback device:\n");
     PrintSDLAudioSpec(obtainedPlaybackSpec);
