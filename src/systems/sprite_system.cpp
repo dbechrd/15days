@@ -6,7 +6,9 @@ void SpriteSystem::InitSprite(Sprite &sprite)
     sprite.size = { 70, 140 };
     sprite.color = C255(COLOR_WHEAT); // { 15, 70, 90, 255 };
     sprite.attackColor = C255(COLOR_RED); // { 150, 70, 70, 255 };
+    sprite.attackColor.a = 128;
     sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
+    sprite.defendColor.a = 128;
 }
 
 void SpriteSystem::React(double now, Depot &depot)
@@ -40,6 +42,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawSprite.rect.y = position->pos.y - position->pos.z;
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
+        drawSprite.tex = sprite.cache.texture;
         drawQueue.push(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);

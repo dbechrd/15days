@@ -74,6 +74,9 @@ void RenderSystem::DestroyDepot(Depot &depot)
     for (Text &text : depot.text) {
         text.cache.Destroy();
     }
+    for (Sprite &sprite : depot.sprite) {
+        SDL_FreeSurface(sprite.surface);
+    }
 }
 
 void RenderSystem::Destroy(void)
@@ -148,6 +151,19 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             } else {
                 SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
             }
+        }
+    }
+
+    for (Sprite &sprite : depot.sprite) {
+        if (sprite.isDirty()) {
+            sprite.cache.Destroy();
+            if (!sprite.surface) {
+                continue;
+            }
+
+            sprite.cache.surface = sprite.surface;
+            sprite.cache.texture = SDL_CreateTextureFromSurface(renderer, sprite.surface);
+            sprite.cache.textureSize = { (float)sprite.surface->w, (float)sprite.surface->h };
         }
     }
 }

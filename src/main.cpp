@@ -129,6 +129,15 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
     SpriteSystem::InitSprite(*sprite);
 
+    // TODO: Make Bitmap/Spritesheet resource
+    const char *campfireImage = "texture/player.bmp";
+    SDL_Surface *campfireSurface = SDL_LoadBMP(campfireImage);
+    if (campfireSurface) {
+        sprite->surface = campfireSurface;
+    } else {
+        printf("Failed to load texture: %s\n  %s\n", campfireImage, SDL_GetError());
+    }
+
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
     position->pos = {
         SCREEN_W / 2.0f - sprite->size.x / 2.0f,

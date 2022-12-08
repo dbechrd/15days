@@ -30,11 +30,16 @@ struct Text : public Facet {
     UID         font   {};  // will invalidate cache
     vec4        color  {};  // will invalidate cache
     const char *str    {};  // will invalidate cache
-
     CachedText  cache  {};  // created/used by RenderSystem
 
     TextAlign   align  {};  // how to calculate relative offset of text
     vec2        offset {};  // apply arbitrary offset from calculated position
 
-    bool isDirty(void);
+    inline bool isDirty(void)
+    {
+        return
+            font != cache.font ||
+            !v4_equals(&color, &cache.color) ||
+            strcmp(str, cache.str);
+    }
 };

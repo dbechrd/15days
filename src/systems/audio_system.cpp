@@ -115,9 +115,7 @@ void AudioSystem::Destroy(void)
 
 void AudioSystem::InitSound(Sound &sound, std::string &filename)
 {
-    auto rwops = SDL_RWFromFile(filename.c_str(), "rb");
-    SDL_LoadWAV_RW(rwops, 0, &sound.spec, &sound.data, &sound.data_length);
-    SDL_RWclose(rwops);
+    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
     if (!sound.data) {
         printf("Failed to load audio file: %s\n  %s\n", filename.c_str(), SDL_GetError());
     }
