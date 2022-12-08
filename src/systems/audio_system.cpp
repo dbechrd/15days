@@ -104,7 +104,7 @@ FDOVResult AudioSystem::Init(void)
 void AudioSystem::DestroyDepot(const Depot &depot)
 {
     for (const Sound &sound : depot.sound) {
-        SDL_FreeWAV(sound.audio_buf);
+        SDL_FreeWAV(sound.data);
     }
 }
 
@@ -113,13 +113,13 @@ void AudioSystem::Destroy(void)
     SDL_CloseAudioDevice(playbackDeviceId);
 }
 
-void AudioSystem::InitSound(Sound &sound, const char *filename)
+void AudioSystem::InitSound(Sound &sound, std::string &filename)
 {
-    auto rwops = SDL_RWFromFile(filename, "rb");
-    SDL_LoadWAV_RW(rwops, 0, &sound.spec, &sound.audio_buf, &sound.audio_len);
+    auto rwops = SDL_RWFromFile(filename.c_str(), "rb");
+    SDL_LoadWAV_RW(rwops, 0, &sound.spec, &sound.data, &sound.data_length);
     SDL_RWclose(rwops);
-    if (!sound.audio_buf) {
-        printf("Failed to load audio file: %s\n  %s\n", filename, SDL_GetError());
+    if (!sound.data) {
+        printf("Failed to load audio file: %s\n  %s\n", filename.c_str(), SDL_GetError());
     }
 }
 
@@ -170,5 +170,5 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
             return;
         }
     }
-    SDL_QueueAudio(playbackDeviceId, sound->audio_buf, sound->audio_len);
+    SDL_QueueAudio(playbackDeviceId, sound->data, sound->data_length);
 }

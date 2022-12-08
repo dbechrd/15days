@@ -3,8 +3,8 @@
 
 enum FacetType {
     // Resources
-    Facet_AudioBuffer,
     Facet_Font,
+    Facet_Sound,
     // Components
     Facet_Attach,
     Facet_Body,
@@ -14,7 +14,6 @@ enum FacetType {
     Facet_Keymap,
     Facet_Text,
     Facet_Position,
-    Facet_Sound,
     Facet_Sprite,
     Facet_Trigger,
     Facet_TriggerList,

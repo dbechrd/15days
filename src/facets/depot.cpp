@@ -37,7 +37,6 @@ void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
     Facet *facet = 0;
     switch (type) {
         EMPLACE(Facet_Attach,      attach);
-        EMPLACE(Facet_AudioBuffer, audioBuffer);
         EMPLACE(Facet_Body,        body);
         EMPLACE(Facet_Combat,      combat);
         EMPLACE(Facet_Cursor,      cursor);
@@ -82,7 +81,6 @@ void *Depot::GetFacet(UID uid, FacetType type)
     size_t index = indexByUid[type][uid];
     switch (type) {
         case Facet_Attach:      return &attach      [index];
-        case Facet_AudioBuffer: return &audioBuffer [index];
         case Facet_Body:        return &body        [index];
         case Facet_Combat:      return &combat      [index];
         case Facet_Cursor:      return &cursor      [index];

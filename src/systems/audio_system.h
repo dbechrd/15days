@@ -11,7 +11,7 @@ struct AudioSystem {
     void Behave(double now, Depot &depot, double dt);
     //void Display(double now, Depot &depot, DrawQueue &drawQueue);
 
-    static void InitSound(Sound &sound, const char *filename);
+    static void InitSound(Sound &sound, std::string &filename);
 private:
     SDL_AudioDeviceID playbackDeviceId{};
 

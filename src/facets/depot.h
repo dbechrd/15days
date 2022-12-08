@@ -17,7 +17,6 @@
 #include "../systems/trigger_system.h"
 
 #include "attach.h"
-#include "audio_buffer.h"
 #include "body.h"
 #include "combat.h"
 #include "cursor.h"
@@ -37,7 +36,6 @@ struct Depot {
 
     // Dense facet data arrays
     std::vector<Attach>      attach      {};
-    std::vector<AudioBuffer> audioBuffer {};
     std::vector<Body>        body        {};
     std::vector<Combat>      combat      {};
     std::vector<Cursor>      cursor      {};

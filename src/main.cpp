@@ -11,30 +11,53 @@ DLB_ASSERT_HANDLER(dlb_assert_callback) {
 }
 dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
-void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile, bool override = true)
+UID load_font(Depot &depot, std::string filename, int ptsize)
 {
-    static std::unordered_map<std::string, UID> soundCatalog{};
+    std::string key = filename + "?ptsize=" + std::to_string(ptsize);
 
-    std::string key = std::string(soundFile);
-
-    if (!soundCatalog.contains(key)) {
-        UID uidSound = depot.Alloc();
-        Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound);
-        depot.audioSystem.InitSound(*sound, soundFile);
-        soundCatalog[key] = uidSound;
+    // Check if already loaded
+    Font *existingFont = (Font *)depot.GetFacetByName(Facet_Font, key);
+    if (existingFont) {
+        return existingFont->uid;
     }
 
-    UID uidSound = soundCatalog[key];
+    // Load a new font
+    UID uidFont = depot.Alloc();
+    Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, &key);
+    fontFancy->filename = &filename;
+    fontFancy->ptsize = ptsize;
+    fontFancy->ttf_font = TTF_OpenFont(filename.c_str(), ptsize);
+    return uidFont;
+}
+
+
+UID load_sound(Depot &depot, std::string filename)
+{
+    // Check if already loaded
+    Sound *existingSound = (Sound *)depot.GetFacetByName(Facet_Sound, filename);
+    if (existingSound) {
+        return existingSound->uid;
+    }
+
+    // Load a new audio buffer
+    UID uidAudioBuffer = depot.Alloc();
+    Sound *sound = (Sound *)depot.AddFacet(uidAudioBuffer, Facet_Sound);
+    depot.audioSystem.InitSound(*sound, filename);
+    return uidAudioBuffer;
+}
+
+void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
+    std::string soundFile, bool override = true)
+{
+    UID uidAudioBuffer = load_sound(depot, soundFile);
 
     UID uidTrigger = depot.Alloc();
-    printf("%u: trigger on %u to play sound %u\n", uidTrigger, subject, uidSound);
+    printf("%u: trigger on %u to play sound %u\n", uidTrigger, subject, uidAudioBuffer);
     Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
     trigger->trigger = msgType;
-    trigger->message.uid = uidSound;
+    trigger->message.uid = uidAudioBuffer;
     trigger->message.type = MsgType_Audio_PlaySound;
     trigger->message.data.audio_playsound.override = override;
-
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, 0, false);
     triggerList->triggers.insert(uidTrigger);
@@ -261,31 +284,6 @@ UID create_card(Depot &depot, UID font)
     return uidCard;
 }
 
-UID create_font(Depot &depot, std::string filename, int ptsize)
-{
-    std::string key = filename + "?ptsize=" + std::to_string(ptsize);
-
-    // Check if already loaded
-    Font *existingFont = (Font *)depot.GetFacetByName(Facet_Font, key);
-    if (existingFont) {
-        return existingFont->uid;
-    }
-
-    // Load a new font
-    UID uidFont = 0;
-    TTF_Font *ttfFont = TTF_OpenFont(filename.c_str(), ptsize);
-    if (ttfFont) {
-        uidFont = depot.Alloc();
-        Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, &key);
-        fontFancy->filename = &filename;
-        fontFancy->ptsize = ptsize;
-        fontFancy->ttf_font = ttfFont;
-    } else {
-        SDL_Log("Failed to load font %s: %s\n", filename.c_str(), SDL_GetError());
-    }
-    return uidFont;
-}
-
 //void *fdov_malloc_func(size_t size)
 //{
 //    void *ptr = malloc(size);
@@ -354,8 +352,8 @@ int main(int argc, char *argv[])
     // TODO: Resource loader (maybe RenderSystem::LoadFont()?)
     // https://github.com/grimfang4/SDL_FontCache
     // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
-    UID uidFontFixed = create_font(depot, "font/Hack-Bold.ttf", 16);
-    UID uidFontFancy = create_font(depot, "font/KarminaBold.otf", 64);
+    UID uidFontFixed = load_font(depot, "font/Hack-Bold.ttf", 16);
+    UID uidFontFancy = load_font(depot, "font/KarminaBold.otf", 64);
 
     depot.Init(GameState_Play);
 
