@@ -42,10 +42,16 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
+        Texture *texture = (Texture *)depot.GetFacet(text.uid, Facet_Texture);
+        if (!texture) {
+            printf("WARN: Can't draw text with no texture");
+            continue;
+        }
+
         float x = position->pos.x + text.offset.x;
         float y = position->pos.y - position->pos.z + text.offset.y;
-        float w = text.cache.textureSize.w;
-        float h = text.cache.textureSize.h;
+        float w = texture->size.w;
+        float h = texture->size.h;
         float halfW = w * 0.5f;
         //float halfH = h * 0.5f;
 
@@ -69,7 +75,7 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawText.rect.y = y;
         drawText.rect.w = w;
         drawText.rect.h = h;
-        drawText.tex = text.cache.texture;
+        drawText.texture = texture->uid;
         drawQueue.push(drawText);
     }
 }

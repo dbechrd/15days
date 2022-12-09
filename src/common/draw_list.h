@@ -6,11 +6,11 @@
 struct SDL_Texture;
 
 struct DrawCommand {
-    UID          uid   {};  // uid of entity that generated this draw command
-    vec4         color {};
-    rect         rect  {};
-    SDL_Texture *tex   {};  // if null, draws colored rect
-    float        depth {};  // lower = draw first
+    UID   uid     {};  // uid of entity that generated this draw command
+    vec4  color   {};
+    rect  rect    {};
+    UID   texture {};  // if null, draws colored rect
+    float depth   {};  // lower = draw first
 
     bool operator<(const DrawCommand &right) const
     {

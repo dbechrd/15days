@@ -47,6 +47,7 @@ void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
         EMPLACE(Facet_Sound,       sound);
         EMPLACE(Facet_Sprite,      sprite);
         EMPLACE(Facet_Text,        text);
+        EMPLACE(Facet_Texture,     texture);
         EMPLACE(Facet_Trigger,     trigger);
         EMPLACE(Facet_TriggerList, triggerList);
         default: assert(!"what is that, mate?");
@@ -91,6 +92,7 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Sound:       return &sound       [index];
         case Facet_Sprite:      return &sprite      [index];
         case Facet_Text:        return &text        [index];
+        case Facet_Texture:     return &texture     [index];
         case Facet_Trigger:     return &trigger     [index];
         case Facet_TriggerList: return &triggerList [index];
         default: assert(!"what is that, mate?");

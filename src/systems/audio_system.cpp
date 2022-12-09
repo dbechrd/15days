@@ -113,14 +113,6 @@ void AudioSystem::Destroy(void)
     SDL_CloseAudioDevice(playbackDeviceId);
 }
 
-void AudioSystem::InitSound(Sound &sound, std::string &filename)
-{
-    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
-    if (!sound.data) {
-        printf("Failed to load audio file: %s\n  %s\n", filename.c_str(), SDL_GetError());
-    }
-}
-
 void AudioSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
@@ -169,4 +161,12 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
         }
     }
     SDL_QueueAudio(playbackDeviceId, sound->data, sound->data_length);
+}
+
+void AudioSystem::InitSound(Sound &sound, std::string &filename)
+{
+    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
+    if (!sound.data) {
+        printf("Failed to load audio file: %s\n  %s\n", filename.c_str(), SDL_GetError());
+    }
 }

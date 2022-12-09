@@ -72,10 +72,10 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
 void RenderSystem::DestroyDepot(Depot &depot)
 {
     for (Text &text : depot.text) {
-        text.cache.Destroy();
+        text.cacheProps.Destroy();
     }
-    for (Sprite &sprite : depot.sprite) {
-        SDL_FreeSurface(sprite.surface);
+    for (Texture &texture : depot.texture) {
+        SDL_DestroyTexture(texture.sdl_texture);
     }
 }
 
@@ -130,40 +130,31 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             // TTF_STYLE_STRIKETHROUGH 0x08
             //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 
-            text.cache.Destroy();
+            Texture *texture = (Texture *)depot.AddFacet(text.uid, Facet_Texture, 0, false);
+            if (texture) {
+                SDL_DestroyTexture(texture->sdl_texture);
+            }
+            text.cacheProps.Destroy();
             if (!text.str) {
                 continue;
             }
 
-            text.cache.font = text.font;
-            text.cache.color = text.color;
+            text.cacheProps.font = text.font;
+            text.cacheProps.color = text.color;
 
             size_t strLen = strlen(text.str);
-            text.cache.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cache.str));
-            memcpy(text.cache.str, text.str, strLen);
+            text.cacheProps.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cacheProps.str));
+            memcpy(text.cacheProps.str, text.str, strLen);
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font) {
                 SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, 300);
-                text.cache.texture = SDL_CreateTextureFromSurface(renderer, surface);
-                text.cache.textureSize = { (float)surface->w, (float)surface->h };
+                texture->sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
+                texture->size = { (float)surface->w, (float)surface->h };
                 SDL_FreeSurface(surface);
             } else {
                 SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
             }
-        }
-    }
-
-    for (Sprite &sprite : depot.sprite) {
-        if (sprite.isDirty()) {
-            sprite.cache.Destroy();
-            if (!sprite.surface) {
-                continue;
-            }
-
-            sprite.cache.surface = sprite.surface;
-            sprite.cache.texture = SDL_CreateTextureFromSurface(renderer, sprite.surface);
-            sprite.cache.textureSize = { (float)sprite.surface->w, (float)sprite.surface->h };
         }
     }
 }
@@ -179,10 +170,11 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
         rect.w = cmd.rect.w;
         rect.h = cmd.rect.h;
 
-        if (cmd.tex) {
-            SDL_SetTextureColorMod(cmd.tex, cmd.color.r, cmd.color.g, cmd.color.b);
-            SDL_SetTextureAlphaMod(cmd.tex, cmd.color.a);
-            SDL_RenderCopy(renderer, cmd.tex, NULL, &rect);
+        Texture *texture = (Texture *)depot.GetFacet(cmd.texture, Facet_Texture);
+        if (texture) {
+            SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
+            SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
+            SDL_RenderCopy(renderer, texture->sdl_texture, NULL, &rect);
         } else {
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
             SDL_RenderFillRect(renderer, &rect);
@@ -274,4 +266,17 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 void RenderSystem::Present(void)
 {
     SDL_RenderPresent(renderer);
+}
+
+void RenderSystem::InitTexture(Texture &texture, std::string &filename)
+{
+    SDL_Surface *surface = SDL_LoadBMP(filename.c_str());
+    if (surface) {
+        texture.filename = filename;
+        texture.size = { (float)surface->w, (float)surface->h };
+        texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);
+    } else {
+        printf("Failed to load texture: %s\n  %s\n", filename.c_str(), SDL_GetError());
+    }
 }

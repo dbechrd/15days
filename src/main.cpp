@@ -24,7 +24,7 @@ UID load_font(Depot &depot, std::string filename, int ptsize)
     // Load a new font
     UID uidFont = depot.Alloc();
     Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, &key);
-    fontFancy->filename = &filename;
+    fontFancy->filename = filename;
     fontFancy->ptsize = ptsize;
     fontFancy->ttf_font = TTF_OpenFont(filename.c_str(), ptsize);
     return uidFont;
@@ -44,6 +44,21 @@ UID load_sound(Depot &depot, std::string filename)
     Sound *sound = (Sound *)depot.AddFacet(uidAudioBuffer, Facet_Sound);
     depot.audioSystem.InitSound(*sound, filename);
     return uidAudioBuffer;
+}
+
+UID load_bitmap(Depot &depot, std::string filename)
+{
+    // Check if already loaded
+    Sound *existingTexture = (Sound *)depot.GetFacetByName(Facet_Texture, filename);
+    if (existingTexture) {
+        return existingTexture->uid;
+    }
+
+    // Load a new texture
+    UID uidTexture = depot.Alloc();
+    Texture *texture = (Texture *)depot.AddFacet(uidTexture, Facet_Texture);
+    depot.renderSystem.InitTexture(*texture, filename);
+    return uidTexture;
 }
 
 void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
@@ -127,16 +142,9 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
-    SpriteSystem::InitSprite(*sprite);
+    depot.spriteSystem.InitSprite(*sprite);
 
-    // TODO: Make Bitmap/Spritesheet resource
-    const char *campfireImage = "texture/player.bmp";
-    SDL_Surface *campfireSurface = SDL_LoadBMP(campfireImage);
-    if (campfireSurface) {
-        sprite->surface = campfireSurface;
-    } else {
-        printf("Failed to load texture: %s\n  %s\n", campfireImage, SDL_GetError());
-    }
+    sprite->texture = load_bitmap(depot, "texture/player.bmp");
 
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
     position->pos = {

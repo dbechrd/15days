@@ -2,6 +2,7 @@
 #include "../common/basic.h"
 #include "../common/draw_list.h"
 #include "../common/error.h"
+#include "../facets/texture.h"
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -19,6 +20,7 @@ struct RenderSystem {
     void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
 
+    void InitTexture(Texture &texture, std::string &filename);
 private:
     bool          running     {false};
     SDL_Window   *window      {};

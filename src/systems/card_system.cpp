@@ -74,7 +74,10 @@ UID CardSystem::FindCardAtScreenPos(Depot &depot, int x, int y, vec2 *offset)
             // something.
             Text *text = (Text *)depot.GetFacet(position.uid, Facet_Text);
             if (text) {
-                size = text->cache.textureSize;
+                Texture *texture = (Texture *)depot.GetFacet(position.uid, Facet_Texture);
+                if (texture) {
+                    size = texture->size;
+                }
             }
         }
 

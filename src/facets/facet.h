@@ -5,6 +5,7 @@ enum FacetType {
     // Resources
     Facet_Font,
     Facet_Sound,
+    Facet_Texture,
     // Components
     Facet_Attach,
     Facet_Body,

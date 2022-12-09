@@ -27,6 +27,7 @@
 #include "sound.h"
 #include "sprite.h"
 #include "text.h"
+#include "texture.h"
 #include "trigger.h"
 
 struct Depot {
@@ -46,6 +47,7 @@ struct Depot {
     std::vector<Sound>       sound       {};
     std::vector<Sprite>      sprite      {};
     std::vector<Text>        text        {};
+    std::vector<Texture>     texture     {};
     std::vector<Trigger>     trigger     {};
     std::vector<TriggerList> triggerList {};
 

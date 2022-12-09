@@ -42,7 +42,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawSprite.rect.y = position->pos.y - position->pos.z;
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
-        drawSprite.tex = sprite.cache.texture;
+        drawSprite.texture = sprite.texture;
         drawQueue.push(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);
