@@ -13,10 +13,9 @@ dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
 UID load_font(Depot &depot, const char *filename, int ptsize)
 {
-    char buf[1024]{};
-    size_t keyLen = snprintf(CSTR0(buf), "%s?ptsize=%d", filename, ptsize);
+    size_t keyLen = strlen(filename) + 10;
     char *key = (char *)depot.resourceArena.Alloc(keyLen);
-    strcpy(key, buf);
+    snprintf(key, keyLen, "%s?ptsize=%d", filename, ptsize);
 
     // Check if already loaded
     Font *existingFont = (Font *)depot.GetFacetByName(Facet_Font, key);
@@ -87,12 +86,12 @@ void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
 {
     UID uidTrigger = depot.Alloc();
     printf("%u: trigger on %u to update text for %u\n", uidTrigger, src, dst);
-    Trigger *triggerFrameReset = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
-    triggerFrameReset->trigger = msgType;
-    triggerFrameReset->message.uid = dst;
-    triggerFrameReset->message.type = MsgType_Text_UpdateText;
-    triggerFrameReset->message.data.text_updatetext.str = str;
-    triggerFrameReset->message.data.text_updatetext.color = color;
+    Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
+    trigger->trigger = msgType;
+    trigger->message.uid = dst;
+    trigger->message.type = MsgType_Text_UpdateText;
+    trigger->message.data.text_updatetext.str = str;
+    trigger->message.data.text_updatetext.color = color;
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, 0, false);
     triggerList->triggers.insert(uidTrigger);
@@ -202,12 +201,13 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy)
     text->str = "15 Days";
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_WHITE);
+    text->dirty = true;
 
     add_sound_trigger(depot, uidNarrator, MsgType_Card_DragBegin, "audio/narrator_drag_begin.wav");
     add_sound_trigger(depot, uidNarrator, MsgType_Card_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
-    add_text_update_trigger(depot, uidNarrator, MsgType_Render_FrameBegin,
+    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_IdleBegin,
         uidNarrator, "Neutral", C255(COLOR_GRAY_4));
     // Subject triggers
     add_text_update_trigger(depot, subject, MsgType_Combat_Notify_AttackBegin,

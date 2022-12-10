@@ -5,7 +5,7 @@ void CardSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = depot.msgQueue[i];
+        Message msg = depot.msgQueue[i];
         Cursor *cursor = (Cursor *)depot.GetFacet(msg.uid, Facet_Cursor);
         if (!cursor) {
             continue;

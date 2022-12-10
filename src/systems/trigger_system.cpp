@@ -5,7 +5,7 @@ void TriggerSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = depot.msgQueue[i];
+        Message msg = depot.msgQueue[i];
 
         if (msg.uid) {
             TriggerList *triggerList = (TriggerList *)depot.GetFacet(msg.uid, Facet_TriggerList);

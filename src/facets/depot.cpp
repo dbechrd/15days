@@ -148,34 +148,33 @@ void Depot::Run(void)
             inputQueue.clear();
         }
 
-        // Forward commands to any system that might want to react to them
-        // NOTE: Maybe this should be double-buffered with 1 frame delay?
+        // Message generators
         fpsCounterSystem.React(now, *this);
         cardSystem.React(now, *this);
         movementSystem.React(now, *this);
-        physicsSystem.React(now, *this);
         combatSystem.React(now, *this);
         spriteSystem.React(now, *this);
-        triggerSystem.React(now, *this);
-        audioSystem.React(now, *this);
-        renderSystem.React(now, *this);
-
-        // Update systems
+        physicsSystem.React(now, *this);
         for (int i = 0; i < physicsIters; i++) {
             fpsCounterSystem.Behave(now, *this, fixedDt);
             cardSystem.Behave(now, *this, fixedDt);
             movementSystem.Behave(now, *this, fixedDt);
-            physicsSystem.Behave(now, *this, fixedDt);
             combatSystem.Behave(now, *this, fixedDt);
             spriteSystem.Behave(now, *this, fixedDt);
-            audioSystem.Behave(now, *this, fixedDt);
-            renderSystem.Behave(now, *this, fixedDt);
+            physicsSystem.Behave(now, *this, fixedDt);
         }
 
-        // Debug text may need to be updated, so update textSystem last
+        // Message converter
+        triggerSystem.React(now, *this);
+
+        // Pure message reactors (do not modify msgQueue here!)
+        audioSystem.React(now, *this);
         textSystem.React(now, *this);
+        renderSystem.React(now, *this);
         for (int i = 0; i < physicsIters; i++) {
+            audioSystem.Behave(now, *this, fixedDt);
             textSystem.Behave(now, *this, fixedDt);
+            renderSystem.Behave(now, *this, fixedDt);
         }
 
         // Populate draw queue(s)

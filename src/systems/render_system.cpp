@@ -72,7 +72,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
 void RenderSystem::DestroyDepot(Depot &depot)
 {
     for (Text &text : depot.text) {
-        text.cacheProps.Destroy();
+        //text.cacheProps.Destroy();
     }
     for (Texture &texture : depot.texture) {
         SDL_DestroyTexture(texture.sdl_texture);
@@ -134,16 +134,16 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             if (texture) {
                 SDL_DestroyTexture(texture->sdl_texture);
             }
-            text.cacheProps.Destroy();
+            //text.cacheProps.Destroy();
             if (!text.str) {
                 continue;
             }
 
-            text.cacheProps.font = text.font;
-            text.cacheProps.color = text.color;
-            size_t strLen = strlen(text.str);
-            text.cacheProps.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cacheProps.str));
-            memcpy((void *)text.cacheProps.str, text.str, strLen);
+            //text.cacheProps.font = text.font;
+            //text.cacheProps.color = text.color;
+            //size_t strLen = strlen(text.str);
+            //text.cacheProps.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cacheProps.str));
+            //memcpy((void *)text.cacheProps.str, text.str, strLen);
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font) {
@@ -155,6 +155,7 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
             } else {
                 SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
             }
+            text.dirty = false;
         }
     }
 }

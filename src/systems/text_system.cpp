@@ -5,7 +5,7 @@ void TextSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = depot.msgQueue[i];
+        Message msg = depot.msgQueue[i];
         Text *text = (Text *)depot.GetFacet(msg.uid, Facet_Text);
         if (!text) {
             continue;
@@ -14,9 +14,13 @@ void TextSystem::React(double now, Depot &depot)
         switch (msg.type) {
             case MsgType_Text_UpdateText:
             {
+                if (text->uid == 14) {
+                    printf("");
+                }
                 text->str = msg.data.text_updatetext.str;
                 text->offset = msg.data.text_updatetext.offset;
                 text->color = msg.data.text_updatetext.color;
+                text->dirty = true;
                 break;
             }
             default: break;

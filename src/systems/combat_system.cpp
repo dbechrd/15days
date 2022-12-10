@@ -5,14 +5,14 @@ void CombatSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = depot.msgQueue[i];
+        Message msg = depot.msgQueue[i];
         Combat *combat = (Combat *)depot.GetFacet(msg.uid, Facet_Combat);
         if (!combat) {
             continue;
         }
 
-        bool canAttack = !(combat->attackStartedAt || combat->defendStartedAt);
-        bool canDefend = !(combat->attackStartedAt);
+        bool canAttack = combat->Idle();
+        bool canDefend = combat->Idle() || combat->Defending();
 
         switch (msg.type) {
             case MsgType_Combat_Primary:
@@ -55,6 +55,11 @@ void CombatSystem::Behave(double now, Depot &depot, double dt)
             } else {
                 combat.attackStartedAt = 0;
                 combat.attackCooldown = 0;
+
+                Message notifyIdle{};
+                notifyIdle.uid = combat.uid;
+                notifyIdle.type = MsgType_Combat_Notify_IdleBegin;
+                depot.msgQueue.push_back(notifyIdle);
             }
         }
         if (combat.defendStartedAt) {
@@ -64,6 +69,11 @@ void CombatSystem::Behave(double now, Depot &depot, double dt)
             } else {
                 combat.defendStartedAt = 0;
                 combat.defendCooldown = 0;
+
+                Message notifyIdle{};
+                notifyIdle.uid = combat.uid;
+                notifyIdle.type = MsgType_Combat_Notify_IdleBegin;
+                depot.msgQueue.push_back(notifyIdle);
             }
         }
     }

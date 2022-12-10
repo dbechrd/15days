@@ -13,6 +13,7 @@ enum MsgType {
     //MsgType_Combat_Secondary_Press,
     MsgType_Combat_Notify_AttackBegin,
     MsgType_Combat_Notify_DefendBegin,
+    MsgType_Combat_Notify_IdleBegin,
 
     MsgType_FpsCounter_UpdateText,
 

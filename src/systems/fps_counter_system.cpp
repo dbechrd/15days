@@ -5,7 +5,7 @@ void FpsCounterSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
-        Message &msg = depot.msgQueue[i];
+        Message msg = depot.msgQueue[i];
 
         switch (msg.type) {
             case MsgType_Render_FrameBegin: {
