@@ -118,7 +118,7 @@ void RenderSystem::React(double now, Depot &depot)
     }
 }
 
-void RenderSystem::Behave(double now, Depot &depot, double dt)
+void RenderSystem::UpdateCachedTextures(Depot &depot)
 {
     // Update textures for dirty text caches
     for (Text &text : depot.text) {
@@ -171,8 +171,36 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
         rect.w = cmd.rect.w;
         rect.h = cmd.rect.h;
 
-        Texture *texture = (Texture *)depot.GetFacet(cmd.texture, Facet_Texture);
-        if (texture) {
+        Sprite *sprite = 0;
+        Spritesheet *spritesheet = 0;;
+        Texture *texture = 0;
+
+        if (cmd.sprite) {
+            sprite = (Sprite *)depot.GetFacet(cmd.sprite, Facet_Sprite);
+            if (sprite) {
+                spritesheet = (Spritesheet *)depot.GetFacet(sprite->spritesheet, Facet_Spritesheet);
+                texture = (Texture *)depot.GetFacet(sprite->spritesheet, Facet_Texture);
+            }
+        } else if (cmd.texture) {
+            texture = (Texture *)depot.GetFacet(cmd.texture, Facet_Texture);
+        }
+
+        if (spritesheet && texture) {
+            SDL_Rect frame{};
+
+            Animation &animation = spritesheet->animations[sprite->animation];
+            int cell = animation.start + sprite->frame;
+            int cellPixels = cell * (int)spritesheet->cellSize.x;
+
+            frame.x = cellPixels % (int)texture->size.w;
+            frame.y = cellPixels / (int)texture->size.h;
+            frame.w = (int)spritesheet->cellSize.x;
+            frame.h = (int)spritesheet->cellSize.y;
+
+            SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
+            SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
+            SDL_RenderCopy(renderer, texture->sdl_texture, &frame, &rect);
+        } else if (texture) {
             SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
             SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
             SDL_RenderCopy(renderer, texture->sdl_texture, NULL, &rect);

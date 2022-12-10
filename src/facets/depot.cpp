@@ -47,6 +47,7 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
         EMPLACE(Facet_Position,    position);
         EMPLACE(Facet_Sound,       sound);
         EMPLACE(Facet_Sprite,      sprite);
+        EMPLACE(Facet_Spritesheet, spritesheet);
         EMPLACE(Facet_Text,        text);
         EMPLACE(Facet_Texture,     texture);
         EMPLACE(Facet_Trigger,     trigger);
@@ -93,6 +94,7 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Position:    return &position    [index];
         case Facet_Sound:       return &sound       [index];
         case Facet_Sprite:      return &sprite      [index];
+        case Facet_Spritesheet: return &spritesheet [index];
         case Facet_Text:        return &text        [index];
         case Facet_Texture:     return &texture     [index];
         case Facet_Trigger:     return &trigger     [index];
@@ -155,10 +157,11 @@ void Depot::Run(void)
         combatSystem.React(now, *this);
         spriteSystem.React(now, *this);
         physicsSystem.React(now, *this);
+
         for (int i = 0; i < physicsIters; i++) {
-            fpsCounterSystem.Behave(now, *this, fixedDt);
+            //fpsCounterSystem.Behave(now, *this, fixedDt);
             cardSystem.Behave(now, *this, fixedDt);
-            movementSystem.Behave(now, *this, fixedDt);
+            //movementSystem.Behave(now, *this, fixedDt);
             combatSystem.Behave(now, *this, fixedDt);
             spriteSystem.Behave(now, *this, fixedDt);
             physicsSystem.Behave(now, *this, fixedDt);
@@ -171,11 +174,8 @@ void Depot::Run(void)
         audioSystem.React(now, *this);
         textSystem.React(now, *this);
         renderSystem.React(now, *this);
-        for (int i = 0; i < physicsIters; i++) {
-            audioSystem.Behave(now, *this, fixedDt);
-            textSystem.Behave(now, *this, fixedDt);
-            renderSystem.Behave(now, *this, fixedDt);
-        }
+
+        renderSystem.UpdateCachedTextures(*this);
 
         // Populate draw queue(s)
         DrawQueue spriteQueue{};

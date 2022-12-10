@@ -16,7 +16,7 @@ struct RenderSystem {
     void Clear(vec4 color);
 
     void React(double now, Depot &depot);
-    void Behave(double now, Depot &depot, double dt);
+    void UpdateCachedTextures(Depot &depot);
     void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
 

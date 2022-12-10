@@ -28,11 +28,6 @@ void TextSystem::React(double now, Depot &depot)
     }
 }
 
-void TextSystem::Behave(double now, Depot &depot, double dt)
-{
-
-}
-
 void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 {
     for (Text &text : depot.text) {

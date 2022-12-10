@@ -28,8 +28,3 @@ void MovementSystem::React(double now, Depot &depot)
         }
     }
 }
-
-void MovementSystem::Behave(double now, Depot &depot, double dt)
-{
-
-}

@@ -150,11 +150,6 @@ void AudioSystem::React(double now, Depot &depot)
     }
 }
 
-void AudioSystem::Behave(double now, Depot &depot, double dt)
-{
-
-}
-
 void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
 {
     Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);

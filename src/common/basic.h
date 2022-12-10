@@ -21,7 +21,7 @@
 #define FDOV_FULLSCREEN 0
 #define FDOV_DRAG_BBOX  1
 #define FDOV_DEBUG_BBOX 0
-#define FDOV_DEBUG_BODY 1
+#define FDOV_DEBUG_BODY 0
 
 // TODO: These need to be queried from rendersystem or something
 #if FDOV_FULLSCREEN

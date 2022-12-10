@@ -46,6 +46,7 @@ struct Depot {
     std::vector<Position>    position    {};
     std::vector<Sound>       sound       {};
     std::vector<Sprite>      sprite      {};
+    std::vector<Spritesheet> spritesheet {};
     std::vector<Text>        text        {};
     std::vector<Texture>     texture     {};
     std::vector<Trigger>     trigger     {};

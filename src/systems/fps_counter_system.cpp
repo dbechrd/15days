@@ -33,7 +33,3 @@ void FpsCounterSystem::React(double now, Depot &depot)
         }
     }
 }
-
-void FpsCounterSystem::Behave(double now, Depot &depot, double dt)
-{
-}

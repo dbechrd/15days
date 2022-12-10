@@ -121,6 +121,15 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy);
 
 UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 {
+    UID uidSpritesheet = load_bitmap(depot, "texture/player.bmp");
+    Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheet, Facet_Spritesheet);
+    spritesheet->cells = 1;
+    spritesheet->cellSize = { 70, 140 };
+    Animation animation{};
+    animation.start = 0;
+    animation.count = 1;
+    spritesheet->animations.push_back(animation);
+
     UID uidPlayer = depot.Alloc();
     printf("%u: player\n", uidPlayer);
 
@@ -145,9 +154,10 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
-    depot.spriteSystem.InitSprite(*sprite);
-
-    sprite->texture = load_bitmap(depot, "texture/player.bmp");
+    depot.spriteSystem.InitSprite(*sprite, spritesheet->cellSize, C255(COLOR_WHEAT));
+    sprite->spritesheet = uidSpritesheet;
+    sprite->animation = 0;
+    sprite->frame = 0;
 
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
     position->pos = {
@@ -267,16 +277,20 @@ UID create_fps_counter(Depot &depot, UID font)
     return uidFpsCounter;
 }
 
-UID create_card(Depot &depot, UID font)
+UID create_card(Depot &depot, vec3 pos, UID font, UID spritesheet, int animation)
 {
     UID uidCard = depot.Alloc();
     printf("%u: card\n", uidCard);
 
+    Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
-    SpriteSystem::InitSprite(*sprite);
+    SpriteSystem::InitSprite(*sprite, sheet->cellSize, C255(COLOR_WHITE));
+    sprite->spritesheet = spritesheet;
+    sprite->animation = animation;
+    sprite->frame = 0;
 
     Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
-    position->pos = { 100, 100 };
+    position->pos = pos;
 
     Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
     body->gravity = -50.0f;
@@ -381,7 +395,28 @@ int main(int argc, char *argv[])
     // Create player/narrator
     create_player(depot, uidFontFixed, uidFontFancy);
     create_fps_counter(depot, uidFontFixed);
-    create_card(depot, uidFontFixed);
+
+    {
+        UID uidSpritesheetCards = load_bitmap(depot, "texture/cards.bmp");
+        Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheetCards, Facet_Spritesheet);
+        spritesheet->cells = 10;
+        spritesheet->cellSize = { 100, 150 };
+        for (int i = 0; i < spritesheet->cells; i++) {
+            spritesheet->animations.push_back({ i, 1 });
+        }
+
+        create_card(depot, { 100, 100, 0 }, uidFontFixed, uidSpritesheetCards, 0);
+        create_card(depot, { 200, 100, 0 }, uidFontFixed, uidSpritesheetCards, 1);
+    }
+    {
+        UID uidSpritesheetCampfire = load_bitmap(depot, "texture/campfire.bmp");
+        Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheetCampfire, Facet_Spritesheet);
+        spritesheet->cells = 8;
+        spritesheet->cellSize = { 256, 256 };
+        spritesheet->animations.push_back({ 0, 8 });
+
+        create_card(depot, { 200, 300, 0 }, uidFontFixed, uidSpritesheetCampfire, 0);
+    }
 
     // Run the game
     depot.TransitionTo(GameState_Play);

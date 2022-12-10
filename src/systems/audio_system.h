@@ -8,7 +8,6 @@ struct AudioSystem {
     void DestroyDepot(const Depot &depot);
     void Destroy(void);
     void React(double now, Depot &depot);
-    void Behave(double now, Depot &depot, double dt);
     //void Display(double now, Depot &depot, DrawQueue &drawQueue);
 
     static void InitSound(Depot &depot, Sound &sound, const char *filename);

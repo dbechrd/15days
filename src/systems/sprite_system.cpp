@@ -1,10 +1,10 @@
 #include "sprite_system.h"
 #include "../facets/depot.h"
 
-void SpriteSystem::InitSprite(Sprite &sprite)
+void SpriteSystem::InitSprite(Sprite &sprite, vec2 size, vec4 color)
 {
-    sprite.size = { 70, 140 };
-    sprite.color = C255(COLOR_WHEAT); // { 15, 70, 90, 255 };
+    sprite.size = size;
+    sprite.color = color;
     sprite.attackColor = C255(COLOR_RED); // { 150, 70, 70, 255 };
     sprite.attackColor.a = 128;
     sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
@@ -18,11 +18,17 @@ void SpriteSystem::React(double now, Depot &depot)
 
 void SpriteSystem::Behave(double now, Depot &depot, double dt)
 {
-#if 0
-    for (Sprite &sprite : depot.sprite) {
-        // TODO: Animation
+    // Update animated sprites
+    if (now - lastAnimAt >= fixedAnimDt) {
+        for (Sprite &sprite : depot.sprite) {
+            Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.spritesheet, Facet_Spritesheet);
+            if (sheet) {
+                Animation &anim = sheet->animations[sprite.animation];
+                sprite.frame = (sprite.frame + 1) % anim.count;
+            }
+        }
+        lastAnimAt = now;
     }
-#endif
 }
 
 void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
@@ -42,7 +48,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawSprite.rect.y = position->pos.y - position->pos.z;
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
-        drawSprite.texture = sprite.texture;
+        drawSprite.sprite = sprite.uid;
         drawQueue.push(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);

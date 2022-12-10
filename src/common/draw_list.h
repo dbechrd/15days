@@ -9,7 +9,8 @@ struct DrawCommand {
     UID   uid     {};  // uid of entity that generated this draw command
     vec4  color   {};
     rect  rect    {};
-    UID   texture {};  // if null, draws colored rect
+    UID   texture {};  // if present, also applies a texture
+    UID   sprite  {};  // if present, uses current animation frame
     float depth   {};  // lower = draw first
 
     bool operator<(const DrawCommand &right) const
