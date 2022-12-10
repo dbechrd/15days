@@ -14,9 +14,6 @@ void TextSystem::React(double now, Depot &depot)
         switch (msg.type) {
             case MsgType_Text_UpdateText:
             {
-                if (text->uid == 14) {
-                    printf("");
-                }
                 text->str = msg.data.text_updatetext.str;
                 text->offset = msg.data.text_updatetext.offset;
                 text->color = msg.data.text_updatetext.color;
@@ -37,13 +34,13 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 
         Position *position = (Position *)depot.GetFacet(text.uid, Facet_Position);
         if (!position) {
-            printf("WARN: Can't draw text with no position");
+            printf("WARN: Can't draw text with no position\n");
             continue;
         }
 
         Texture *texture = (Texture *)depot.GetFacet(text.uid, Facet_Texture);
         if (!texture) {
-            printf("WARN: Can't draw text with no texture");
+            printf("WARN: Can't draw text with no texture\n");
             continue;
         }
 

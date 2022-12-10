@@ -1,80 +1,63 @@
 #include "combat_system.h"
 #include "../facets/depot.h"
 
-void CombatSystem::React(double now, Depot &depot)
+void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 {
-    size_t size = depot.msgQueue.size();
-    for (int i = 0; i < size; i++) {
-        Message msg = depot.msgQueue[i];
-        Combat *combat = (Combat *)depot.GetFacet(msg.uid, Facet_Combat);
-        if (!combat) {
+    for (Combat &combat : depot.combat) {
+        Position *position = (Position *)depot.GetFacet(combat.uid, Facet_Position);
+        DLB_ASSERT(position);
+        if (!position) {
+            printf("WARN: Can't draw combat overlay with no position");
             continue;
         }
 
-        bool canAttack = combat->Idle();
-        bool canDefend = combat->Idle() || combat->Defending();
-
-        switch (msg.type) {
-            case MsgType_Combat_Primary:
-            {
-                if (canAttack) {
-                    combat->attackStartedAt = now;
-                    combat->attackCooldown = 0.2;
-
-                    Message notifyAttack{};
-                    notifyAttack.uid = msg.uid;
-                    notifyAttack.type = MsgType_Combat_Notify_AttackBegin;
-                    depot.msgQueue.push_back(notifyAttack);
-                }
-                break;
-            }
-            case MsgType_Combat_Secondary: {
-                if (canDefend) {
-                    combat->defendStartedAt = now;
-                    combat->defendCooldown = 0.6;
-
-                    Message notifyDefend{};
-                    notifyDefend.uid = msg.uid;
-                    notifyDefend.type = MsgType_Combat_Notify_DefendBegin;
-                    depot.msgQueue.push_back(notifyDefend);
-                }
-                break;
-            }
-            default: break;
+        Sprite *sprite = (Sprite *)depot.GetFacet(combat.uid, Facet_Sprite);
+        DLB_ASSERT(sprite);
+        if (!sprite) {
+            printf("WARN: Can't draw combat overlay with no sprite");
+            continue;
         }
-    }
-}
 
-void CombatSystem::Behave(double now, Depot &depot, double dt)
-{
-    for (Combat &combat : depot.combat) {
-        if (combat.attackStartedAt) {
-            float attackAlpha = (now - combat.attackStartedAt) / combat.attackCooldown;
-            if (attackAlpha < 1.0) {
-                // TOOD: Something interesting during attack
-            } else {
-                combat.attackStartedAt = 0;
-                combat.attackCooldown = 0;
-
-                Message notifyIdle{};
-                notifyIdle.uid = combat.uid;
-                notifyIdle.type = MsgType_Combat_Notify_IdleBegin;
-                depot.msgQueue.push_back(notifyIdle);
+        float depth = position->pos.y - position->pos.z + sprite->size.y;
+        for (Cursor &cursor : depot.cursor) {
+            if (cursor.uidDragSubject == sprite->uid) {
+                depth = SCREEN_H * 2.0f;
             }
+        }
+
+        rect spriteRect{};
+        spriteRect.x = position->pos.x;
+        spriteRect.y = position->pos.y - position->pos.z;
+        spriteRect.w = sprite->size.x;
+        spriteRect.h = sprite->size.y;
+
+        if (combat.attackStartedAt) {
+            DLB_ASSERT(combat.attackCooldown);
+            float attackAlpha = (now - combat.attackStartedAt) / combat.attackCooldown;
+            float overlayHeight = (1.0 - attackAlpha) * sprite->size.y;
+
+            DrawCommand attackOverlay{};
+            attackOverlay.uid = sprite->uid;
+            attackOverlay.color = sprite->attackColor;
+            attackOverlay.rect = spriteRect;
+            attackOverlay.rect.y += sprite->size.y - overlayHeight;
+            attackOverlay.rect.h = ceilf(overlayHeight);
+            attackOverlay.depth = depth + 0.001f;
+            drawQueue.push(attackOverlay);
         }
         if (combat.defendStartedAt) {
+            assert(combat.defendCooldown);
             float defendAlpha = (now - combat.defendStartedAt) / combat.defendCooldown;
-            if (defendAlpha < 1.0) {
-                // TOOD: Something interesting during defend
-            } else {
-                combat.defendStartedAt = 0;
-                combat.defendCooldown = 0;
+            float overlayHeight = (1.0 - defendAlpha) * sprite->size.y;
 
-                Message notifyIdle{};
-                notifyIdle.uid = combat.uid;
-                notifyIdle.type = MsgType_Combat_Notify_IdleBegin;
-                depot.msgQueue.push_back(notifyIdle);
-            }
+            DrawCommand defendOverlay{};
+            defendOverlay.uid = sprite->uid;
+            defendOverlay.color = sprite->defendColor;
+            defendOverlay.rect = spriteRect;
+            defendOverlay.rect.y += sprite->size.y - overlayHeight;
+            defendOverlay.rect.h = ceilf(overlayHeight);
+            defendOverlay.depth = depth + 0.001f;
+            drawQueue.push(defendOverlay);
         }
     }
 }

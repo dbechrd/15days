@@ -136,6 +136,8 @@ void Depot::Run(void)
         // Update game state
         BeginFrame();
 
+        cursorSystem.Update(*this);
+
         {
             // Collect SDL events into the appropriate queues
             eventSystemSDL.ProcessEvents(inputQueue, msgQueue);
@@ -150,30 +152,22 @@ void Depot::Run(void)
             inputQueue.clear();
         }
 
-        // Message generators
-        fpsCounterSystem.React(now, *this);
-        cardSystem.React(now, *this);
-        movementSystem.React(now, *this);
-        combatSystem.React(now, *this);
-        spriteSystem.React(now, *this);
-        physicsSystem.React(now, *this);
+        // TODO: Make these pure generators
+        cardSystem.React(now, *this);        // reacts to Cursor   generates Card_Notify
+        movementSystem.React(now, *this);    // reacts to Movement
 
         for (int i = 0; i < physicsIters; i++) {
-            //fpsCounterSystem.Behave(now, *this, fixedDt);
-            cardSystem.Behave(now, *this, fixedDt);
-            //movementSystem.Behave(now, *this, fixedDt);
-            combatSystem.Behave(now, *this, fixedDt);
-            spriteSystem.Behave(now, *this, fixedDt);
-            physicsSystem.Behave(now, *this, fixedDt);
+            physicsSystem.Update(now, *this, fixedDt);
         }
 
         // Message converter
-        triggerSystem.React(now, *this);
+        triggerSystem.React(now, *this);     // reacts to *        generates *
 
         // Pure message reactors (do not modify msgQueue here!)
-        audioSystem.React(now, *this);
-        textSystem.React(now, *this);
-        renderSystem.React(now, *this);
+        audioSystem.React(now, *this);       // reacts to Audio
+        spriteSystem.Update(now, *this);     // reacts to Sprite
+        textSystem.React(now, *this);        // reacts to Text
+        renderSystem.React(now, *this);      // reacts to Render
 
         renderSystem.UpdateCachedTextures(*this);
 
@@ -181,6 +175,7 @@ void Depot::Run(void)
         DrawQueue spriteQueue{};
         DrawQueue textQueue{};
         spriteSystem.Display(now, *this, spriteQueue);
+        combatSystem.Display(now, *this, spriteQueue);
         textSystem.Display(now, *this, textQueue);
 
 #if 0

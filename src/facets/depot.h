@@ -6,8 +6,8 @@
 #include "../systems/audio_system.h"
 #include "../systems/card_system.h"
 #include "../systems/combat_system.h"
+#include "../systems/cursor_system.h"
 #include "../systems/event_system_sdl.h"
-#include "../systems/fps_counter_system.h"
 #include "../systems/input_system.h"
 #include "../systems/movement_system.h"
 #include "../systems/physics_system.h"
@@ -60,17 +60,17 @@ struct Depot {
     EventSystemSDL eventSystemSDL {};
     InputSystem    inputSystem    {};
 
-    // These are probably order-dependent
-    FpsCounterSystem fpsCounterSystem {};
+    // These are order-dependent, see Depot::Run() in depot.cpp
+    AudioSystem      audioSystem      {};  // might react to triggers
     CardSystem       cardSystem       {};
+    CombatSystem     combatSystem     {};
+    CursorSystem     cursorSystem     {};
     MovementSystem   movementSystem   {};
     PhysicsSystem    physicsSystem    {};
-    CombatSystem     combatSystem     {};
-    SpriteSystem     spriteSystem     {};
-    TriggerSystem    triggerSystem    {};  // might react to any gameplay system
-    AudioSystem      audioSystem      {};  // might react to triggers
-    TextSystem       textSystem       {};  // last because it might render debug UI for any system
     RenderSystem     renderSystem     {};
+    SpriteSystem     spriteSystem     {};
+    TextSystem       textSystem       {};  // last because it might render debug UI for any system
+    TriggerSystem    triggerSystem    {};  // might react to any gameplay system
 
     UID Alloc(void);
     void *AddFacet(UID uid, FacetType type, const char *name = nullptr, bool warnDupe = true);
@@ -110,7 +110,6 @@ struct Depot {
 
         Message msgBeginFrame{};
         msgBeginFrame.type = MsgType_Render_FrameBegin;
-        msgBeginFrame.data.render_framebegin.realDtSmooth = realDtSmooth;
         msgQueue.push_back(msgBeginFrame);
     }
 
@@ -126,6 +125,18 @@ struct Depot {
     }
 
     void Run(void);
+
+    inline double Dt(void) {
+        return fixedDt;
+    }
+
+    inline double DtSmooth(void) {
+        return realDtSmooth;
+    }
+
+    inline double Now(void) {
+        return now;
+    }
 
 private:
     GameState gameState{};

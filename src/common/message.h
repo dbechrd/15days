@@ -5,8 +5,8 @@
 enum MsgType {
     MsgType_Audio_PlaySound,
 
-    MsgType_Card_DragBegin,
-    MsgType_Card_DragEnd,
+    MsgType_Card_Notify_DragBegin,
+    MsgType_Card_Notify_DragEnd,
 
     MsgType_Combat_Primary,
     MsgType_Combat_Secondary,
@@ -15,10 +15,10 @@ enum MsgType {
     MsgType_Combat_Notify_DefendBegin,
     MsgType_Combat_Notify_IdleBegin,
 
-    MsgType_FpsCounter_UpdateText,
+    MsgType_Cursor_PrimaryPress,
+    MsgType_Cursor_PrimaryRelease,
 
-    MsgType_Global_PrimaryPress,
-    MsgType_Global_PrimaryRelease,
+    MsgType_FpsCounter_Notify_Update,
 
     MsgType_Movement_WalkUp,
     MsgType_Movement_WalkLeft,
@@ -38,6 +38,8 @@ enum MsgType {
     MsgType_Render_Quit,
     MsgType_Render_ToggleVsync,
 
+    MsgType_Sprite_UpdateAnimation,
+
     MsgType_Text_UpdateText,
 
     MsgType_Window_Quit,
@@ -45,6 +47,10 @@ enum MsgType {
 
 struct Msg_Audio_PlaySound {
     bool override {};
+};
+
+struct Msg_Card_DragEnd {
+    UID landedOn;
 };
 
 struct Msg_Combat_Primary {
@@ -60,17 +66,27 @@ struct Msg_Combat_Notify_DefendBegin {
     int shield {};  // or whatever
 };
 
+struct Msg_Physics_ApplyImpulse {
+    vec2 v{};  // impulse vector (dir + mag)
+};
+
+struct Msg_Physics_Notify_Collide {
+    UID other{};
+    // TODO: manifold? (i.e. depth, normal)
+};
+
 struct Msg_Render_FrameBegin {
     double realDtSmooth {};
 };
 
-struct Msg_Physics_ApplyImpulse {
-    vec2 v {};  // impulse vector (dir + mag)
+struct Msg_Sprite_UpdateAnimation {
+    int animation {};
 };
 
-struct Msg_Physics_Notify_Collide {
-    UID other {};
-    // TODO: manifold? (i.e. depth, normal)
+struct Msg_FpsCounter_Notify_Update {
+    const char *str    {};
+    vec2        offset {};
+    vec4        color  {};
 };
 
 struct Depot;
@@ -80,7 +96,7 @@ struct Msg_Text_UpdateText {
     const char             *str      {};
     vec2                    offset   {};
     vec4                    color    {};
-    Text_UpdateTextCallback callback {};
+    //Text_UpdateTextCallback callback {};
 };
 
 struct Message {
@@ -88,11 +104,14 @@ struct Message {
     MsgType type {};
     union {
         Msg_Audio_PlaySound audio_playsound;
+        Msg_Card_DragEnd card_dragend;
         Msg_Combat_Notify_AttackBegin combat_attackbegin;
         Msg_Combat_Notify_DefendBegin combat_defendbegin;
+        Msg_FpsCounter_Notify_Update fpscounter_notify_update;
         Msg_Physics_ApplyImpulse physics_applyimpulse;
         Msg_Physics_Notify_Collide physics_notify_collide;
         Msg_Render_FrameBegin render_framebegin;
+        Msg_Sprite_UpdateAnimation sprite_updateanimation;
         Msg_Text_UpdateText text_updatetext;
     } data {};
 

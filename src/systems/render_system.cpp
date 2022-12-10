@@ -193,7 +193,7 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             int cellPixels = cell * (int)spritesheet->cellSize.x;
 
             frame.x = cellPixels % (int)texture->size.w;
-            frame.y = cellPixels / (int)texture->size.h;
+            frame.y = cellPixels / (int)texture->size.w;
             frame.w = (int)spritesheet->cellSize.x;
             frame.h = (int)spritesheet->cellSize.y;
 

@@ -7,8 +7,7 @@ struct SpriteSystem {
     // TODO: I feel like someone else maybe should own this, but idk yet
     static void InitSprite(Sprite &sprite, vec2 size, vec4 color);
 
-    void React(double now, Depot &depot);
-    void Behave(double now, Depot &depot, double dt);
+    void Update(double now, Depot &depot);
     void Display(double now, Depot &depot, DrawQueue &drawQueue);
 
 private:

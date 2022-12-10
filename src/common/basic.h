@@ -42,4 +42,5 @@ struct Depot;
     color.a * 255  \
 }
 
-#define C_GRASS { 38, 43, 25, 255 }
+//#define C_GRASS { 38, 43, 25, 255 }
+#define C_GRASS { 68, 73, 55, 255 }

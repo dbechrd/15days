@@ -6,5 +6,5 @@ struct CardSystem {
     void Behave(double now, Depot &depot, double dt);
 
 private:
-    UID FindCardAtScreenPos(Depot &depot, int x, int y, vec2 *offset);
+    UID FindCardAtScreenPos(Depot &depot, UID uid, vec2 *offset);
 };

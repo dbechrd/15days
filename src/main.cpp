@@ -65,7 +65,8 @@ UID load_bitmap(Depot &depot, const char *filename)
 }
 
 void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile, bool override = true)
+    const char *soundFile, bool override = true, TriggerCallback callback = 0,
+    void *userData = 0)
 {
     UID uidAudioBuffer = load_sound(depot, soundFile);
 
@@ -76,6 +77,8 @@ void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
     trigger->message.uid = uidAudioBuffer;
     trigger->message.type = MsgType_Audio_PlaySound;
     trigger->message.data.audio_playsound.override = override;
+    trigger->callback = callback;
+    trigger->userData = userData;
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, 0, false);
     triggerList->triggers.insert(uidTrigger);
@@ -97,6 +100,177 @@ void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
     triggerList->triggers.insert(uidTrigger);
 }
 
+
+void only_if_drag_landed_on_trigger_target(Depot &depot, const Message &msg,
+    const Trigger &trigger, void *userData)
+{
+    DLB_ASSERT(msg.type == MsgType_Card_Notify_DragEnd);
+
+    UID *target = (UID *)userData;
+
+    if (msg.data.card_dragend.landedOn == *target) {
+        depot.msgQueue.push_back(trigger.message);
+    }
+}
+
+void add_animation_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
+    int animation, TriggerCallback callback = 0, void *userData = 0)
+{
+    UID uidTrigger = depot.Alloc();
+    printf("%u: trigger on %u to update animation for %u\n", uidTrigger, src, dst);
+    Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
+    trigger->trigger = msgType;
+    trigger->message.uid = dst;
+    trigger->message.type = MsgType_Sprite_UpdateAnimation;
+    trigger->message.data.sprite_updateanimation.animation = animation;
+    trigger->callback = callback;
+    trigger->userData = userData;
+
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, 0, false);
+    triggerList->triggers.insert(uidTrigger);
+}
+
+rect entity_bbox(Depot &depot, UID uid)
+{
+    rect bbox{};
+
+    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
+    if (position) {
+        bbox.x = position->pos.x;
+        bbox.y = position->pos.y - position->pos.z;
+        bbox.w = 1;
+        bbox.h = 1;
+    }
+    Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
+    if (sprite) {
+        bbox.w = sprite->size.w;
+        bbox.h = sprite->size.h;
+    }
+    Text *text = (Text *)depot.GetFacet(uid, Facet_Text);
+    if (text) {
+        // TODO: Have to account for both the text offset (in pos check)
+        // as well as alignment offsets for this to work correctly. We
+        // should make Sprite->GetBBox() and Text->GetBBox() helpers or
+        // something.
+        Texture *texture = (Texture *)depot.GetFacet(uid, Facet_Texture);
+        if (texture) {
+            bbox.w = texture->size.w;
+            bbox.h = texture->size.h;
+        }
+    }
+
+    return bbox;
+}
+
+UID find_sprite_at_screen_pos(Depot &depot, UID uid, vec2 *offset)
+{
+    rect bboxA = entity_bbox(depot, uid);
+    if (!bboxA.w || !bboxA.h) {
+        return 0;
+    }
+
+    UID uidLandedOn = 0;
+    float maxDepth = 0;
+    for (Sprite &sprite : depot.sprite) {
+        if (sprite.uid == uid) {
+            continue;
+        }
+
+        rect bboxB = entity_bbox(depot, sprite.uid);
+        if (!bboxB.w || !bboxB.h) {
+            continue;
+        }
+
+        float depth = bboxB.y + bboxB.h;
+        if (depth < maxDepth) {
+            continue;
+        }
+
+        if (rect_intersect(&bboxA, &bboxB)) {
+            if (offset) {
+                *offset = { (float)(bboxA.x - bboxB.x), (float)(bboxA.y - bboxB.y) };
+            }
+            uidLandedOn = sprite.uid;
+            maxDepth = depth;
+        }
+    }
+    return uidLandedOn;
+}
+
+void cursor_try_drag_begin(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Cursor *cursor = (Cursor *)depot.GetFacet(msg.uid, Facet_Cursor);
+    if (!cursor) {
+        return;
+    }
+
+    cursor->uidDragSubject = find_sprite_at_screen_pos(depot, cursor->uid, &cursor->dragOffset);
+    if (cursor->uidDragSubject) {
+        Message dragBegin{};
+        dragBegin.type = MsgType_Card_Notify_DragBegin;
+        dragBegin.uid = cursor->uidDragSubject;
+        depot.msgQueue.push_back(dragBegin);
+    }
+}
+
+void cursor_try_drag_end(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Cursor *cursor = (Cursor *)depot.GetFacet(msg.uid, Facet_Cursor);
+    if (!cursor) {
+        return;
+    }
+
+    if (cursor->uidDragSubject) {
+        UID landedOn = find_sprite_at_screen_pos(depot, cursor->uidDragSubject, &cursor->dragOffset);
+
+        Message dragEnd{};
+        dragEnd.type = MsgType_Card_Notify_DragEnd;
+        dragEnd.uid = cursor->uidDragSubject;
+        dragEnd.data.card_dragend.landedOn = landedOn;
+        depot.msgQueue.push_back(dragEnd);
+
+        cursor->uidDragSubject = 0;
+    }
+}
+
+UID create_cursor(Depot &depot)
+{
+    UID uidCursor = depot.Alloc();
+    printf("%u: cursor\n", uidCursor);
+
+    Cursor *cursor = (Cursor *)depot.AddFacet(uidCursor, Facet_Cursor);
+    UNUSED(cursor);
+
+    Position *position = (Position *)depot.AddFacet(uidCursor, Facet_Position);
+    int x = 0;
+    int y = 0;
+    SDL_GetMouseState(&x, &y);
+    position->pos.x = (float)x;
+    position->pos.y = (float)y;
+
+    Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
+
+    {
+        UID uidDragBeginTrigger = depot.Alloc();
+        Trigger *dragBeginTrigger = (Trigger *)depot.AddFacet(uidDragBeginTrigger, Facet_Trigger);
+        dragBeginTrigger->trigger = MsgType_Cursor_PrimaryPress;
+        dragBeginTrigger->callback = cursor_try_drag_begin;
+
+        UID uidDragEndTrigger = depot.Alloc();
+        Trigger *dragEndTrigger = (Trigger *)depot.AddFacet(uidDragEndTrigger, Facet_Trigger);
+        dragEndTrigger->trigger = MsgType_Cursor_PrimaryRelease;
+        dragEndTrigger->callback = cursor_try_drag_end;
+
+        TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCursor, Facet_TriggerList, 0, false);
+        triggerList->triggers.insert(uidDragBeginTrigger);
+        triggerList->triggers.insert(uidDragEndTrigger);
+    }
+
+    return uidCursor;
+}
+
 UID create_global_keymap(Depot &depot)
 {
     // TODO: This is maybe "Menu" or something?
@@ -108,16 +282,84 @@ UID create_global_keymap(Depot &depot)
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_V, 0, 0, Hotkey_Press, MsgType_Render_ToggleVsync);
 
-    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Global_PrimaryPress);
-    keymap->hotkeys.emplace_back(HotkeyMod_Ctrl, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Global_PrimaryRelease);
-
-    Cursor *cursor = (Cursor *)depot.AddFacet(uid, Facet_Cursor);
-    UNUSED(cursor);
-
     return uid;
 }
 
 UID create_narrator(Depot &depot, UID subject, UID fontFancy);
+
+void combat_try_attack(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
+    if (!combat) {
+        return;
+    }
+
+    bool canAttack = combat->Idle();
+    if (canAttack) {
+        combat->attackStartedAt = depot.Now();
+        combat->attackCooldown = 0.2;
+
+        Message notifyAttack{};
+        notifyAttack.uid = trigger.message.uid;
+        notifyAttack.type = MsgType_Combat_Notify_AttackBegin;
+        depot.msgQueue.push_back(notifyAttack);
+    }
+}
+
+void combat_try_defend(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
+    if (!combat) {
+        return;
+    }
+
+    bool canDefend = combat->Idle() || combat->Defending();
+    if (canDefend) {
+        combat->defendStartedAt = depot.Now();
+        combat->defendCooldown = 5.0; //0.6;
+
+        Message notifyDefend{};
+        notifyDefend.uid = trigger.message.uid;
+        notifyDefend.type = MsgType_Combat_Notify_DefendBegin;
+        depot.msgQueue.push_back(notifyDefend);
+    }
+}
+
+void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
+    if (!combat) {
+        return;
+    }
+
+    bool idleBegin = false;
+
+    if (combat->attackStartedAt) {
+        DLB_ASSERT(combat->attackCooldown);
+        float attackAlpha = (depot.Now() - combat->attackStartedAt) / combat->attackCooldown;
+        if (attackAlpha >= 1.0) {
+            combat->attackStartedAt = 0;
+            combat->attackCooldown = 0;
+            idleBegin = true;
+        }
+    }
+    if (combat->defendStartedAt) {
+        DLB_ASSERT(combat->defendCooldown);
+        float defendAlpha = (depot.Now() - combat->defendStartedAt) / combat->defendCooldown;
+        if (defendAlpha >= 1.0) {
+            combat->defendStartedAt = 0;
+            combat->defendCooldown = 0;
+            idleBegin = true;
+        }
+    }
+
+    if (idleBegin) {
+        Message notifyIdle{};
+        notifyIdle.uid = combat->uid;
+        notifyIdle.type = MsgType_Combat_Notify_IdleBegin;
+        depot.msgQueue.push_back(notifyIdle);
+    }
+}
 
 UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 {
@@ -138,8 +380,8 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
 
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
+    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
     //keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Combat_Secondary_Press);
 
     keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_RunUp);
@@ -185,8 +427,33 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
 
     add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
     add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
-    add_sound_trigger(depot, uidPlayer, MsgType_Card_DragBegin, "audio/player_drag_begin.wav");
-    add_sound_trigger(depot, uidPlayer, MsgType_Card_DragEnd, "audio/player_drag_end.wav");
+    add_sound_trigger(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
+    add_sound_trigger(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
+
+    {
+        UID uidAttackTrigger = depot.Alloc();
+        Trigger *attackTrigger = (Trigger *)depot.AddFacet(uidAttackTrigger, Facet_Trigger);
+        attackTrigger->trigger = MsgType_Combat_Primary;
+        attackTrigger->message.uid = uidPlayer;
+        attackTrigger->callback = combat_try_attack;
+
+        UID uidDefendTrigger = depot.Alloc();
+        Trigger *defendTrigger = (Trigger *)depot.AddFacet(uidDefendTrigger, Facet_Trigger);
+        defendTrigger->trigger = MsgType_Combat_Secondary;
+        defendTrigger->message.uid = uidPlayer;
+        defendTrigger->callback = combat_try_defend;
+
+        UID uidIdleTrigger = depot.Alloc();
+        Trigger *idleTrigger = (Trigger *)depot.AddFacet(uidIdleTrigger, Facet_Trigger);
+        idleTrigger->trigger = MsgType_Render_FrameBegin;
+        idleTrigger->message.uid = uidPlayer;
+        idleTrigger->callback = combat_try_idle;
+
+        TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, 0, false);
+        triggerList->triggers.insert(uidAttackTrigger);
+        triggerList->triggers.insert(uidDefendTrigger);
+        triggerList->triggers.insert(uidIdleTrigger);
+    }
 
     create_narrator(depot, uidPlayer, fontFancy);
 
@@ -213,8 +480,8 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy)
     text->color = C255(COLOR_WHITE);
     text->dirty = true;
 
-    add_sound_trigger(depot, uidNarrator, MsgType_Card_DragBegin, "audio/narrator_drag_begin.wav");
-    add_sound_trigger(depot, uidNarrator, MsgType_Card_DragEnd, "audio/narrator_drag_end.wav");
+    add_sound_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
+    add_sound_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
     add_text_update_trigger(depot, subject, MsgType_Combat_Notify_IdleBegin,
@@ -240,6 +507,28 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy)
     return uidNarrator;
 }
 
+void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    const double dt = depot.DtSmooth();
+    const double fps = 1.0f / dt;
+    const double dtMillis = dt * 1000.0f;
+    const size_t fpsCounterMaxLen = 32;
+
+    char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
+    if (fpsCounterBuf) {
+        snprintf(fpsCounterBuf, fpsCounterMaxLen, "%.2f fps (%.2f ms)", fps, dtMillis);
+
+        Message updateText{};
+        updateText.uid = trigger.message.uid;
+        updateText.type = MsgType_Text_UpdateText;
+        updateText.data.text_updatetext.str = fpsCounterBuf;
+        updateText.data.text_updatetext.color = C255(COLOR_WHITE);
+        depot.msgQueue.push_back(updateText);
+    } else {
+        printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
+    }
+}
+
 UID create_fps_counter(Depot &depot, UID font)
 {
     UID uidFpsCounter = depot.Alloc();
@@ -262,8 +551,19 @@ UID create_fps_counter(Depot &depot, UID font)
     text->align = TextAlign_VTop_HLeft;
     text->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_DragEnd, "audio/drag_end.wav");
+    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
+    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+
+    {
+        UID uidUpdateTextTrigger = depot.Alloc();
+        Trigger *updateTextTrigger = (Trigger *)depot.AddFacet(uidUpdateTextTrigger, Facet_Trigger);
+        updateTextTrigger->trigger = MsgType_Render_FrameBegin;
+        updateTextTrigger->message.uid = uidFpsCounter;
+        updateTextTrigger->callback = fps_update_text;
+
+        TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, 0, false);
+        triggerList->triggers.insert(uidUpdateTextTrigger);
+    }
 
     // TODO: NarratorSystem
     // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
@@ -310,8 +610,8 @@ UID create_card(Depot &depot, vec3 pos, UID font, UID spritesheet, int animation
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidCard, MsgType_Card_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidCard, MsgType_Card_DragEnd, "audio/drag_end.wav");
+    add_sound_trigger(depot, uidCard, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
+    add_sound_trigger(depot, uidCard, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
 
     return uidCard;
 }
@@ -388,6 +688,8 @@ int main(int argc, char *argv[])
     UID uidFontFixed = load_font(depot, "font/Hack-Bold.ttf", 16);
     UID uidFontFancy = load_font(depot, "font/KarminaBold.otf", 64);
 
+    create_cursor(depot);
+
     // Create an entity to hold the global keymap (the plan is to have a global
     // keymap per gamestate eventually)
     create_global_keymap(depot);
@@ -397,27 +699,36 @@ int main(int argc, char *argv[])
     create_fps_counter(depot, uidFontFixed);
 
     {
-        UID uidSpritesheetCards = load_bitmap(depot, "texture/cards.bmp");
-        Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheetCards, Facet_Spritesheet);
-        spritesheet->cells = 10;
-        spritesheet->cellSize = { 100, 150 };
-        for (int i = 0; i < spritesheet->cells; i++) {
-            spritesheet->animations.push_back({ i, 1 });
+        UID uidSheetCards = load_bitmap(depot, "texture/cards.bmp");
+        Spritesheet *sheetCards = (Spritesheet *)depot.AddFacet(uidSheetCards, Facet_Spritesheet);
+        sheetCards->cells = 10;
+        sheetCards->cellSize = { 100, 150 };
+        for (int i = 0; i < sheetCards->cells; i++) {
+            sheetCards->animations.push_back({ i, 1 });
         }
 
-        create_card(depot, { 100, 100, 0 }, uidFontFixed, uidSpritesheetCards, 0);
-        create_card(depot, { 200, 100, 0 }, uidFontFixed, uidSpritesheetCards, 1);
-        create_card(depot, { 300, 100, 0 }, uidFontFixed, uidSpritesheetCards, 2);
-        create_card(depot, { 400, 100, 0 }, uidFontFixed, uidSpritesheetCards, 3);
-    }
-    {
-        UID uidSpritesheetCampfire = load_bitmap(depot, "texture/campfire.bmp");
-        Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheetCampfire, Facet_Spritesheet);
-        spritesheet->cells = 8;
-        spritesheet->cellSize = { 256, 256 };
-        spritesheet->animations.push_back({ 0, 8 });
+        UID uidLighter = create_card(depot, { 100, 100, 0 }, uidFontFixed, uidSheetCards, 0);
+        UID uidBucket = create_card(depot, { 200, 100, 0 }, uidFontFixed, uidSheetCards, 1);
+        create_card(depot, { 300, 100, 0 }, uidFontFixed, uidSheetCards, 2);
+        create_card(depot, { 400, 100, 0 }, uidFontFixed, uidSheetCards, 3);
 
-        create_card(depot, { 200, 300, 0 }, uidFontFixed, uidSpritesheetCampfire, 0);
+        UID uidSheetCampfire = load_bitmap(depot, "texture/campfire.bmp");
+        Spritesheet *sheetCampfire = (Spritesheet *)depot.AddFacet(uidSheetCampfire, Facet_Spritesheet);
+        sheetCampfire->cells = 9;
+        sheetCampfire->cellSize = { 256, 256 };
+        sheetCampfire->animations.push_back({ 0, 1 });
+        sheetCampfire->animations.push_back({ 1, 8 });
+
+        UID uidCampfire = create_card(depot, { 200, 300, 0 }, uidFontFixed, uidSheetCampfire, 0);
+
+        UID *dragEndUserData = (UID *)depot.resourceArena.Alloc(sizeof(uidCampfire));
+        *dragEndUserData = uidCampfire;
+
+        // TODO: Check if card was actually dropped on fire.. somehow
+        add_animation_update_trigger(depot, uidLighter, MsgType_Card_Notify_DragEnd, uidCampfire, 1, only_if_drag_landed_on_trigger_target, dragEndUserData);
+        add_animation_update_trigger(depot, uidBucket, MsgType_Card_Notify_DragEnd, uidCampfire, 0, only_if_drag_landed_on_trigger_target, dragEndUserData);
+        add_sound_trigger(depot, uidLighter, MsgType_Card_Notify_DragEnd, "audio/fire_start.wav", true, only_if_drag_landed_on_trigger_target, dragEndUserData);
+        add_sound_trigger(depot, uidBucket, MsgType_Card_Notify_DragEnd, "audio/fire_extinguish.wav", true, only_if_drag_landed_on_trigger_target, dragEndUserData);
     }
 
     // Run the game
