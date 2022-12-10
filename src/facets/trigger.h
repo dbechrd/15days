@@ -4,10 +4,6 @@
 #include "../common/message.h"
 #include <unordered_set>
 
-struct Msg_Trigger {
-
-};
-
 enum TriggerType {
     Trigger_Collide
 };

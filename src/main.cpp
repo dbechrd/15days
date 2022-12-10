@@ -11,9 +11,12 @@ DLB_ASSERT_HANDLER(dlb_assert_callback) {
 }
 dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
-UID load_font(Depot &depot, std::string filename, int ptsize)
+UID load_font(Depot &depot, const char *filename, int ptsize)
 {
-    std::string key = filename + "?ptsize=" + std::to_string(ptsize);
+    char buf[1024]{};
+    size_t keyLen = snprintf(CSTR0(buf), "%s?ptsize=%d", filename, ptsize);
+    char *key = (char *)depot.resourceArena.Alloc(keyLen);
+    strcpy(key, buf);
 
     // Check if already loaded
     Font *existingFont = (Font *)depot.GetFacetByName(Facet_Font, key);
@@ -23,15 +26,15 @@ UID load_font(Depot &depot, std::string filename, int ptsize)
 
     // Load a new font
     UID uidFont = depot.Alloc();
-    Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, &key);
+    Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font, key);
     fontFancy->filename = filename;
     fontFancy->ptsize = ptsize;
-    fontFancy->ttf_font = TTF_OpenFont(filename.c_str(), ptsize);
+    fontFancy->ttf_font = TTF_OpenFont(filename, ptsize);
     return uidFont;
 }
 
 
-UID load_sound(Depot &depot, std::string filename)
+UID load_sound(Depot &depot, const char *filename)
 {
     // Check if already loaded
     Sound *existingSound = (Sound *)depot.GetFacetByName(Facet_Sound, filename);
@@ -40,13 +43,14 @@ UID load_sound(Depot &depot, std::string filename)
     }
 
     // Load a new audio buffer
-    UID uidAudioBuffer = depot.Alloc();
-    Sound *sound = (Sound *)depot.AddFacet(uidAudioBuffer, Facet_Sound);
-    depot.audioSystem.InitSound(*sound, filename);
-    return uidAudioBuffer;
+    UID uidSound = depot.Alloc();
+    printf("%u: sound %s\n", uidSound, filename);
+    Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound, filename);
+    depot.audioSystem.InitSound(depot, *sound, filename);
+    return uidSound;
 }
 
-UID load_bitmap(Depot &depot, std::string filename)
+UID load_bitmap(Depot &depot, const char *filename)
 {
     // Check if already loaded
     Sound *existingTexture = (Sound *)depot.GetFacetByName(Facet_Texture, filename);
@@ -62,7 +66,7 @@ UID load_bitmap(Depot &depot, std::string filename)
 }
 
 void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
-    std::string soundFile, bool override = true)
+    const char *soundFile, bool override = true)
 {
     UID uidAudioBuffer = load_sound(depot, soundFile);
 
@@ -170,8 +174,8 @@ UID create_player(Depot &depot, UID fontFixed, UID fontFancy)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Primary, "audio/primary.wav");
-    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Secondary, "audio/secondary.wav", false);
+    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
+    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
     add_sound_trigger(depot, uidPlayer, MsgType_Card_DragBegin, "audio/player_drag_begin.wav");
     add_sound_trigger(depot, uidPlayer, MsgType_Card_DragEnd, "audio/player_drag_end.wav");
 
@@ -206,9 +210,9 @@ UID create_narrator(Depot &depot, UID subject, UID fontFancy)
     add_text_update_trigger(depot, uidNarrator, MsgType_Render_FrameBegin,
         uidNarrator, "Neutral", C255(COLOR_GRAY_4));
     // Subject triggers
-    add_text_update_trigger(depot, subject, MsgType_Combat_Primary,
+    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_AttackBegin,
         uidNarrator, "Primary", C255(COLOR_RED));
-    add_text_update_trigger(depot, subject, MsgType_Combat_Secondary,
+    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_DefendBegin,
         uidNarrator, "Secondary", C255(COLOR_DODGER));
 
     // TODO: NarratorSystem
@@ -349,6 +353,7 @@ int main(int argc, char *argv[])
     //);
 
     Depot depot {};
+    depot.Init(GameState_Play);
 
     err = depot.renderSystem.Init("15days", SCREEN_W, SCREEN_H);
     if (err) return err;
@@ -368,8 +373,6 @@ int main(int argc, char *argv[])
     // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
     UID uidFontFixed = load_font(depot, "font/Hack-Bold.ttf", 16);
     UID uidFontFancy = load_font(depot, "font/KarminaBold.otf", 64);
-
-    depot.Init(GameState_Play);
 
     // Create an entity to hold the global keymap (the plan is to have a global
     // keymap per gamestate eventually)

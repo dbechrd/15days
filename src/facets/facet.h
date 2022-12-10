@@ -22,7 +22,7 @@ enum FacetType {
 };
 
 struct Facet {
-    UID          uid  {};
-    FacetType    type {};
-    std::string  name {};
+    UID         uid  {};
+    FacetType   type {};
+    const char *name {};
 };

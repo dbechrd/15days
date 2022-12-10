@@ -53,6 +53,7 @@ struct Depot {
 
     MsgQueue msgQueue{};
     Arena frameArena{};
+    Arena resourceArena{};  // for e.g. Wav data
 
     // There aren't really the same kind of "system", maybe use a different word
     EventSystemSDL eventSystemSDL {};
@@ -71,15 +72,16 @@ struct Depot {
     RenderSystem     renderSystem     {};
 
     UID Alloc(void);
-    void *AddFacet(UID uid, FacetType type, std::string *name = nullptr, bool warnDupe = true);
+    void *AddFacet(UID uid, FacetType type, const char *name = nullptr, bool warnDupe = true);
     void *GetFacet(UID uid, FacetType type);
-    void *GetFacetByName(FacetType type, std::string &name);
+    void *GetFacetByName(FacetType type, const char *name);
 
     void Init(GameState state)
     {
         gameState = state;
         gameStatePending = gameState;
-        frameArena.Init(KB(16));
+        frameArena.Init(KB(1), true);
+        resourceArena.Init(KB(4));
     }
 
     void Destroy(void)
@@ -97,6 +99,7 @@ struct Depot {
         }
 
         frameArena.Destroy();
+        resourceArena.Destroy();
     }
 
     void BeginFrame(void)

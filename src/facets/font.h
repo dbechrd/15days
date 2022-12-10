@@ -2,7 +2,7 @@
 #include "facet.h"
 
 struct Font : public Facet {
-    std::string  filename {};
-    int          ptsize   {};
-    TTF_Font    *ttf_font {};
+    const char *filename {};
+    int         ptsize   {};
+    TTF_Font   *ttf_font {};
 };

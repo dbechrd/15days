@@ -29,6 +29,7 @@ void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
 
 FDOVResult AudioSystem::Init(void)
 {
+#if 0
     int sdl_init_err = SDL_Init(SDL_INIT_AUDIO);
     if (sdl_init_err < 0) {
         printf("Failed to initialize SDL audio: %s\n", SDL_GetError());
@@ -99,18 +100,33 @@ FDOVResult AudioSystem::Init(void)
 
     printf("\nAudio driver: %s\n", SDL_GetCurrentAudioDriver());
     return FDOV_SUCCESS;
+#else
+    SoLoud::result res = gSoloud.init();
+    if (res) {
+        SDL_Log("SoLoud failed to init with error code %u\n", res);
+        return FDOV_INIT_FAILED;
+    }
+
+    //gSoloud.setGlobalVolume(0.5f);
+
+    return FDOV_SUCCESS;
+#endif
 }
 
 void AudioSystem::DestroyDepot(const Depot &depot)
 {
-    for (const Sound &sound : depot.sound) {
-        SDL_FreeWAV(sound.data);
-    }
+    //for (const Sound &sound : depot.sound) {
+    //    SDL_FreeWAV(sound.data);
+    //}
 }
 
 void AudioSystem::Destroy(void)
 {
+#if 0
     SDL_CloseAudioDevice(playbackDeviceId);
+#else
+    gSoloud.deinit();
+#endif
 }
 
 void AudioSystem::React(double now, Depot &depot)
@@ -141,14 +157,15 @@ void AudioSystem::Behave(double now, Depot &depot, double dt)
 
 void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
 {
-    SDL_AudioStatus status = SDL_GetAudioDeviceStatus(playbackDeviceId);
-    if (status != SDL_AUDIO_PLAYING) {
-        return;
-    }
-
     Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
     if (!sound) {
         printf("WARN: Sound missing for uid: %u\n", soundUid);
+        return;
+    }
+
+#if 0
+    SDL_AudioStatus status = SDL_GetAudioDeviceStatus(playbackDeviceId);
+    if (status != SDL_AUDIO_PLAYING) {
         return;
     }
 
@@ -161,12 +178,37 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
         }
     }
     SDL_QueueAudio(playbackDeviceId, sound->data, sound->data_length);
+#else
+    // Check if this sound is already playing
+    if (gSoloud.countAudioSource(*sound->wav)) {
+        // If user wants to override it
+        if (override) {
+            // restart sound effect
+            gSoloud.stopAudioSource(*sound->wav);
+            gSoloud.play(*sound->wav);
+        }
+        // implicit else: don't play it again, wait until it finishes
+    } else {
+        // play sound effect
+        gSoloud.play(*sound->wav);
+    }
+#endif
 }
 
-void AudioSystem::InitSound(Sound &sound, std::string &filename)
+void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
 {
+#if 0
     SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
     if (!sound.data) {
-        printf("Failed to load audio file: %s\n  %s\n", filename.c_str(), SDL_GetError());
+        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
     }
+#else
+    sound.filename = filename;
+    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
+    new (sound.wav) SoLoud::Wav;
+    SoLoud::result res = sound.wav->load(filename);
+    if (res) {
+        printf("Failed to load wav: %s\n  %u\n", filename, res);
+    }
+#endif
 }

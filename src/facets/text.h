@@ -11,12 +11,11 @@ enum TextAlign {
 
 struct TextProps {
     // values of relevant properties when cached texture was last generated
-    UID   font  {};
-    vec4  color {};
-    char *str   {};
+    UID         font  {};
+    vec4        color {};
+    const char *str   {};
 
     void Destroy(void) {
-        free((void *)str);
         *this = {};
     }
 };
@@ -33,6 +32,7 @@ struct Text : public Facet {
     inline bool isDirty(void)
     {
         return
+            str != cacheProps.str ||
             font != cacheProps.font ||
             !v4_equals(&color, &cacheProps.color) ||
             strcmp(str, cacheProps.str);

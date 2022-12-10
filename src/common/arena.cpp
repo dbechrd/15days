@@ -3,8 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 
-void Arena::Init(size_t bytes)
+void Arena::Init(size_t bytes, bool allowResize)
 {
+    canResize = allowResize;
     data = (uint8_t *)calloc(bytes, sizeof(*data));
     if (data) {
         capacity = bytes;
@@ -21,15 +22,21 @@ void Arena::Destroy(void)
 
 void *Arena::Alloc(size_t bytes)
 {
+    DLB_ASSERT(capacity > 0);
     if (size + bytes > capacity) {
-        size_t newCap = capacity * 2;
-        uint8_t *newData = (uint8_t *)realloc(data, newCap);
-        if (!newData) {
-            printf("ERROR: Failed to resize depot frame arena\n");
+        if (canResize) {
+            size_t newCap = capacity * 2;
+            uint8_t *newData = (uint8_t *)realloc(data, newCap);
+            if (!newData) {
+                printf("ERROR: Failed to resize depot frame arena\n");
+                return 0;
+            }
+            capacity = newCap;
+            data = newData;
+        } else {
+            DLB_ASSERT(!"You dun ran outta space, bruv");
             return 0;
         }
-        capacity = newCap;
-        data = newData;
     }
     void *ptr = data + size;
     size += bytes;

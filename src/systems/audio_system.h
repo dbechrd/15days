@@ -11,9 +11,11 @@ struct AudioSystem {
     void Behave(double now, Depot &depot, double dt);
     //void Display(double now, Depot &depot, DrawQueue &drawQueue);
 
-    static void InitSound(Sound &sound, std::string &filename);
+    static void InitSound(Depot &depot, Sound &sound, const char *filename);
 private:
-    SDL_AudioDeviceID playbackDeviceId{};
+    //SDL_AudioDeviceID playbackDeviceId{};
+    SoLoud::Soloud gSoloud; // SoLoud engine
+    //SoLoud::Wav gWave;      // One wave file
 
     void PlaySound(Depot &depot, UID soundUid, bool override = false);
 };

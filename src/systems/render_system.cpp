@@ -141,14 +141,14 @@ void RenderSystem::Behave(double now, Depot &depot, double dt)
 
             text.cacheProps.font = text.font;
             text.cacheProps.color = text.color;
-
             size_t strLen = strlen(text.str);
             text.cacheProps.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cacheProps.str));
-            memcpy(text.cacheProps.str, text.str, strLen);
+            memcpy((void *)text.cacheProps.str, text.str, strLen);
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font) {
-                SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, 300);
+                int wrapLength = 300;
+                SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, wrapLength);
                 texture->sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
                 texture->size = { (float)surface->w, (float)surface->h };
                 SDL_FreeSurface(surface);
@@ -268,15 +268,15 @@ void RenderSystem::Present(void)
     SDL_RenderPresent(renderer);
 }
 
-void RenderSystem::InitTexture(Texture &texture, std::string &filename)
+void RenderSystem::InitTexture(Texture &texture, const char *filename)
 {
-    SDL_Surface *surface = SDL_LoadBMP(filename.c_str());
+    SDL_Surface *surface = SDL_LoadBMP(filename);
     if (surface) {
         texture.filename = filename;
         texture.size = { (float)surface->w, (float)surface->h };
         texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
         SDL_FreeSurface(surface);
     } else {
-        printf("Failed to load texture: %s\n  %s\n", filename.c_str(), SDL_GetError());
+        printf("Failed to load texture: %s\n  %s\n", filename, SDL_GetError());
     }
 }

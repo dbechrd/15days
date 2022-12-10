@@ -20,7 +20,7 @@ struct RenderSystem {
     void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
 
-    void InitTexture(Texture &texture, std::string &filename);
+    void InitTexture(Texture &texture, const char *filename);
 private:
     bool          running     {false};
     SDL_Window   *window      {};

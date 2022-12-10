@@ -20,6 +20,11 @@ void CombatSystem::React(double now, Depot &depot)
                 if (canAttack) {
                     combat->attackStartedAt = now;
                     combat->attackCooldown = 0.2;
+
+                    Message notifyAttack{};
+                    notifyAttack.uid = msg.uid;
+                    notifyAttack.type = MsgType_Combat_Notify_AttackBegin;
+                    depot.msgQueue.push_back(notifyAttack);
                 }
                 break;
             }
@@ -27,6 +32,11 @@ void CombatSystem::React(double now, Depot &depot)
                 if (canDefend) {
                     combat->defendStartedAt = now;
                     combat->defendCooldown = 0.6;
+
+                    Message notifyDefend{};
+                    notifyDefend.uid = msg.uid;
+                    notifyDefend.type = MsgType_Combat_Notify_DefendBegin;
+                    depot.msgQueue.push_back(notifyDefend);
                 }
                 break;
             }

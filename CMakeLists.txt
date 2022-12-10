@@ -21,17 +21,23 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
+    CRT_SECURE_NO_WARNINGS
     SDL_DISABLE_ANALYZE_MACROS
+    WITH_SDL2_STATIC
 )
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE
         -Wno-missing-braces
         -Wno-unused-variable
         -Wno-unused-but-set-variable
+        -Wno-deprecated-declarations
+        -Wno-misleading-indentation
+        -Wno-writable-strings
     ) #-Wall -Wextra)
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include/SDL
 )
 target_link_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib

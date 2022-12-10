@@ -6,6 +6,9 @@
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
 
+#include "soloud.h"
+#include "soloud_wav.h"
+
 #include <cassert>
 #include <cstdint>
 #include <cstdio>

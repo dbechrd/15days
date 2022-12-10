@@ -8,7 +8,7 @@ UID Depot::Alloc(void)
     return uid;
 }
 
-void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
+void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
 {
     void *existingFacet = GetFacet(uid, type);
     if (existingFacet) {
@@ -19,9 +19,10 @@ void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
     }
 
     if (name) {
-        if (indexByName[type].contains(*name)) {
+        std::string key{ name };
+        if (indexByName[type].contains(key)) {
             printf("ERROR: There is already a facet of type %d with name %s. It has uid %u.\n",
-                type, name->c_str(), indexByName[type][*name]);
+                type, name, indexByName[type][key]);
             return 0;
         }
     }
@@ -66,8 +67,9 @@ void *Depot::AddFacet(UID uid, FacetType type, std::string *name, bool warnDupe)
     facet->uid = uid;
     facet->type = type;
     if (name) {
-        facet->name = *name;
-        indexByName[type][*name] = uid;
+        facet->name = name;
+        std::string key{ name };
+        indexByName[type][key] = uid;
     }
     indexByUid[type][uid] = index;
     return facet;
@@ -100,10 +102,11 @@ void *Depot::GetFacet(UID uid, FacetType type)
     return 0;
 }
 
-void *Depot::GetFacetByName(FacetType type, std::string &name)
+void *Depot::GetFacetByName(FacetType type, const char *name)
 {
-    if (indexByName[type].contains(name)) {
-        UID uid = indexByName[type][name];
+    std::string key{ name };
+    if (indexByName[type].contains(key)) {
+        UID uid = indexByName[type][key];
         return GetFacet(uid, type);
     }
     return 0;
