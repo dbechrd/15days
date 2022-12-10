@@ -41,6 +41,13 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
+        float depth = position->pos.y - position->pos.z + sprite.size.y;
+        for (Cursor &cursor : depot.cursor) {
+            if (cursor.uidDragSubject == sprite.uid) {
+                depth = SCREEN_H * 2.0f;
+            }
+        }
+
         DrawCommand drawSprite{};
         drawSprite.uid = sprite.uid;
         drawSprite.color = sprite.color;
@@ -49,6 +56,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawSprite.rect.w = sprite.size.x;
         drawSprite.rect.h = sprite.size.y;
         drawSprite.sprite = sprite.uid;
+        drawSprite.depth = depth;
         drawQueue.push(drawSprite);
 
         Combat *combat = (Combat *)depot.GetFacet(sprite.uid, Facet_Combat);
@@ -64,6 +72,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 attackOverlay.rect = drawSprite.rect;
                 attackOverlay.rect.y += sprite.size.y - overlayHeight;
                 attackOverlay.rect.h = ceilf(overlayHeight);
+                attackOverlay.depth = depth;
                 drawQueue.push(attackOverlay);
             }
             if (combat->defendStartedAt) {
@@ -77,6 +86,7 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 defendOverlay.rect = drawSprite.rect;
                 defendOverlay.rect.y += sprite.size.y - overlayHeight;
                 defendOverlay.rect.h = ceilf(overlayHeight);
+                defendOverlay.depth = depth;
                 drawQueue.push(defendOverlay);
             }
         }

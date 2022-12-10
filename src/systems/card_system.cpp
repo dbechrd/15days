@@ -58,6 +58,8 @@ void CardSystem::Behave(double now, Depot &depot, double dt)
 
 UID CardSystem::FindCardAtScreenPos(Depot &depot, int x, int y, vec2 *offset)
 {
+    UID uid = 0;
+    float maxDepth = 0;
     for (Position &position : depot.position) {
         vec2 pos = { position.pos.x, position.pos.y - position.pos.z };
         vec2 size = { 20, 20 };
@@ -81,12 +83,14 @@ UID CardSystem::FindCardAtScreenPos(Depot &depot, int x, int y, vec2 *offset)
             }
         }
 
-        if (x >= pos.x && x < pos.x + size.x && y >= pos.y && y < pos.y + size.y) {
+        float depth = pos.y + size.y;
+        if (depth > maxDepth && x >= pos.x && x < pos.x + size.x && y >= pos.y && y < pos.y + size.y) {
             if (offset) {
                 *offset = { x - pos.x, y - pos.y };
             }
-            return position.uid;
+            uid = position.uid;
+            maxDepth = depth;
         }
     }
-    return 0;
+    return uid;
 }

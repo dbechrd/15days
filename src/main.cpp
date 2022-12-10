@@ -407,6 +407,8 @@ int main(int argc, char *argv[])
 
         create_card(depot, { 100, 100, 0 }, uidFontFixed, uidSpritesheetCards, 0);
         create_card(depot, { 200, 100, 0 }, uidFontFixed, uidSpritesheetCards, 1);
+        create_card(depot, { 300, 100, 0 }, uidFontFixed, uidSpritesheetCards, 2);
+        create_card(depot, { 400, 100, 0 }, uidFontFixed, uidSpritesheetCards, 3);
     }
     {
         UID uidSpritesheetCampfire = load_bitmap(depot, "texture/campfire.bmp");
