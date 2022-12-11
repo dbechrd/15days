@@ -4,7 +4,6 @@
 #include "../common/game_state.h"
 
 #include "../systems/audio_system.h"
-#include "../systems/card_system.h"
 #include "../systems/combat_system.h"
 #include "../systems/cursor_system.h"
 #include "../systems/event_system_sdl.h"
@@ -20,6 +19,7 @@
 #include "body.h"
 #include "combat.h"
 #include "cursor.h"
+#include "deck.h"
 #include "font.h"
 #include "fps_counter.h"
 #include "keymap.h"
@@ -40,6 +40,7 @@ struct Depot {
     std::vector<Body>        body        {};
     std::vector<Combat>      combat      {};
     std::vector<Cursor>      cursor      {};
+    std::vector<Deck>        deck        {};
     std::vector<Font>        font        {};
     std::vector<FpsCounter>  fpsCounter  {};
     std::vector<Keymap>      keymap      {};
@@ -62,7 +63,6 @@ struct Depot {
 
     // These are order-dependent, see Depot::Run() in depot.cpp
     AudioSystem      audioSystem      {};  // might react to triggers
-    CardSystem       cardSystem       {};
     CombatSystem     combatSystem     {};
     CursorSystem     cursorSystem     {};
     MovementSystem   movementSystem   {};

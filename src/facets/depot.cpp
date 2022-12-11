@@ -41,6 +41,7 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
         EMPLACE(Facet_Body,        body);
         EMPLACE(Facet_Combat,      combat);
         EMPLACE(Facet_Cursor,      cursor);
+        EMPLACE(Facet_Deck,        deck);
         EMPLACE(Facet_Font,        font);
         EMPLACE(Facet_FpsCounter,  fpsCounter);
         EMPLACE(Facet_Keymap,      keymap);
@@ -68,8 +69,13 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
     facet->uid = uid;
     facet->type = type;
     if (name) {
-        facet->name = name;
         std::string key{ name };
+
+        size_t keyLen = key.length();
+        char *keyStr = (char *)resourceArena.Alloc(keyLen);
+        snprintf(keyStr, keyLen, "%s", key.c_str());
+        facet->name = keyStr;
+
         indexByName[type][key] = uid;
     }
     indexByUid[type][uid] = index;
@@ -88,6 +94,7 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Body:        return &body        [index];
         case Facet_Combat:      return &combat      [index];
         case Facet_Cursor:      return &cursor      [index];
+        case Facet_Deck:        return &deck        [index];
         case Facet_Font:        return &font        [index];
         case Facet_FpsCounter:  return &fpsCounter  [index];
         case Facet_Keymap:      return &keymap      [index];
@@ -153,21 +160,20 @@ void Depot::Run(void)
         }
 
         // TODO: Make these pure generators
-        cardSystem.React(now, *this);        // reacts to Cursor   generates Card_Notify
-        movementSystem.React(now, *this);    // reacts to Movement
+        movementSystem.React(now, *this);  // reacts to Movement
 
         for (int i = 0; i < physicsIters; i++) {
             physicsSystem.Update(now, *this, fixedDt);
         }
 
         // Message converter
-        triggerSystem.React(now, *this);     // reacts to *        generates *
+        triggerSystem.React(now, *this);   // reacts to *        generates *
 
         // Pure message reactors (do not modify msgQueue here!)
-        audioSystem.React(now, *this);       // reacts to Audio
-        spriteSystem.Update(now, *this);     // reacts to Sprite
-        textSystem.React(now, *this);        // reacts to Text
-        renderSystem.React(now, *this);      // reacts to Render
+        audioSystem.React(now, *this);     // reacts to Audio
+        spriteSystem.Update(now, *this);   // reacts to Sprite
+        textSystem.React(now, *this);      // reacts to Text
+        renderSystem.React(now, *this);    // reacts to Render
 
         renderSystem.UpdateCachedTextures(*this);
 

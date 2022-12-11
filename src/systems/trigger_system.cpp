@@ -23,7 +23,12 @@ void TriggerSystem::React(double now, Depot &depot)
 
 void TriggerSystem::CheckTriggers(Depot &depot, TriggerList &triggerList, Message &msg)
 {
-    for (const UID &triggerUid : triggerList.triggers) {
+    // HACK to allow modifying trigger list while iterating (e.g. in callbacks)
+    auto triggers = triggerList.triggers;
+    for (const UID &triggerUid : triggers) {
+        if (msg.type == MsgType_Card_Notify_DragBegin && triggerUid == 45) {
+            printf("");
+        }
         Trigger *trigger = (Trigger *)depot.GetFacet(triggerUid, Facet_Trigger);
         if (trigger) {
             if (trigger->trigger == msg.type) {
