@@ -23,23 +23,13 @@ void TriggerSystem::React(double now, Depot &depot)
 
 void TriggerSystem::CheckTriggers(Depot &depot, TriggerList &triggerList, Message &msg)
 {
-    // HACK to allow modifying trigger list while iterating (e.g. in callbacks)
-    auto triggers = triggerList.triggers;
-    for (const UID &triggerUid : triggers) {
-        if (msg.type == MsgType_Card_Notify_DragBegin && triggerUid == 45) {
-            printf("");
-        }
-        Trigger *trigger = (Trigger *)depot.GetFacet(triggerUid, Facet_Trigger);
-        if (trigger) {
-            if (trigger->trigger == msg.type) {
-                if (trigger->callback) {
-                    trigger->callback(depot, msg, *trigger, trigger->userData);
-                } else {
-                    depot.msgQueue.push_back(trigger->message);
-                }
+    for (const Trigger &trigger : triggerList.triggers) {
+        if (trigger.trigger == msg.type) {
+            if (trigger.callback) {
+                trigger.callback(depot, msg, trigger, trigger.userData);
+            } else {
+                depot.msgQueue.push_back(trigger.message);
             }
-        } else {
-            printf("WARN: Trigger list for entity %u contained invalid trigger uid %u\n", msg.uid, triggerUid);
         }
     }
 }

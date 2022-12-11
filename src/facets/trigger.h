@@ -20,5 +20,5 @@ struct Trigger : public Facet {
 };
 
 struct TriggerList : public Facet {
-    std::unordered_set<UID> triggers{};
+    std::vector<Trigger> triggers{};
 };

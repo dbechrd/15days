@@ -68,36 +68,30 @@ void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
     const char *soundFile, bool override = true, TriggerCallback callback = 0,
     void *userData = 0)
 {
-    UID uidAudioBuffer = load_sound(depot, soundFile);
-
-    UID uidTrigger = depot.Alloc();
-    printf("%u: trigger on %u to play sound %u\n", uidTrigger, subject, uidAudioBuffer);
-    Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
-    trigger->trigger = msgType;
-    trigger->message.uid = uidAudioBuffer;
-    trigger->message.type = MsgType_Audio_PlaySound;
-    trigger->message.data.audio_playsound.override = override;
-    trigger->callback = callback;
-    trigger->userData = userData;
-
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, 0, false);
-    triggerList->triggers.insert(uidTrigger);
+
+    Trigger trigger{};
+    trigger.trigger = msgType;
+    trigger.message.uid = load_sound(depot, soundFile);
+    trigger.message.type = MsgType_Audio_PlaySound;
+    trigger.message.data.audio_playsound.override = override;
+    trigger.callback = callback;
+    trigger.userData = userData;
+    triggerList->triggers.push_back(trigger);
 }
 
 void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
     const char *str, vec4 color)
 {
-    UID uidTrigger = depot.Alloc();
-    printf("%u: trigger on %u to update text for %u\n", uidTrigger, src, dst);
-    Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
-    trigger->trigger = msgType;
-    trigger->message.uid = dst;
-    trigger->message.type = MsgType_Text_UpdateText;
-    trigger->message.data.text_updatetext.str = str;
-    trigger->message.data.text_updatetext.color = color;
-
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, 0, false);
-    triggerList->triggers.insert(uidTrigger);
+
+    Trigger trigger{};
+    trigger.trigger = msgType;
+    trigger.message.uid = dst;
+    trigger.message.type = MsgType_Text_UpdateText;
+    trigger.message.data.text_updatetext.str = str;
+    trigger.message.data.text_updatetext.color = color;
+    triggerList->triggers.push_back(trigger);
 }
 
 
@@ -116,18 +110,16 @@ void only_if_drag_landed_on_trigger_target(Depot &depot, const Message &msg,
 void add_animation_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
     int animation, TriggerCallback callback = 0, void *userData = 0)
 {
-    UID uidTrigger = depot.Alloc();
-    printf("%u: trigger on %u to update animation for %u\n", uidTrigger, src, dst);
-    Trigger *trigger = (Trigger *)depot.AddFacet(uidTrigger, Facet_Trigger);
-    trigger->trigger = msgType;
-    trigger->message.uid = dst;
-    trigger->message.type = MsgType_Sprite_UpdateAnimation;
-    trigger->message.data.sprite_updateanimation.animation = animation;
-    trigger->callback = callback;
-    trigger->userData = userData;
-
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, 0, false);
-    triggerList->triggers.insert(uidTrigger);
+
+    Trigger trigger{};
+    trigger.trigger = msgType;
+    trigger.message.uid = dst;
+    trigger.message.type = MsgType_Sprite_UpdateAnimation;
+    trigger.message.data.sprite_updateanimation.animation = animation;
+    trigger.callback = callback;
+    trigger.userData = userData;
+    triggerList->triggers.push_back(trigger);
 }
 
 rect entity_bbox(Depot &depot, UID uid)
@@ -294,26 +286,24 @@ UID create_cursor(Depot &depot)
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
 
     {
-        UID uidDragBeginTrigger = depot.Alloc();
-        Trigger *dragBeginTrigger = (Trigger *)depot.AddFacet(uidDragBeginTrigger, Facet_Trigger);
-        dragBeginTrigger->trigger = MsgType_Cursor_PrimaryPress;
-        dragBeginTrigger->callback = cursor_try_drag_begin;
-
-        UID uidDragUpdateTrigger = depot.Alloc();
-        Trigger *dragUpdateTrigger = (Trigger *)depot.AddFacet(uidDragUpdateTrigger, Facet_Trigger);
-        dragUpdateTrigger->trigger = MsgType_Render_FrameBegin;
-        dragUpdateTrigger->callback = cursor_try_drag_update;
-        dragUpdateTrigger->userData = (void *)(size_t)uidCursor;
-
-        UID uidDragEndTrigger = depot.Alloc();
-        Trigger *dragEndTrigger = (Trigger *)depot.AddFacet(uidDragEndTrigger, Facet_Trigger);
-        dragEndTrigger->trigger = MsgType_Cursor_PrimaryRelease;
-        dragEndTrigger->callback = cursor_try_drag_end;
-
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCursor, Facet_TriggerList, 0, false);
-        triggerList->triggers.insert(uidDragBeginTrigger);
-        triggerList->triggers.insert(uidDragUpdateTrigger);
-        triggerList->triggers.insert(uidDragEndTrigger);
+
+        Trigger dragBeginTrigger{};
+        dragBeginTrigger.trigger = MsgType_Cursor_PrimaryPress;
+        dragBeginTrigger.callback = cursor_try_drag_begin;
+        triggerList->triggers.push_back(dragBeginTrigger);
+
+        Trigger dragUpdateTrigger{};
+        dragUpdateTrigger.trigger = MsgType_Render_FrameBegin;
+        dragUpdateTrigger.callback = cursor_try_drag_update;
+        dragUpdateTrigger.userData = (void *)(size_t)uidCursor;
+        triggerList->triggers.push_back(dragUpdateTrigger);
+
+        Trigger dragEndTrigger{};
+        dragEndTrigger.trigger = MsgType_Cursor_PrimaryRelease;
+        dragEndTrigger.callback = cursor_try_drag_end;
+        triggerList->triggers.push_back(dragEndTrigger);
+
     }
 
     return uidCursor;
@@ -509,28 +499,25 @@ UID create_player(Depot &depot)
     add_sound_trigger(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
 
     {
-        UID uidAttackTrigger = depot.Alloc();
-        Trigger *attackTrigger = (Trigger *)depot.AddFacet(uidAttackTrigger, Facet_Trigger);
-        attackTrigger->trigger = MsgType_Combat_Primary;
-        attackTrigger->message.uid = uidPlayer;
-        attackTrigger->callback = combat_try_attack;
-
-        UID uidDefendTrigger = depot.Alloc();
-        Trigger *defendTrigger = (Trigger *)depot.AddFacet(uidDefendTrigger, Facet_Trigger);
-        defendTrigger->trigger = MsgType_Combat_Secondary;
-        defendTrigger->message.uid = uidPlayer;
-        defendTrigger->callback = combat_try_defend;
-
-        UID uidIdleTrigger = depot.Alloc();
-        Trigger *idleTrigger = (Trigger *)depot.AddFacet(uidIdleTrigger, Facet_Trigger);
-        idleTrigger->trigger = MsgType_Render_FrameBegin;
-        idleTrigger->message.uid = uidPlayer;
-        idleTrigger->callback = combat_try_idle;
-
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, 0, false);
-        triggerList->triggers.insert(uidAttackTrigger);
-        triggerList->triggers.insert(uidDefendTrigger);
-        triggerList->triggers.insert(uidIdleTrigger);
+
+        Trigger attackTrigger{};
+        attackTrigger.trigger = MsgType_Combat_Primary;
+        attackTrigger.message.uid = uidPlayer;
+        attackTrigger.callback = combat_try_attack;
+        triggerList->triggers.push_back(attackTrigger);
+
+        Trigger defendTrigger{};
+        defendTrigger.trigger = MsgType_Combat_Secondary;
+        defendTrigger.message.uid = uidPlayer;
+        defendTrigger.callback = combat_try_defend;
+        triggerList->triggers.push_back(defendTrigger);
+
+        Trigger idleTrigger{};
+        idleTrigger.trigger = MsgType_Render_FrameBegin;
+        idleTrigger.message.uid = uidPlayer;
+        idleTrigger.callback = combat_try_idle;
+        triggerList->triggers.push_back(idleTrigger);
     }
 
     create_narrator(depot, uidPlayer);
@@ -586,14 +573,13 @@ UID create_fps_counter(Depot &depot)
     add_sound_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
 
     {
-        UID uidUpdateTextTrigger = depot.Alloc();
-        Trigger *updateTextTrigger = (Trigger *)depot.AddFacet(uidUpdateTextTrigger, Facet_Trigger);
-        updateTextTrigger->trigger = MsgType_Render_FrameBegin;
-        updateTextTrigger->message.uid = uidFpsCounter;
-        updateTextTrigger->callback = fps_update_text;
-
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, 0, false);
-        triggerList->triggers.insert(uidUpdateTextTrigger);
+
+        Trigger updateTextTrigger{};
+        updateTextTrigger.trigger = MsgType_Render_FrameBegin;
+        updateTextTrigger.message.uid = uidFpsCounter;
+        updateTextTrigger.callback = fps_update_text;
+        triggerList->triggers.push_back(updateTextTrigger);
     }
 
     // TODO: NarratorSystem
@@ -684,15 +670,14 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     Deck *deck = (Deck *)depot.AddFacet(uidCard, Facet_Deck);
     deck->count = 3;
 
-    UID uidDeckDrawTrigger = depot.Alloc();
-    Trigger *deckDrawTrigger = (Trigger *)depot.AddFacet(uidDeckDrawTrigger, Facet_Trigger);
-    deckDrawTrigger->trigger = MsgType_Card_Notify_DragBegin;
-    deckDrawTrigger->message.uid = uidCard;
-    deckDrawTrigger->callback = deck_draw;
-    deckDrawTrigger->userData = (void *)(size_t)uidCard;
-
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCard, Facet_TriggerList, 0, false);
-    triggerList->triggers.insert(uidDeckDrawTrigger);
+
+    Trigger deckDrawTrigger{};
+    deckDrawTrigger.trigger = MsgType_Card_Notify_DragBegin;
+    deckDrawTrigger.message.uid = uidCard;
+    deckDrawTrigger.callback = deck_draw;
+    deckDrawTrigger.userData = (void *)(size_t)uidCard;
+    triggerList->triggers.push_back(deckDrawTrigger);
 
     return uidCard;
 }
