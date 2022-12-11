@@ -34,7 +34,7 @@ void PhysicsSystem::Update(double now, Depot &depot, double dt)
         }
 
         // Generate impulse from input buffers
-        vec3 impulse{};
+        vec3 impulse = body.impulseBuffer;
         impulse.x += body.moveBuffer.x;
         impulse.y += body.moveBuffer.y;
         impulse.z += body.gravity;
@@ -123,6 +123,7 @@ void PhysicsSystem::Update(double now, Depot &depot, double dt)
 
         // Reset input buffers
         body.moveBuffer = VEC2_ZERO;
+        body.impulseBuffer = VEC3_ZERO;
         body.runBuffer = false;
         body.jumpBuffer = false;
     }

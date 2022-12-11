@@ -10,11 +10,12 @@ struct Body : public Facet {
     float runMult      {};
     float gravity      {};
     float invMass      {};
+    vec3  velocity      {};
 
-    vec3  velocity     {};
-    vec2  moveBuffer   {};
-    bool  runBuffer    {};
-    bool  jumpBuffer   {};
+    vec2  moveBuffer    {};
+    vec3  impulseBuffer {};
+    bool  runBuffer     {};
+    bool  jumpBuffer    {};
 
     inline bool Moving(void)
     {

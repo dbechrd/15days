@@ -415,7 +415,7 @@ void combat_try_defend(Depot &depot, const Message &msg, const Trigger &trigger,
     bool canDefend = combat->Idle() || combat->Defending();
     if (canDefend) {
         combat->defendStartedAt = depot.Now();
-        combat->defendCooldown = 5.0; //0.6;
+        combat->defendCooldown = 0.6;
 
         Message notifyDefend{};
         notifyDefend.uid = trigger.message.uid;
@@ -758,6 +758,12 @@ void deck_draw(Depot &depot, const Message &msg, const Trigger &trigger, void *u
             UID cardProto = depot.cardProto[rand() % 1].uid;
             UID cardStack = create_card_stack(depot, spawnPos);
             UID card = create_card(depot, cardProto, spawnPos);
+
+            Body *body = (Body *)depot.GetFacet(card, Facet_Body);
+            body->impulseBuffer.x = (float)(rand() % 1000 - 500);
+            body->impulseBuffer.y = (float)(rand() % 1000 - 500);
+            body->jumpBuffer = rand() % 20;
+
             add_card_to_stack(depot, cardStack, card);
         } else {
             SDL_Log("Cannot draw from deck with no spritesheet\n");
