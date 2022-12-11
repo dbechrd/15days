@@ -1,8 +1,5 @@
 #pragma once
 #include "facet.h"
-#include "../common/basic.h"
-#include "SDL/SDL.h"
-#include "SDL/SDL_ttf.h"
 
 enum TextAlign {
     TextAlign_VTop_HLeft,

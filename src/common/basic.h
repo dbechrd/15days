@@ -13,8 +13,10 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <bitset>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #define FDOV_VSYNC      1

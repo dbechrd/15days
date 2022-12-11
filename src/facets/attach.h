@@ -1,6 +1,5 @@
 #pragma once
 #include "facet.h"
-#include "../common/basic.h"
 
 // TODO: If these don't share sensible names across different entities, we
 // should probably just use a dynamic list of string -> vec2

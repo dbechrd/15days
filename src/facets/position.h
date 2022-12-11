@@ -1,6 +1,5 @@
 #pragma once
 #include "facet.h"
-#include "../common/basic.h"
 
 struct Position : public Facet {
     vec3 pos{};

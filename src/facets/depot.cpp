@@ -1,14 +1,36 @@
 #include "depot.h"
 #include "../common/clock.h"
 
-UID Depot::Alloc(void)
+UID Depot::Alloc(const char *name, bool unique)
 {
+    if (!name) {
+        name = "unnamed";
+        unique = false;
+    }
+
     UID uid = nextUid;
     nextUid++;
+
+    std::string key{ name };
+    if (!unique) {
+        key += ":" + std::to_string(uid);
+    }
+
+    if (uidByName.contains(key)) {
+        printf("ERROR: Unique name '%s' is already in use by UID %u\n", key.c_str(), uidByName[key]);
+        DLB_ASSERT(!"Expected unique name");
+        return 0;
+    }
+
+    uidByName[key] = uid;
+    nameByUid[uid] = key;
+
+    printf("[%u] %s\n", uid, key.c_str());
+
     return uid;
 }
 
-void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
+void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
 {
     void *existingFacet = GetFacet(uid, type);
     if (existingFacet) {
@@ -16,15 +38,6 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
             printf("WARN: AddFacet called more than once for same uid/type pair: %u/%d.\n", uid, type);
         }
         return existingFacet;
-    }
-
-    if (name) {
-        std::string key{ name };
-        if (indexByName[type].contains(key)) {
-            printf("ERROR: There is already a facet of type %d with name %s. It has uid %u.\n",
-                type, name, indexByName[type][key]);
-            return 0;
-        }
     }
 
 #define EMPLACE(label, pool) \
@@ -37,22 +50,27 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
     size_t index = 0;
     Facet *facet = 0;
     switch (type) {
-        EMPLACE(Facet_Attach,      attach);
-        EMPLACE(Facet_Body,        body);
-        EMPLACE(Facet_Combat,      combat);
-        EMPLACE(Facet_Cursor,      cursor);
-        EMPLACE(Facet_Deck,        deck);
-        EMPLACE(Facet_Font,        font);
-        EMPLACE(Facet_FpsCounter,  fpsCounter);
-        EMPLACE(Facet_Keymap,      keymap);
-        EMPLACE(Facet_Position,    position);
-        EMPLACE(Facet_Sound,       sound);
-        EMPLACE(Facet_Sprite,      sprite);
-        EMPLACE(Facet_Spritesheet, spritesheet);
-        EMPLACE(Facet_Text,        text);
-        EMPLACE(Facet_Texture,     texture);
-        EMPLACE(Facet_Trigger,     trigger);
-        EMPLACE(Facet_TriggerList, triggerList);
+        EMPLACE(Facet_Attach,        attach);
+        EMPLACE(Facet_Body,          body);
+        EMPLACE(Facet_Card,          card);
+        EMPLACE(Facet_CardProto,     cardProto);
+        EMPLACE(Facet_CardStack,     cardStack);
+        EMPLACE(Facet_Combat,        combat);
+        EMPLACE(Facet_Cursor,        cursor);
+        EMPLACE(Facet_Deck,          deck);
+        EMPLACE(Facet_EffectList,    effectList);
+        EMPLACE(Facet_Font,          font);
+        EMPLACE(Facet_FpsCounter,    fpsCounter);
+        EMPLACE(Facet_Keymap,        keymap);
+        EMPLACE(Facet_Material,      material);
+        EMPLACE(Facet_MaterialProto, materialProto);
+        EMPLACE(Facet_Position,      position);
+        EMPLACE(Facet_Sound,         sound);
+        EMPLACE(Facet_Sprite,        sprite);
+        EMPLACE(Facet_Spritesheet,   spritesheet);
+        EMPLACE(Facet_Text,          text);
+        EMPLACE(Facet_Texture,       texture);
+        EMPLACE(Facet_TriggerList,   triggerList);
         default: assert(!"what is that, mate?");
     }
 
@@ -67,18 +85,9 @@ void *Depot::AddFacet(UID uid, FacetType type, const char *name, bool warnDupe)
     }
 
     facet->uid = uid;
-    facet->type = type;
-    if (name) {
-        std::string key{ name };
-
-        size_t keyLen = key.length();
-        char *keyStr = (char *)resourceArena.Alloc(keyLen);
-        snprintf(keyStr, keyLen, "%s", key.c_str());
-        facet->name = keyStr;
-
-        indexByName[type][key] = uid;
-    }
+    facet->f_type = type;
     indexByUid[type][uid] = index;
+
     return facet;
 }
 
@@ -90,32 +99,37 @@ void *Depot::GetFacet(UID uid, FacetType type)
 
     size_t index = indexByUid[type][uid];
     switch (type) {
-        case Facet_Attach:      return &attach      [index];
-        case Facet_Body:        return &body        [index];
-        case Facet_Combat:      return &combat      [index];
-        case Facet_Cursor:      return &cursor      [index];
-        case Facet_Deck:        return &deck        [index];
-        case Facet_Font:        return &font        [index];
-        case Facet_FpsCounter:  return &fpsCounter  [index];
-        case Facet_Keymap:      return &keymap      [index];
-        case Facet_Position:    return &position    [index];
-        case Facet_Sound:       return &sound       [index];
-        case Facet_Sprite:      return &sprite      [index];
-        case Facet_Spritesheet: return &spritesheet [index];
-        case Facet_Text:        return &text        [index];
-        case Facet_Texture:     return &texture     [index];
-        case Facet_Trigger:     return &trigger     [index];
-        case Facet_TriggerList: return &triggerList [index];
+        case Facet_Attach:        return &attach        [index];
+        case Facet_Body:          return &body          [index];
+        case Facet_Card:          return &card          [index];
+        case Facet_CardProto:     return &cardProto     [index];
+        case Facet_CardStack:     return &cardStack     [index];
+        case Facet_Combat:        return &combat        [index];
+        case Facet_Cursor:        return &cursor        [index];
+        case Facet_Deck:          return &deck          [index];
+        case Facet_EffectList:    return &effectList    [index];
+        case Facet_Font:          return &font          [index];
+        case Facet_FpsCounter:    return &fpsCounter    [index];
+        case Facet_Keymap:        return &keymap        [index];
+        case Facet_Material:      return &material      [index];
+        case Facet_MaterialProto: return &materialProto [index];
+        case Facet_Position:      return &position      [index];
+        case Facet_Sound:         return &sound         [index];
+        case Facet_Sprite:        return &sprite        [index];
+        case Facet_Spritesheet:   return &spritesheet   [index];
+        case Facet_Text:          return &text          [index];
+        case Facet_Texture:       return &texture       [index];
+        case Facet_TriggerList:   return &triggerList   [index];
         default: assert(!"what is that, mate?");
     }
     return 0;
 }
 
-void *Depot::GetFacetByName(FacetType type, const char *name)
+void *Depot::GetFacetByName(const char *name, FacetType type)
 {
     std::string key{ name };
-    if (indexByName[type].contains(key)) {
-        UID uid = indexByName[type][key];
+    if (uidByName.contains(key)) {
+        UID uid = uidByName[key];
         return GetFacet(uid, type);
     }
     return 0;
@@ -143,7 +157,7 @@ void Depot::Run(void)
         // Update game state
         BeginFrame();
 
-        cursorSystem.Update(*this);
+        cursorSystem.UpdateCursors(*this);
 
         {
             // Collect SDL events into the appropriate queues
@@ -165,6 +179,10 @@ void Depot::Run(void)
         for (int i = 0; i < physicsIters; i++) {
             physicsSystem.Update(now, *this, fixedDt);
         }
+
+        collisionSystem.DetectCollisions(*this, collisionList);
+        cursorSystem.UpdateDragTargets(*this, collisionList);
+        effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
         triggerSystem.React(now, *this);   // reacts to *        generates *

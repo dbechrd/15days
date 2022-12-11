@@ -1,6 +1,8 @@
 #pragma once
 #include "../common/basic.h"
+#include "../common/collision.h"
 
 struct CursorSystem {
-    void Update(Depot &depot);
+    void UpdateCursors(Depot &depot);
+    void UpdateDragTargets(Depot &depot, const CollisionList &collisionList);
 };

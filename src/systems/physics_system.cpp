@@ -6,11 +6,13 @@ void PhysicsSystem::Update(double now, Depot &depot, double dt)
     for (Body &body : depot.body) {
         Position *position = (Position *)depot.GetFacet(body.uid, Facet_Position);
         if (!position) {
+            DLB_ASSERT(0);
             printf("Warn: Physics body has no position: %u\n", body.uid);
             continue;
         }
         Sprite *sprite = (Sprite *)depot.GetFacet(body.uid, Facet_Sprite);
         if (!sprite) {
+            DLB_ASSERT(0);
             printf("Warn: Physics body has no sprite: %u\n", body.uid);
             continue;
         }

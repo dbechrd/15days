@@ -1,6 +1,5 @@
 #pragma once
 #include "facet.h"
-#include "../common/basic.h"
 
 struct Sprite : public Facet {
     UID  spritesheet {};

@@ -2,7 +2,6 @@
 #include "facet.h"
 #include "../common/button_state.h"
 #include "../common/message.h"
-#include <vector>
 
 enum HotkeyFlags {
     Hotkey_Press   = 1 << 0,  // trigger when all keys first pressed

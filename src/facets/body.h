@@ -1,6 +1,5 @@
 #pragma once
 #include "facet.h"
-#include "../common/basic.h"
 
 struct Body : public Facet {
     float friction     {};
