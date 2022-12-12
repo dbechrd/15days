@@ -3,7 +3,11 @@
 #include <vector>
 
 enum MsgType {
+    // Relays all messages to another UID
+    MsgType_Special_RelayAllMessages,
+
     MsgType_Audio_PlaySound,
+    MsgType_Audio_StopSound,
 
     MsgType_Card_Notify_LeftQuickClick,
     MsgType_Card_Notify_DragBegin,

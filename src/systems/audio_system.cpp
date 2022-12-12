@@ -1,6 +1,24 @@
 #include "audio_system.h"
 #include "../facets/depot.h"
 
+void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
+{
+#if 0
+    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
+    if (!sound.data) {
+        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
+    }
+#else
+    sound.filename = filename;
+    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
+    new (sound.wav) SoLoud::Wav;
+    SoLoud::result res = sound.wav->load(filename);
+    if (res) {
+        printf("Failed to load wav: %s\n  %u\n", filename, res);
+    }
+#endif
+}
+
 void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
 {
     char formatBuf[16]{};
@@ -129,6 +147,40 @@ void AudioSystem::Destroy(void)
 #endif
 }
 
+void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
+{
+    Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
+    if (!sound) {
+        printf("WARN: Sound missing for uid: %u\n", soundUid);
+        return;
+    }
+
+    // Check if this sound is already playing
+    if (gSoloud.countAudioSource(*sound->wav)) {
+        // If user wants to override it
+        if (override) {
+            // restart sound effect
+            gSoloud.stopAudioSource(*sound->wav);
+            gSoloud.play(*sound->wav);
+        }
+        // implicit else: don't play it again, wait until it finishes
+    } else {
+        // play sound effect
+        gSoloud.play(*sound->wav);
+    }
+}
+
+void AudioSystem::StopSound(Depot &depot, UID soundUid)
+{
+    Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
+    if (!sound) {
+        printf("WARN: Sound missing for uid: %u\n", soundUid);
+        return;
+    }
+
+    gSoloud.stopAudioSource(*sound->wav);
+}
+
 void AudioSystem::React(double now, Depot &depot)
 {
     size_t size = depot.msgQueue.size();
@@ -145,65 +197,12 @@ void AudioSystem::React(double now, Depot &depot)
                 PlaySound(depot, msg.uid, msg.data.audio_playsound.override);
                 break;
             }
+            case MsgType_Audio_StopSound:
+            {
+                StopSound(depot, msg.uid);
+                break;
+            }
             default: break;
         }
     }
-}
-
-void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
-{
-    Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
-    if (!sound) {
-        printf("WARN: Sound missing for uid: %u\n", soundUid);
-        return;
-    }
-
-#if 0
-    SDL_AudioStatus status = SDL_GetAudioDeviceStatus(playbackDeviceId);
-    if (status != SDL_AUDIO_PLAYING) {
-        return;
-    }
-
-    if (override) {
-        SDL_ClearQueuedAudio(playbackDeviceId);
-    } else {
-        Uint32 queueSize = SDL_GetQueuedAudioSize(playbackDeviceId);
-        if (queueSize > 0) {
-            return;
-        }
-    }
-    SDL_QueueAudio(playbackDeviceId, sound->data, sound->data_length);
-#else
-    // Check if this sound is already playing
-    if (gSoloud.countAudioSource(*sound->wav)) {
-        // If user wants to override it
-        if (override) {
-            // restart sound effect
-            gSoloud.stopAudioSource(*sound->wav);
-            gSoloud.play(*sound->wav);
-        }
-        // implicit else: don't play it again, wait until it finishes
-    } else {
-        // play sound effect
-        gSoloud.play(*sound->wav);
-    }
-#endif
-}
-
-void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
-{
-#if 0
-    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
-    if (!sound.data) {
-        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
-    }
-#else
-    sound.filename = filename;
-    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
-    new (sound.wav) SoLoud::Wav;
-    SoLoud::result res = sound.wav->load(filename);
-    if (res) {
-        printf("Failed to load wav: %s\n  %u\n", filename, res);
-    }
-#endif
 }

@@ -24,7 +24,20 @@ void TriggerSystem::React(double now, Depot &depot)
 void TriggerSystem::CheckTriggers(Depot &depot, TriggerList &triggerList, Message &msg)
 {
     for (const Trigger &trigger : triggerList.triggers) {
-        if (trigger.trigger == msg.type) {
+        if (trigger.trigger == MsgType_Special_RelayAllMessages) {
+            if (!msg.uid) {
+                // Don't relay global messages that were already broadcasted
+                continue;
+            }
+
+            if (trigger.callback) {
+                trigger.callback(depot, msg, trigger, trigger.userData);
+            } else {
+                Message relayMsg = msg;
+                relayMsg.uid = trigger.message.uid;
+                depot.msgQueue.push_back(relayMsg);
+            }
+        } else if (trigger.trigger == msg.type) {
             if (trigger.callback) {
                 trigger.callback(depot, msg, trigger, trigger.userData);
             } else {

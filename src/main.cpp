@@ -63,9 +63,8 @@ UID load_bitmap(Depot &depot, const char *filename)
     return uidTexture;
 }
 
-void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile, bool override = true, TriggerCallback callback = 0,
-    void *userData = 0)
+void add_sound_play_trigger(Depot &depot, UID subject, MsgType msgType,
+    const char *soundFile, bool override = true)
 {
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
 
@@ -74,8 +73,18 @@ void add_sound_trigger(Depot &depot, UID subject, MsgType msgType,
     trigger.message.uid = load_sound(depot, soundFile);
     trigger.message.type = MsgType_Audio_PlaySound;
     trigger.message.data.audio_playsound.override = override;
-    trigger.callback = callback;
-    trigger.userData = userData;
+    triggerList->triggers.push_back(trigger);
+}
+
+void add_sound_stop_trigger(Depot &depot, UID subject, MsgType msgType,
+    const char *soundFile)
+{
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
+
+    Trigger trigger{};
+    trigger.trigger = msgType;
+    trigger.message.uid = load_sound(depot, soundFile);
+    trigger.message.type = MsgType_Audio_StopSound;
     triggerList->triggers.push_back(trigger);
 }
 
@@ -118,6 +127,16 @@ void add_animation_update_trigger(Depot &depot, UID src, MsgType msgType, UID ds
     trigger.callback = callback;
     trigger.userData = userData;
     triggerList->triggers.push_back(trigger);
+}
+
+void add_special_relay_trigger(Depot &depot, UID src, UID dst)
+{
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
+
+    Trigger relayTrigger{};
+    relayTrigger.trigger = MsgType_Special_RelayAllMessages;
+    relayTrigger.message.uid = dst;
+    triggerList->triggers.push_back(relayTrigger);
 }
 
 //rect entity_bbox(Depot &depot, UID uid)
@@ -360,8 +379,8 @@ UID create_narrator(Depot &depot, UID subject)
     text->color = C255(COLOR_WHITE);
     text->dirty = true;
 
-    add_sound_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
-    add_sound_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
+    add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
+    add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
     add_text_update_trigger(depot, subject, MsgType_Combat_Notify_IdleBegin,
@@ -522,10 +541,10 @@ UID create_player(Depot &depot)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
-    add_sound_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
-    add_sound_trigger(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
-    add_sound_trigger(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
+    add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
+    add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
+    add_sound_play_trigger(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
+    add_sound_play_trigger(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
@@ -597,8 +616,8 @@ UID create_fps_counter(Depot &depot)
     text->align = TextAlign_VTop_HLeft;
     text->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
+    add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, false);
@@ -648,6 +667,21 @@ void add_flag_to_material_proto(Depot &depot, UID uidMaterialProto, MaterialFlag
     materialProto->flags.set(flag);
 }
 
+UID draggable_sounds(Depot &depot)
+{
+    const char *name = "draggable_sounds";
+
+    // Check if already loaded
+    if (depot.uidByName.contains(name)) {
+        return depot.uidByName[name];
+    }
+
+    UID uidDraggableSounds = depot.Alloc(name);
+    add_sound_play_trigger(depot, uidDraggableSounds, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
+    add_sound_play_trigger(depot, uidDraggableSounds, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    return uidDraggableSounds;
+}
+
 UID create_card_proto(Depot &depot, const char *name, UID uidMaterialProto,
     UID uidEffectList, UID spritesheet, int animation)
 {
@@ -657,6 +691,9 @@ UID create_card_proto(Depot &depot, const char *name, UID uidMaterialProto,
     cardProto->effectList = uidEffectList;
     cardProto->spritesheet = spritesheet;
     cardProto->animation = animation;
+
+    add_special_relay_trigger(depot, uidCardProto, draggable_sounds(depot));
+
     return uidCardProto;
 }
 
@@ -706,8 +743,8 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidCard, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidCard, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    add_special_relay_trigger(depot, uidCard, uidCardProto);
+
     return uidCard;
 }
 
@@ -732,8 +769,8 @@ UID create_card_stack(Depot &depot, vec3 pos)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidCardStack, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidCardStack, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    add_special_relay_trigger(depot, uidCardStack, draggable_sounds(depot));
+
     return uidCardStack;
 }
 
@@ -755,7 +792,7 @@ void deck_draw(Depot &depot, const Message &msg, const Trigger &trigger, void *u
         Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
         if (sprite) {
             // TODO: Pick cardProto from deck chances
-            UID cardProto = depot.cardProto[rand() % 1].uid;
+            UID cardProto = depot.cardProto[rand() % 3].uid;
             UID cardStack = create_card_stack(depot, spawnPos);
             UID card = create_card(depot, cardProto, spawnPos);
 
@@ -782,7 +819,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     UID uidDeck = depot.Alloc("deck", false);
 
     Deck *deck = (Deck *)depot.AddFacet(uidDeck, Facet_Deck);
-    deck->count = 3;
+    deck->count = 10;
 
     Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
@@ -812,8 +849,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
 
-    add_sound_trigger(depot, uidDeck, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_trigger(depot, uidDeck, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    add_special_relay_trigger(depot, uidDeck, draggable_sounds(depot));
 
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidDeck, Facet_TriggerList, false);
 
@@ -930,22 +966,29 @@ int main(int argc, char *argv[])
         // Card prototypes
         UID uidLighterProto = create_card_proto(depot, "lighter_card", 0, uidFireFxList, uidCardSheet, 0);
         UID uidBucketProto = create_card_proto(depot, "bucket_card", 0, uidWaterFxList, uidCardSheet, 1);
-        UID uidAnotherProto = create_card_proto(depot, "another_card", 0, 0, uidCardSheet, 3);
+        UID uidBombProto = create_card_proto(depot, "bomb_card", 0, 0, uidCardSheet, 3);
+        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
+        add_sound_stop_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
+        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
         UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
+        // Decks
+        create_deck(depot, { 100, 100, 0 }, uidCardSheet, 2);
+
         // Cards
-        create_card(depot, uidLighterProto, { 100, 100, 0 });
-        create_card(depot, uidBucketProto, { 200, 100, 0 });
-        create_card(depot, uidAnotherProto, { 400, 100, 0 });
+        create_card(depot, uidLighterProto, { 200, 100, 0 });
+        create_card(depot, uidBucketProto, { 300, 100, 0 });
+        create_card(depot, uidBombProto, { 400, 100, 0 });
 
         UID uidCampfire = create_card(depot, uidCampfireProto, { 200, 300, 0 });
         add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, 1);
         add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, 0);
-        add_sound_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
-        add_sound_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_extinguish.wav", true);
-
-        // Decks
-        create_deck(depot, { 300, 100, 0 }, uidCardSheet, 2);
+        add_sound_play_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
+        // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+        add_sound_stop_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_extinguish.wav");
+        add_sound_play_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_extinguish.wav", true);
+        // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+        add_sound_stop_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_start.wav");
     }
 
     // Run the game
