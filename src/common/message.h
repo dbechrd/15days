@@ -5,7 +5,7 @@
 enum MsgType {
     MsgType_Audio_PlaySound,
 
-    MsgType_Card_Notify_RightClick,
+    MsgType_Card_Notify_LeftQuickClick,
     MsgType_Card_Notify_DragBegin,
     MsgType_Card_Notify_DragUpdate,
     MsgType_Card_Notify_DragEnd,

@@ -268,7 +268,7 @@ UID create_cursor(Depot &depot)
     UID uidCursor = depot.Alloc("cursor");
 
     Cursor *cursor = (Cursor *)depot.AddFacet(uidCursor, Facet_Cursor);
-    UNUSED(cursor);
+    cursor->quickClickMaxDt = 0.1;
 
     Position *position = (Position *)depot.AddFacet(uidCursor, Facet_Position);
     int x = 0;
@@ -818,7 +818,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidDeck, Facet_TriggerList, false);
 
     Trigger deckDrawTrigger{};
-    deckDrawTrigger.trigger = MsgType_Card_Notify_RightClick;
+    deckDrawTrigger.trigger = MsgType_Card_Notify_LeftQuickClick;
     deckDrawTrigger.message.uid = uidDeck;
     deckDrawTrigger.callback = deck_draw;
     triggerList->triggers.push_back(deckDrawTrigger);

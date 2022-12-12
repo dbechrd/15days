@@ -131,9 +131,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
             //TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 
             Texture *texture = (Texture *)depot.AddFacet(text.uid, Facet_Texture, false);
-            if (texture) {
-                SDL_DestroyTexture(texture->sdl_texture);
-            }
+            SDL_DestroyTexture(texture->sdl_texture);
             //text.cacheProps.Destroy();
             if (!text.str) {
                 continue;

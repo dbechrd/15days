@@ -14,10 +14,31 @@ void CursorSystem::UpdateCursors(Depot &depot)
         int x = 0;
         int y = 0;
         uint32_t buttonMask = SDL_GetMouseState(&x, &y);
-        cursor.leftButton = buttonMask & SDL_BUTTON_LMASK;
-        cursor.rightButton = buttonMask & SDL_BUTTON_RMASK;
         cursorPos->pos.x = (float)x;
         cursorPos->pos.y = (float)y;
+
+        cursor.leftButtonQuickClick = false;
+        cursor.rightButtonQuickClick = false;
+
+        bool leftButton = buttonMask & SDL_BUTTON_LMASK;
+        if (leftButton && !cursor.leftButtonDownAt) {
+            cursor.leftButtonDownAt = depot.Now();
+        } else if (!leftButton && cursor.leftButtonDownAt) {
+            if (depot.Now() - cursor.leftButtonDownAt < cursor.quickClickMaxDt) {
+                cursor.leftButtonQuickClick = true;
+            }
+            cursor.leftButtonDownAt = 0;
+        }
+
+        bool rightButton = buttonMask & SDL_BUTTON_RMASK;
+        if (rightButton && !cursor.rightButtonDownAt) {
+            cursor.rightButtonDownAt = depot.Now();
+        } else if (!rightButton && cursor.rightButtonDownAt) {
+            if (depot.Now() - cursor.rightButtonDownAt < cursor.quickClickMaxDt) {
+                cursor.rightButtonQuickClick = true;
+            }
+            cursor.rightButtonDownAt = 0;
+        }
     }
 }
 
@@ -73,7 +94,7 @@ DragTarget GetDragTarget(Depot &depot, UID cursor, const CollisionList &collisio
 void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisionList)
 {
     for (Cursor &cursor : depot.cursor) {
-        if (cursor.leftButton) {
+        if (cursor.leftButtonDownAt) {
             Position *cursorPos = (Position *)depot.GetFacet(cursor.uid, Facet_Position);
             DLB_ASSERT(cursorPos);
             if (!cursorPos) {
@@ -137,6 +158,7 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             cursor.dragOffset = {};
         }
 
+#if 0
         if (!cursor.leftButton && cursor.rightButton) {
             DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
             if (dragTarget.uid) {
@@ -146,5 +168,16 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
                 depot.msgQueue.push_back(rightClick);
             }
         }
+#else
+        if (cursor.leftButtonQuickClick) {
+            DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
+            if (dragTarget.uid) {
+                Message rightClick{};
+                rightClick.type = MsgType_Card_Notify_LeftQuickClick;
+                rightClick.uid = dragTarget.uid;
+                depot.msgQueue.push_back(rightClick);
+            }
+        }
+#endif
     }
 }
