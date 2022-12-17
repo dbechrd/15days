@@ -20,6 +20,7 @@ enum FacetType {
     Facet_Deck,
     Facet_EffectList,
     Facet_FpsCounter,
+    Facet_Histogram,
     Facet_Keymap,
     Facet_Material,
     Facet_Text,

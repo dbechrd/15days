@@ -61,6 +61,7 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
         EMPLACE(Facet_EffectList,    effectList);
         EMPLACE(Facet_Font,          font);
         EMPLACE(Facet_FpsCounter,    fpsCounter);
+        EMPLACE(Facet_Histogram,     histogram);
         EMPLACE(Facet_Keymap,        keymap);
         EMPLACE(Facet_Material,      material);
         EMPLACE(Facet_MaterialProto, materialProto);
@@ -158,6 +159,7 @@ void Depot::Run(void)
         BeginFrame();
 
         cursorSystem.UpdateCursors(*this);
+        histogramSystem.Update(now, *this);
 
         {
             // Collect SDL events into the appropriate queues
@@ -197,9 +199,11 @@ void Depot::Run(void)
 
         // Populate draw queue(s)
         DrawQueue spriteQueue{};
+        DrawQueue histogramQueue{};
         DrawQueue textQueue{};
         spriteSystem.Display(now, *this, spriteQueue);
         combatSystem.Display(now, *this, spriteQueue);
+        histogramSystem.Display(now, *this, histogramQueue);
         textSystem.Display(now, *this, textQueue);
 
 #if 0
@@ -226,6 +230,7 @@ void Depot::Run(void)
         // Render draw queue(s)
         renderSystem.Clear(C_GRASS);
         renderSystem.Flush(*this, spriteQueue);
+        renderSystem.Flush(*this, histogramQueue);
         renderSystem.Flush(*this, textQueue);
         renderSystem.Present();
         EndFrame();

@@ -145,7 +145,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font) {
-                int wrapLength = 300;
+                int wrapLength = 400;
                 SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, wrapLength);
                 texture->sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
                 texture->size = { (float)surface->w, (float)surface->h };
@@ -163,7 +163,7 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
     while (!drawQueue.empty()) {
         const DrawCommand &cmd = drawQueue.top();
 
-        SDL_Rect rect{};
+        SDL_FRect rect{};
         rect.x = cmd.rect.x;
         rect.y = cmd.rect.y;
         rect.w = cmd.rect.w;
@@ -197,14 +197,14 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 
             SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
             SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
-            SDL_RenderCopy(renderer, texture->sdl_texture, &frame, &rect);
+            SDL_RenderCopyF(renderer, texture->sdl_texture, &frame, &rect);
         } else if (texture) {
             SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
             SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
-            SDL_RenderCopy(renderer, texture->sdl_texture, NULL, &rect);
+            SDL_RenderCopyF(renderer, texture->sdl_texture, NULL, &rect);
         } else {
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
-            SDL_RenderFillRect(renderer, &rect);
+            SDL_RenderFillRectF(renderer, &rect);
         }
 #if 0
         vec2 verts[] = {
@@ -273,16 +273,16 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
         }
 
         if (uidBeingDragged) {
-            SDL_Point points[] = {
+            SDL_FPoint points[] = {
                 { rect.x         , rect.y + rect.h },
                 { rect.x + rect.w, rect.y + rect.h },
-                { rect.x + rect.w, rect.y },
-                { rect.x         , rect.y },
+                { rect.x + rect.w, rect.y          },
+                { rect.x         , rect.y          },
                 { rect.x         , rect.y + rect.h },
             };
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawLines(renderer, points, ARRAY_SIZE(points));
+            SDL_RenderDrawLinesF(renderer, points, ARRAY_SIZE(points));
         }
 #endif
 

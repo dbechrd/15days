@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <deque>
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0
@@ -45,4 +46,5 @@ struct Depot;
 }
 
 //#define C_GRASS { 38, 43, 25, 255 }
-#define C_GRASS { 68, 73, 55, 255 }
+//#define C_GRASS { 68, 73, 55, 255 }
+#define C_GRASS { 49, 134, 112, 255 }

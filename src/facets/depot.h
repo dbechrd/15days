@@ -10,6 +10,7 @@
 #include "../systems/effect_system.h"
 #include "../systems/event_system_sdl.h"
 #include "../systems/input_system.h"
+#include "../systems/histogram_system.h"
 #include "../systems/movement_system.h"
 #include "../systems/physics_system.h"
 #include "../systems/render_system.h"
@@ -26,6 +27,7 @@
 #include "effect.h"
 #include "font.h"
 #include "fps_counter.h"
+#include "histogram.h"
 #include "keymap.h"
 #include "material.h"
 #include "position.h"
@@ -54,6 +56,7 @@ struct Depot {
     std::vector<EffectList>    effectList    {};
     std::vector<Font>          font          {};
     std::vector<FpsCounter>    fpsCounter    {};
+    std::vector<Histogram>     histogram     {};
     std::vector<Keymap>        keymap        {};
     std::vector<Material>      material      {};
     std::vector<MaterialProto> materialProto {};
@@ -79,6 +82,7 @@ struct Depot {
     CombatSystem     combatSystem     {};
     CursorSystem     cursorSystem     {};
     EffectSystem     effectSystem     {};
+    HistogramSystem  histogramSystem  {};
     MovementSystem   movementSystem   {};
     PhysicsSystem    physicsSystem    {};
     RenderSystem     renderSystem     {};
@@ -141,6 +145,10 @@ struct Depot {
 
     void Run(void);
 
+    inline double Now(void) {
+        return now;
+    }
+
     inline double Dt(void) {
         return fixedDt;
     }
@@ -149,8 +157,12 @@ struct Depot {
         return realDtSmooth;
     }
 
-    inline double Now(void) {
-        return now;
+    inline double Fps(void) {
+        return 1.0f / Dt();
+    }
+
+    inline double FpsSmooth(void) {
+        return 1.0f / DtSmooth();
     }
 
 private:

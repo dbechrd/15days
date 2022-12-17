@@ -576,19 +576,40 @@ UID create_player(Depot &depot)
 void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     const double dt = depot.DtSmooth();
-    const double fps = 1.0f / dt;
+    const double fps = depot.FpsSmooth();
     const double dtMillis = dt * 1000.0f;
-    const size_t fpsCounterMaxLen = 32;
+    const size_t fpsCounterMaxLen = 2048;
 
     char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
     if (fpsCounterBuf) {
-        snprintf(fpsCounterBuf, fpsCounterMaxLen, "%.2f fps (%.2f ms)", fps, dtMillis);
+        snprintf(fpsCounterBuf, fpsCounterMaxLen,
+            "%.2f fps (%.2f ms)\n"
+#if 0
+            "make deck disappear when empty\n"
+            "font atlas / glyph cache\n"
+            "text drop shadow\n"
+            "runes\n"
+            "volume control\n"
+            "sell stuff\n"
+            "buy stuff\n"
+            "roll random attribs\n"
+            "card groups (inventory?)\n"
+            "click location cards to teleport there\n"
+            "charges\n"
+            "cards that recharge other cards\n"
+            "cards with timers (e.g. bomb)\n"
+            "networking (?)\n"
+#endif
+            ,
+            fps, dtMillis
+        );
 
         Message updateText{};
         updateText.uid = trigger.message.uid;
         updateText.type = MsgType_Text_UpdateText;
         updateText.data.text_updatetext.str = fpsCounterBuf;
         updateText.data.text_updatetext.color = C255(COLOR_WHITE);
+        updateText.data.text_updatetext.offset.y = 20.0f;
         depot.msgQueue.push_back(updateText);
     } else {
         printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
@@ -615,6 +636,11 @@ UID create_fps_counter(Depot &depot)
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
     text->color = C255(COLOR_WHITE);
+
+    Histogram *histo = (Histogram *)depot.AddFacet(uidFpsCounter, Facet_Histogram);
+    for (int i = 1; i <= 100; i++) {
+        histo->values.push_back(i);
+    };
 
     add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
     add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
@@ -973,14 +999,23 @@ int main(int argc, char *argv[])
         UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
         // Decks
-        create_deck(depot, { 100, 100, 0 }, uidCardSheet, 2);
+        create_deck(depot, { 100, 300, 0 }, uidCardSheet, 2);
 
         // Cards
-        create_card(depot, uidLighterProto, { 200, 100, 0 });
-        create_card(depot, uidBucketProto, { 300, 100, 0 });
-        create_card(depot, uidBombProto, { 400, 100, 0 });
+        create_card(depot, uidLighterProto, { 200, 300, 0 });
+        create_card(depot, uidBucketProto, { 300, 300, 0 });
+        create_card(depot, uidBombProto, { 400, 300, 0 });
 
-        UID uidCampfire = create_card(depot, uidCampfireProto, { 200, 300, 0 });
+        // TODO:
+        // type_a  ,  type_b      , action
+        // campfire,  water_bucket, extinguish
+        // campfire,  lighter     , ignite
+
+        // action    , require_flags, exclude_flags, state
+        // extinguish, flammable    ,              , on_fire = false
+        // ignite    , flammable    ,              , on_fire = true
+
+        UID uidCampfire = create_card(depot, uidCampfireProto, { 200, 500, 0 });
         add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, 1);
         add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, 0);
         add_sound_play_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
