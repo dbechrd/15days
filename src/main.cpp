@@ -11,6 +11,8 @@ DLB_ASSERT_HANDLER(dlb_assert_callback) {
 }
 dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
+const char *debugFont = "font/OpenSans-Bold.ttf";
+
 UID load_font(Depot &depot, const char *filename, int ptsize)
 {
     size_t keyLen = strlen(filename) + 10;
@@ -297,7 +299,6 @@ UID create_narrator(Depot &depot, UID subject)
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = load_font(depot, "font/KarminaBold.otf", 64);
-    //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     text->str = "15 Days";
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_WHITE);
@@ -459,7 +460,7 @@ UID create_player(Depot &depot)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidPlayer, Facet_Text);
-    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -690,7 +691,7 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
-    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -716,7 +717,7 @@ UID create_card_stack(Depot &depot, vec3 pos)
     position->pos = pos;
 
     Text *debugText = (Text *)depot.AddFacet(uidCardStack, Facet_Text);
-    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -796,7 +797,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
-    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
