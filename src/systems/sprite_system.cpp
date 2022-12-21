@@ -51,7 +51,19 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         Position *position = (Position *)depot.GetFacet(sprite.uid, Facet_Position);
         DLB_ASSERT(position);
         if (!position) {
-            printf("WARN: Can't draw a sprite with no position");
+            SDL_LogError(0, "ERROR: Can't draw a sprite with no position");
+            continue;
+        }
+
+        Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.spritesheet, Facet_Spritesheet);
+        if (!sheet) {
+            SDL_LogError(0, "ERROR: Can't draw a sprite with no spritesheet");
+            continue;
+        }
+
+        Texture *texture = (Texture *)depot.GetFacet(sprite.spritesheet, Facet_Texture);
+        if (!texture) {
+            SDL_LogError(0, "ERROR: Can't draw a sprite whose spritesheet has no texture");
             continue;
         }
 
@@ -62,17 +74,32 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             }
         }
 
-        rect spriteRect{};
-        spriteRect.x = position->pos.x;
-        spriteRect.y = position->pos.y - position->pos.z;
-        spriteRect.w = sprite.size.x;
-        spriteRect.h = sprite.size.y;
+        Animation &animation = sheet->animations[sprite.animation];
+        int cell = animation.start + sprite.frame;
+        int cellPixels = cell * (int)sheet->cellSize.x;
+
+        int sheetWidth = 0;
+        int sheetHeight = 0;
+        SDL_QueryTexture(texture->sdl_texture, 0, 0, &sheetWidth, &sheetHeight);
+
+        rect srcRect{};
+        srcRect.x = cellPixels % sheetWidth;
+        srcRect.y = cellPixels / sheetHeight;
+        srcRect.w = (int)sheet->cellSize.x;
+        srcRect.h = (int)sheet->cellSize.y;
+
+        rect dstRect{};
+        dstRect.x = position->pos.x;
+        dstRect.y = position->pos.y - position->pos.z;
+        dstRect.w = srcRect.w;
+        dstRect.h = srcRect.h;
 
         DrawCommand drawSprite{};
         drawSprite.uid = sprite.uid;
         drawSprite.color = sprite.color;
-        drawSprite.rect = spriteRect;
-        drawSprite.sprite = sprite.uid;
+        drawSprite.srcRect = srcRect;
+        drawSprite.dstRect = dstRect;
+        drawSprite.texture = texture->sdl_texture;
         drawSprite.depth = depth;
         drawQueue.push(drawSprite);
     }

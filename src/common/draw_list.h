@@ -1,17 +1,13 @@
 #pragma once
 #include "basic.h"
-#include <vector>
-#include <queue>
-
-struct SDL_Texture;
 
 struct DrawCommand {
-    UID   uid     {};  // uid of entity that generated this draw command
-    vec4  color   {};
-    rect  rect    {};
-    UID   texture {};  // if present, also applies a texture
-    UID   sprite  {};  // if present, uses current animation frame
-    float depth   {};  // lower = draw first
+    UID          uid     {};  // uid of entity that generated this draw command
+    vec4         color   {};
+    rect         dstRect {};
+    rect         srcRect {};
+    SDL_Texture *texture {};  // if present, also applies a texture
+    float        depth   {};  // lower = draw first
 
     bool operator<(const DrawCommand &right) const
     {

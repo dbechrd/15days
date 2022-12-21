@@ -39,9 +39,9 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             DrawCommand attackOverlay{};
             attackOverlay.uid = sprite->uid;
             attackOverlay.color = sprite->attackColor;
-            attackOverlay.rect = spriteRect;
-            attackOverlay.rect.y += sprite->size.y - overlayHeight;
-            attackOverlay.rect.h = ceilf(overlayHeight);
+            attackOverlay.dstRect = spriteRect;
+            attackOverlay.dstRect.y += sprite->size.y - overlayHeight;
+            attackOverlay.dstRect.h = ceilf(overlayHeight);
             attackOverlay.depth = depth + 0.001f;
             drawQueue.push(attackOverlay);
         }
@@ -53,9 +53,9 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             DrawCommand defendOverlay{};
             defendOverlay.uid = sprite->uid;
             defendOverlay.color = sprite->defendColor;
-            defendOverlay.rect = spriteRect;
-            defendOverlay.rect.y += sprite->size.y - overlayHeight;
-            defendOverlay.rect.h = ceilf(overlayHeight);
+            defendOverlay.dstRect = spriteRect;
+            defendOverlay.dstRect.y += sprite->size.y - overlayHeight;
+            defendOverlay.dstRect.h = ceilf(overlayHeight);
             defendOverlay.depth = depth + 0.001f;
             drawQueue.push(defendOverlay);
         }

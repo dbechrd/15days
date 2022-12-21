@@ -22,7 +22,9 @@ struct RenderSystem {
 
     void InitTexture(Texture &texture, const char *filename);
 private:
+    bool          vsync       {FDOV_VSYNC};
     bool          running     {false};
+    int           dbgFontIdx  {0};
     SDL_Window   *window      {};
     SDL_Renderer *renderer    {};
 };

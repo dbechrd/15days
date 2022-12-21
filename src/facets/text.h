@@ -6,10 +6,9 @@ enum TextAlign {
     TextAlign_VBottom_HCenter,
 };
 
-struct TextProps {
+struct TextCache {
     // values of relevant properties when cached texture was last generated
-    UID  font  {};
-    vec4 color {};
+    UID   font {};
     char *str  {};
 
     void Destroy(void) {
@@ -19,25 +18,19 @@ struct TextProps {
 };
 
 struct Text : public Facet {
-    UID         font       {};  // will invalidate cache
-    vec4        color      {};  // will invalidate cache
-    const char *str        {};  // will invalidate cache
-    bool        dirty      {};
-    //TextProps   cacheProps {};  // created/used by RenderSystem
+    UID         font   {};  // will invalidate cache
+    vec4        color  {};  // will invalidate cache
+    const char *str    {};  // will invalidate cache
+    TextCache   cache  {};  // created/used by RenderSystem
 
     TextAlign   align  {};  // how to calculate relative offset of text
     vec2        offset {};  // apply arbitrary offset from calculated position
 
     inline bool isDirty(void)
     {
-#if 0
         return
-            str != cacheProps.str ||
-            font != cacheProps.font ||
-            !v4_equals(&color, &cacheProps.color) ||
-            strcmp(str, cacheProps.str);
-#else
-        return dirty;
-#endif
+            str != cache.str ||
+            font != cache.font ||
+            strcmp(str, cache.str);
     }
 };

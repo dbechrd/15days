@@ -17,7 +17,6 @@ void TextSystem::React(double now, Depot &depot)
                 text->str = msg.data.text_updatetext.str;
                 text->offset = msg.data.text_updatetext.offset;
                 text->color = msg.data.text_updatetext.color;
-                text->dirty = true;
                 break;
             }
             default: break;
@@ -38,40 +37,96 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
-        Texture *texture = (Texture *)depot.GetFacet(text.uid, Facet_Texture);
-        if (!texture) {
-            printf("WARN: Can't draw text with no texture\n");
+        float x = position->pos.x + text.offset.x;
+        float y = position->pos.y - position->pos.z + text.offset.y;
+
+        Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
+        if (!font) {
+            printf("WARN: Can't draw text with no font\n");
             continue;
         }
 
-        float x = position->pos.x + text.offset.x;
-        float y = position->pos.y - position->pos.z + text.offset.y;
-        float w = texture->size.w;
-        float h = texture->size.h;
-        float halfW = w * 0.5f;
-        //float halfH = h * 0.5f;
-
-        switch (text.align) {
-            case TextAlign_VTop_HLeft: {
-                // no-op
-                break;
-            }
-            case TextAlign_VBottom_HCenter: {
-                x -= halfW;
-                y -= h;
-                break;
-            }
-        }
-
-        DrawCommand drawText{};
-        drawText.uid = text.uid;
-        drawText.color = text.color;
         // TODO: TextAlign (always centered along x and y for now)
-        drawText.rect.x = x;
-        drawText.rect.y = y;
-        drawText.rect.w = w;
-        drawText.rect.h = h;
-        drawText.texture = texture->uid;
-        drawQueue.push(drawText);
+
+        const char *c = text.str;
+        vec2 cursor{ x, y };
+        float lineHeight = 0;
+        while (*c) {
+            switch (*c) {
+                case '\n': {
+                    cursor.x = x;
+                    cursor.y += lineHeight;
+                    c++;
+                    continue;
+                }
+            }
+
+            rect glyphRect = font->glyphCache.rects[*c];
+            DLB_ASSERT(glyphRect.w);
+            DLB_ASSERT(glyphRect.h);
+            DLB_ASSERT(font->glyphCache.atlasTexture);
+
+            rect drawRect = glyphRect;
+            drawRect.x = cursor.x;
+            drawRect.y = cursor.y;
+
+            DrawCommand drawGlyph{};
+            drawGlyph.uid = text.uid;
+            drawGlyph.srcRect = glyphRect;
+            drawGlyph.texture = font->glyphCache.atlasTexture;
+
+            // Draw drop shadow
+            drawGlyph.dstRect = drawRect;
+            drawGlyph.dstRect.x += 1 + font->ptsize / 32;
+            drawGlyph.dstRect.y += 1 + font->ptsize / 32;
+            const float darkenFactor = 0; //0.33f;
+            drawGlyph.color = {
+                text.color.r * darkenFactor,
+                text.color.g * darkenFactor,
+                text.color.b * darkenFactor,
+                text.color.a
+            };
+            drawGlyph.depth = 0;
+            drawQueue.push(drawGlyph);
+
+            // Drop glyph
+            drawGlyph.dstRect = drawRect;
+            drawGlyph.color = text.color;
+            drawGlyph.depth = 1;
+            drawQueue.push(drawGlyph);
+
+            cursor.x += glyphRect.w;
+            lineHeight = MAX(lineHeight, glyphRect.h);
+            c++;
+        }
+    }
+
+    int atlasOffsetY = 10;
+
+    for (Font &font : depot.font) {
+        if (!font.glyphCache.atlasSurface)
+            continue;
+
+        rect rect{};
+        rect.x = SCREEN_W - font.glyphCache.atlasSurface->w - 10;
+        rect.y = atlasOffsetY;
+        rect.w = font.glyphCache.atlasSurface->w;
+        rect.h = font.glyphCache.atlasSurface->h;
+
+        DrawCommand drawGlyphAtlasBg{};
+        drawGlyphAtlasBg.uid = font.uid;
+        drawGlyphAtlasBg.dstRect = rect;
+        drawGlyphAtlasBg.color = C255(COLOR_BLACK);
+        drawGlyphAtlasBg.depth = 0;
+        drawQueue.push(drawGlyphAtlasBg);
+
+        DrawCommand drawGlyphAtlas{};
+        drawGlyphAtlas.uid = font.uid;
+        drawGlyphAtlas.dstRect = rect;
+        drawGlyphAtlas.texture = font.glyphCache.atlasTexture;
+        drawGlyphAtlas.depth = 1;
+        drawQueue.push(drawGlyphAtlas);
+
+        atlasOffsetY += rect.h + 10;
     }
 }

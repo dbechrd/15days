@@ -46,6 +46,8 @@ enum MsgType {
     MsgType_Render_FrameBegin,
     MsgType_Render_Quit,
     MsgType_Render_ToggleVsync,
+    MsgType_Render_DbgSetFontNext,
+    MsgType_Render_DbgSetFontPrev,
 
     MsgType_Sprite_UpdateAnimation,
 

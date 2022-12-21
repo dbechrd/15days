@@ -19,6 +19,7 @@
 #include <unordered_set>
 #include <vector>
 #include <deque>
+#include <queue>
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0
@@ -45,6 +46,7 @@ struct Depot;
     color.a * 255  \
 }
 
-//#define C_GRASS { 38, 43, 25, 255 }
-//#define C_GRASS { 68, 73, 55, 255 }
-#define C_GRASS { 49, 134, 112, 255 }
+//#define C_GRASS { 38,  43,  25, 255 }  // super dark green
+//#define C_GRASS { 68,  73,  55, 255 }  // dark-ish brown green
+#define C_GRASS { 49, 134, 112, 255 }  // blue-green
+//#define C_GRASS { 255, 249, 216, 255 }  // wheat

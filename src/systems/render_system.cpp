@@ -71,18 +71,28 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
 
 void RenderSystem::DestroyDepot(Depot &depot)
 {
+    for (Font &font : depot.font) {
+        GlyphCache *gc = &font.glyphCache;
+        SDL_FreeSurface(gc->atlasSurface);
+        gc->atlasSurface = 0;
+        SDL_DestroyTexture(gc->atlasTexture);
+        gc->atlasTexture = 0;
+    }
     for (Text &text : depot.text) {
         //text.cacheProps.Destroy();
     }
     for (Texture &texture : depot.texture) {
         SDL_DestroyTexture(texture.sdl_texture);
+        texture.sdl_texture = 0;
     }
 }
 
 void RenderSystem::Destroy(void)
 {
     SDL_DestroyRenderer(renderer);
+    renderer = 0;
     SDL_DestroyWindow(window);
+    window = 0;
     SDL_Quit();
 }
 
@@ -99,6 +109,7 @@ void RenderSystem::Clear(vec4 color)
 
 void RenderSystem::React(double now, Depot &depot)
 {
+    int oldDbgFontIdx = dbgFontIdx;
     for (const Message &msg : depot.msgQueue) {
         switch (msg.type) {
             case MsgType_Render_Quit:
@@ -108,13 +119,32 @@ void RenderSystem::React(double now, Depot &depot)
             }
             case MsgType_Render_ToggleVsync:
             {
-                static int vsync = FDOV_VSYNC;
                 vsync = !vsync;
                 SDL_RenderSetVSync(renderer, vsync);
                 break;
             }
+            case MsgType_Render_DbgSetFontNext:
+            {
+                dbgFontIdx++;
+                dbgFontIdx %= depot.font.size();
+                break;
+            }
+            case MsgType_Render_DbgSetFontPrev:
+            {
+                dbgFontIdx--;
+                if (dbgFontIdx < 0) {
+                    dbgFontIdx = depot.font.size() - 1;
+                }
+                break;
+            }
             default: break;
         }
+    }
+    if (dbgFontIdx != oldDbgFontIdx) {
+        for (Text &text : depot.text) {
+            text.font = depot.font[dbgFontIdx].uid;
+        }
+        printf("font: %s\n", depot.font[dbgFontIdx].filename);
     }
 }
 
@@ -132,6 +162,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
             Texture *texture = (Texture *)depot.AddFacet(text.uid, Facet_Texture, false);
             SDL_DestroyTexture(texture->sdl_texture);
+            texture->sdl_texture = 0;
             //text.cacheProps.Destroy();
             if (!text.str) {
                 continue;
@@ -144,74 +175,138 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
             //memcpy((void *)text.cacheProps.str, text.str, strLen);
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
-            if (font) {
-                int wrapLength = 400;
-                SDL_Surface *surface = TTF_RenderText_Blended_Wrapped(font->ttf_font, text.str, { 255, 255, 255, 255 }, wrapLength);
-                texture->sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
-                texture->size = { (float)surface->w, (float)surface->h };
-                SDL_FreeSurface(surface);
+            if (font && font->ttf_font) {
+                GlyphCache *gc = &font->glyphCache;
+
+                for (const char *c = text.str; *c; c++) {
+                    // Discard whitespace
+                    switch (*c) {
+                        case '\n': continue;
+                        //case ' ': continue;
+                    }
+
+                    // Add new glyphs to cache
+                    if (!gc->rects.contains((uint32_t)*c)) {
+                        SDL_DestroyTexture(gc->atlasTexture);
+                        gc->atlasTexture = 0;
+
+                        SDL_Surface *glyph = TTF_RenderGlyph32_Blended(font->ttf_font, *c, { 255, 255, 255, 255 });
+                        SDL_SetSurfaceBlendMode(glyph, SDL_BLENDMODE_NONE);
+
+                        if (!gc->atlasSurface) {
+                            // Create new surface
+                            gc->atlasSurface = SDL_CreateRGBSurfaceWithFormat(
+                                0,
+                                (int)gc->minSize.w,
+                                (int)gc->minSize.h,
+                                32,
+                                SDL_PIXELFORMAT_BGRA32
+                            );
+                            SDL_SetSurfaceBlendMode(gc->atlasSurface, SDL_BLENDMODE_NONE);
+                        } else if (gc->cursor.x + glyph->w + gc->padding > gc->atlasSurface->w) {
+                            // line filled, go to next line
+                            gc->cursor.x = gc->padding;
+                            gc->cursor.y += gc->lineHeight + gc->padding;
+                            gc->lineHeight = 0;
+                        }
+
+                        // NOTE: This could also happen in the middle of a line for taller characters
+                        if (gc->cursor.y + glyph->h + gc->padding > gc->atlasSurface->h) {
+                            // Resize existing surface
+                            SDL_Surface *newSurface = SDL_CreateRGBSurfaceWithFormat(
+                                0,
+                                (int)(gc->atlasSurface->w),
+                                (int)(gc->atlasSurface->h * gc->growthFactor),
+                                32,
+                                SDL_PIXELFORMAT_BGRA32
+                            );
+                            SDL_SetSurfaceBlendMode(newSurface, SDL_BLENDMODE_NONE);
+
+                            SDL_Rect fuckSDLdst = gc->atlasSurface->clip_rect;
+                            SDL_Rect fuckSDLsrc = newSurface->clip_rect;
+                            SDL_BlitSurface(
+                                gc->atlasSurface,
+                                &fuckSDLdst,
+                                newSurface,
+                                &fuckSDLsrc
+                            );
+                            SDL_FreeSurface(gc->atlasSurface);
+                            gc->atlasSurface = newSurface;
+                        }
+
+                        rect dstRect{};
+                        dstRect.x = gc->cursor.x;
+                        dstRect.y = gc->cursor.y;
+                        dstRect.w = glyph->w;
+                        dstRect.h = glyph->h;
+
+                        gc->rects[*c] = dstRect;
+                        // TODO: Padding?
+                        gc->cursor.x += glyph->w + gc->padding;
+                        gc->lineHeight = MAX(gc->lineHeight, glyph->h);
+
+                        // WE HAVE: 377888772 = SDL_PIXELFORMAT_BGRA8888 = SDL_PIXELFORMAT_ARGB32
+                        // WE WANT: 372645892 = SDL_PIXELFORMAT_ARGB8888 = SDL_PIXELFORMAT_BGRA32
+
+                        SDL_Rect fuckSDLsrc = glyph->clip_rect;
+                        SDL_Rect fuckSDLdst = { (int)dstRect.x, (int)dstRect.y, (int)dstRect.w, (int)dstRect.h };
+                        if (SDL_BlitSurface(glyph, &fuckSDLsrc, gc->atlasSurface, &fuckSDLdst) < 0) {
+                        //if (SDL_BlitSurface(glyph, NULL, gc->atlasSurface, &fuckSDLdst) < 0) {
+                            SDL_LogError(0, "Blit failed :(");
+                        }
+
+                        SDL_FreeSurface(glyph);
+                        glyph = 0;
+                    }
+                }
+
+                if (!gc->atlasTexture) {
+                    gc->atlasTexture = SDL_CreateTextureFromSurface(renderer, gc->atlasSurface);
+                    SDL_SetTextureBlendMode(gc->atlasTexture, SDL_BLENDMODE_BLEND);
+                }
             } else {
                 SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
             }
-            text.dirty = false;
         }
     }
 }
 
 void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 {
+    // TODO: Batch draw calls into temp allocator
+    // then use SDL_RenderGeometryRaw to draw them all at once!!
+
     while (!drawQueue.empty()) {
         const DrawCommand &cmd = drawQueue.top();
 
-        SDL_FRect rect{};
-        rect.x = cmd.rect.x;
-        rect.y = cmd.rect.y;
-        rect.w = cmd.rect.w;
-        rect.h = cmd.rect.h;
+        SDL_Rect srcRect{ (int)cmd.srcRect.x, (int)cmd.srcRect.y, (int)cmd.srcRect.w, (int)cmd.srcRect.h };
+        SDL_FRect dstRect{ cmd.dstRect.x, cmd.dstRect.y, cmd.dstRect.w, cmd.dstRect.h };
 
-        Sprite *sprite = 0;
-        Spritesheet *spritesheet = 0;;
-        Texture *texture = 0;
 
-        if (cmd.sprite) {
-            sprite = (Sprite *)depot.GetFacet(cmd.sprite, Facet_Sprite);
-            if (sprite) {
-                spritesheet = (Spritesheet *)depot.GetFacet(sprite->spritesheet, Facet_Spritesheet);
-                texture = (Texture *)depot.GetFacet(sprite->spritesheet, Facet_Texture);
+        if (cmd.texture) {
+            if (cmd.color.a) {
+                SDL_SetTextureColorMod(cmd.texture, cmd.color.r, cmd.color.g, cmd.color.b);
+                SDL_SetTextureAlphaMod(cmd.texture, cmd.color.a);
+            } else {
+                SDL_SetTextureColorMod(cmd.texture, 255, 255, 255);
+                SDL_SetTextureAlphaMod(cmd.texture, 255);
             }
-        } else if (cmd.texture) {
-            texture = (Texture *)depot.GetFacet(cmd.texture, Facet_Texture);
-        }
-
-        if (spritesheet && texture) {
-            SDL_Rect frame{};
-
-            Animation &animation = spritesheet->animations[sprite->animation];
-            int cell = animation.start + sprite->frame;
-            int cellPixels = cell * (int)spritesheet->cellSize.x;
-
-            frame.x = cellPixels % (int)texture->size.w;
-            frame.y = cellPixels / (int)texture->size.w;
-            frame.w = (int)spritesheet->cellSize.x;
-            frame.h = (int)spritesheet->cellSize.y;
-
-            SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
-            SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
-            SDL_RenderCopyF(renderer, texture->sdl_texture, &frame, &rect);
-        } else if (texture) {
-            SDL_SetTextureColorMod(texture->sdl_texture, cmd.color.r, cmd.color.g, cmd.color.b);
-            SDL_SetTextureAlphaMod(texture->sdl_texture, cmd.color.a);
-            SDL_RenderCopyF(renderer, texture->sdl_texture, NULL, &rect);
+            // TODO: Can this be shortened? Does SDL handle zero-width same as NULL?
+            if (cmd.srcRect.w && cmd.srcRect.h) {
+                SDL_RenderCopyF(renderer, cmd.texture, &srcRect, &dstRect);
+            } else {
+                SDL_RenderCopyF(renderer, cmd.texture, NULL, &dstRect);
+            }
         } else {
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
-            SDL_RenderFillRectF(renderer, &rect);
+            SDL_RenderFillRectF(renderer, &dstRect);
         }
 #if 0
         vec2 verts[] = {
-            { (float)rect.x         , (float)rect.y + rect.h },
-            { (float)rect.x + rect.w, (float)rect.y + rect.h },
-            { (float)rect.x + rect.w, (float)rect.y },
-            { (float)rect.x         , (float)rect.y },
+            { (float)dstRect.x            , (float)dstRect.y + dstRect.h },
+            { (float)dstRect.x + dstRect.w, (float)dstRect.y + dstRect.h },
+            { (float)dstRect.x + dstRect.w, (float)dstRect.y },
+            { (float)dstRect.x            , (float)dstRect.y },
         };
 
         vec4 colors_f32[4] = {
@@ -274,11 +369,11 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 
         if (uidBeingDragged) {
             SDL_FPoint points[] = {
-                { rect.x         , rect.y + rect.h },
-                { rect.x + rect.w, rect.y + rect.h },
-                { rect.x + rect.w, rect.y          },
-                { rect.x         , rect.y          },
-                { rect.x         , rect.y + rect.h },
+                { dstRect.x            , dstRect.y + dstRect.h },
+                { dstRect.x + dstRect.w, dstRect.y + dstRect.h },
+                { dstRect.x + dstRect.w, dstRect.y             },
+                { dstRect.x            , dstRect.y             },
+                { dstRect.x            , dstRect.y + dstRect.h },
             };
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);

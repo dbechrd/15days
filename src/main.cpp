@@ -25,10 +25,14 @@ UID load_font(Depot &depot, const char *filename, int ptsize)
 
     // Load a new font
     UID uidFont = depot.Alloc(key);
-    Font *fontFancy = (Font *)depot.AddFacet(uidFont, Facet_Font);
-    fontFancy->filename = filename;
-    fontFancy->ptsize = ptsize;
-    fontFancy->ttf_font = TTF_OpenFont(filename, ptsize);
+    Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
+    font->filename = filename;
+    font->ptsize = ptsize;
+    font->ttf_font = TTF_OpenFont(filename, ptsize);
+    if (!font->ttf_font) {
+        SDL_LogError(0, "Failed to load font %s\n", filename);
+    }
+
     return uidFont;
 }
 
@@ -215,73 +219,12 @@ UID create_global_keymap(Depot &depot)
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_V, 0, 0, Hotkey_Press, MsgType_Render_ToggleVsync);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_F, 0, 0, Hotkey_Press, MsgType_Render_DbgSetFontNext);
+    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_F, 0, 0, Hotkey_Press, MsgType_Render_DbgSetFontPrev);
 
     return uid;
 }
 
-//void cursor_try_drag_begin(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
-//{
-//    Cursor *cursor = (Cursor *)depot.GetFacet(msg.uid, Facet_Cursor);
-//    if (!cursor) {
-//        return;
-//    }
-//
-//    cursor->uidDragSubject = find_sprite_at_screen_pos(depot, cursor->uid, &cursor->dragOffset);
-//    if (cursor->uidDragSubject) {
-//        Message dragBegin{};
-//        dragBegin.type = MsgType_Card_Notify_DragBegin;
-//        dragBegin.uid = cursor->uidDragSubject;
-//        depot.msgQueue.push_back(dragBegin);
-//    }
-//}
-//void cursor_try_drag_update(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
-//{
-//    UID uid = (UID)(size_t)userData;
-//    Cursor *cursor = (Cursor *)depot.GetFacet(uid, Facet_Cursor);
-//    if (!cursor) {
-//        return;
-//    }
-//
-//    if (cursor->uidDragSubject) {
-//        Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
-//        DLB_ASSERT(position);
-//        if (!position) {
-//            printf("WARN: Can't use a cursor with no position");
-//            return;
-//        }
-//
-//        // TODO: This should probably generate a message instead.. like ApplyImpulse
-//        Position *subjectPos = (Position *)depot.GetFacet(cursor->uidDragSubject, Facet_Position);
-//        if (subjectPos) {
-//            subjectPos->pos.x = (float)position->pos.x - cursor->dragOffset.x;
-//            subjectPos->pos.y = (float)position->pos.y - cursor->dragOffset.y;
-//        }
-//
-//        //Message dragUpdate{};
-//        //dragUpdate.type = MsgType_Physics_ApplyImpulse;
-//        //dragUpdate.uid = cursor->uidDragSubject;
-//        //depot.msgQueue.push_back(dragUpdate);
-//    }
-//}
-//void cursor_try_drag_end(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
-//{
-//    Cursor *cursor = (Cursor *)depot.GetFacet(msg.uid, Facet_Cursor);
-//    if (!cursor) {
-//        return;
-//    }
-//
-//    if (cursor->uidDragSubject) {
-//        UID landedOn = find_sprite_at_screen_pos(depot, cursor->uidDragSubject, &cursor->dragOffset);
-//
-//        Message dragEnd{};
-//        dragEnd.type = MsgType_Card_Notify_DragEnd;
-//        dragEnd.uid = cursor->uidDragSubject;
-//        dragEnd.data.card_dragend.landedOn = landedOn;
-//        depot.msgQueue.push_back(dragEnd);
-//
-//        cursor->uidDragSubject = 0;
-//    }
-//}
 UID create_cursor(Depot &depot)
 {
     UID uidCursor = depot.Alloc("cursor");
@@ -299,26 +242,6 @@ UID create_cursor(Depot &depot)
     Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
-
-    {
-        /*TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCursor, Facet_TriggerList, 0, false);
-
-        Trigger dragBeginTrigger{};
-        dragBeginTrigger.trigger = MsgType_Cursor_PrimaryPress;
-        dragBeginTrigger.callback = cursor_try_drag_begin;
-        triggerList->triggers.push_back(dragBeginTrigger);
-
-        Trigger dragUpdateTrigger{};
-        dragUpdateTrigger.trigger = MsgType_Render_FrameBegin;
-        dragUpdateTrigger.callback = cursor_try_drag_update;
-        dragUpdateTrigger.userData = (void *)(size_t)uidCursor;
-        triggerList->triggers.push_back(dragUpdateTrigger);
-
-        Trigger dragEndTrigger{};
-        dragEndTrigger.trigger = MsgType_Cursor_PrimaryRelease;
-        dragEndTrigger.callback = cursor_try_drag_end;
-        triggerList->triggers.push_back(dragEndTrigger);*/
-    }
 
     return uidCursor;
 }
@@ -374,10 +297,10 @@ UID create_narrator(Depot &depot, UID subject)
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = load_font(depot, "font/KarminaBold.otf", 64);
+    //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     text->str = "15 Days";
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_WHITE);
-    text->dirty = true;
 
     add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
     add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
@@ -536,7 +459,7 @@ UID create_player(Depot &depot)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidPlayer, Facet_Text);
-    debugText->font = load_font(depot, "font/Hack-Bold.ttf", 16);;
+    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -584,14 +507,14 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
     if (fpsCounterBuf) {
         snprintf(fpsCounterBuf, fpsCounterMaxLen,
             "%.2f fps (%.2f ms)\n"
-#if 0
+#if 1
             "make deck disappear when empty\n"
             "font atlas / glyph cache\n"
             "text drop shadow\n"
             "runes\n"
             "volume control\n"
             "sell stuff\n"
-            "buy stuff\n"
+            "buy stuffffffff\n"
             "roll random attribs\n"
             "card groups (inventory?)\n"
             "click location cards to teleport there\n"
@@ -632,7 +555,10 @@ UID create_fps_counter(Depot &depot)
     position->pos.y = 10;
 
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
-    text->font = load_font(depot, "font/Hack-Bold.ttf", 16);
+    //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
+    //text->font = load_font(depot, "font/FiraCode-Bold.ttf", 16);
+    text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
     text->color = C255(COLOR_WHITE);
@@ -764,7 +690,7 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
-    debugText->font = load_font(depot, "font/Hack-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -790,7 +716,7 @@ UID create_card_stack(Depot &depot, vec3 pos)
     position->pos = pos;
 
     Text *debugText = (Text *)depot.AddFacet(uidCardStack, Facet_Text);
-    debugText->font = load_font(depot, "font/Hack-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -870,7 +796,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
-    debugText->font = load_font(depot, "font/Hack-Bold.ttf", 16);
+    debugText->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
