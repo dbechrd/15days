@@ -4,6 +4,7 @@
 #include "../common/game_state.h"
 
 #include "../systems/audio_system.h"
+#include "../systems/card_system.h"
 #include "../systems/combat_system.h"
 #include "../systems/collision_system.h"
 #include "../systems/cursor_system.h"
@@ -78,6 +79,7 @@ struct Depot {
 
     // These are order-dependent, see Depot::Run() in depot.cpp
     AudioSystem      audioSystem      {};  // might react to triggers
+    CardSystem       cardSystem       {};
     CollisionSystem  collisionSystem  {};
     CombatSystem     combatSystem     {};
     CursorSystem     cursorSystem     {};
@@ -99,7 +101,7 @@ struct Depot {
     {
         gameState = state;
         gameStatePending = gameState;
-        frameArena.Init(KB(4));
+        frameArena.Init(KB(16));
         resourceArena.Init(KB(4));
     }
 

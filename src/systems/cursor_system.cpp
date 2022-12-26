@@ -82,6 +82,11 @@ DragTarget GetDragTarget(Depot &depot, UID cursor, const CollisionList &collisio
         Card *card = (Card *)depot.GetFacet(uid, Facet_Card);
         Deck *deck = (Deck *)depot.GetFacet(uid, Facet_Deck);
         if (card || deck) {
+            // Disallow clicking invulnerable cards
+            if (card && card->noClickUntil > depot.Now()) {
+                continue;
+            }
+
             dragTarget.uid = uid;
             dragTarget.offset = offset;
             maxDepth = depth;

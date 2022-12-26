@@ -24,6 +24,9 @@ void *Arena::Alloc(size_t bytes)
     DLB_ASSERT(capacity > 0);
     if (used + bytes > capacity) {
 #if 0
+        // NOTE(dlb): I commented this out because it causes pointers to
+        // be invalidated. If we're going to dynamically resize this, we
+        // need to not store any pointers to it.
         if (canResize) {
             size_t newCap = capacity * 2;
             uint8_t *newData = (uint8_t *)realloc(data, newCap);

@@ -1,10 +1,6 @@
+#include "common/basic.h"
 #include "common/message.h"
 #include "facets/depot.h"
-#include "SDL/SDL.h"
-#include "SDL/SDL_ttf.h"
-#include <cassert>
-#include <cstdio>
-#include <string>
 
 DLB_ASSERT_HANDLER(dlb_assert_callback) {
     printf("[%s:%u] %s\n", filename, line, expr);
@@ -656,6 +652,7 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
 
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
     card->cardProto = uidCardProto;
+    card->noClickUntil = depot.Now() + 0.5;
 
     CardProto *cardProto = (CardProto *)depot.GetFacet(uidCardProto, Facet_CardProto);
     if (cardProto->materialProto) {
@@ -745,16 +742,15 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
         if (sprite) {
             // TODO: Pick cardProto from deck chances
-            UID cardProto = depot.cardProto[rand() % 3].uid;
+            UID cardProto = depot.cardProto[dlb_rand32i_range(0, 2)].uid;
             UID cardStack = create_card_stack(depot, spawnPos);
             UID card = create_card(depot, cardProto, spawnPos);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);
-            body->impulseBuffer.x = 700 + (float)(rand() % 500 - 250);
-            body->impulseBuffer.x *= (rand() % 2) ? 1 : -1;
-            body->impulseBuffer.y = (float)(rand() % 500);
-            body->impulseBuffer.y *= (rand() % 2) ? 1 : -1;
-            body->jumpBuffer = 10.0f + (float)(rand() % 4);
+            body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+            body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+            v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
+            body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
 
             add_card_to_stack(depot, cardStack, card);
         } else {
@@ -774,7 +770,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     UID uidDeck = depot.Alloc("deck", false);
 
     Deck *deck = (Deck *)depot.AddFacet(uidDeck, Facet_Deck);
-    deck->count = 10;
+    deck->count = 100;
 
     Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
@@ -854,7 +850,7 @@ int main(int argc, char *argv[])
     //vec4 cOrange = { 255, 124,  30, 255 };
 
     // TODO: Use dlb_rand or something
-    srand(42);
+    dlb_rand32_seed(SDL_GetTicks64());
 
     int err;
     assert(FDOV_FIRST_SCANCODE == SDL_NUM_SCANCODES);
@@ -924,7 +920,7 @@ int main(int argc, char *argv[])
         UID uidBombProto = create_card_proto(depot, "bomb_card", 0, 0, uidCardSheet, 3);
         add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
         add_sound_stop_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
-        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
+        //add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
         UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
         // Decks
@@ -971,3 +967,5 @@ int main(int argc, char *argv[])
 
 #define DLB_MATH_IMPLEMENTATION
 #include "dlb/dlb_math.h"
+#define DLB_RAND_IMPLEMENTATION
+#include "dlb/dlb_rand.h"

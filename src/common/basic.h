@@ -2,6 +2,7 @@
 
 #define DLB_MATH_EXTERN
 #include "dlb/dlb_math.h"
+#include "dlb/dlb_rand.h"
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
@@ -23,7 +24,7 @@
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0
-#define FDOV_DRAG_BBOX  1
+#define FDOV_DRAG_BBOX  0
 #define FDOV_DEBUG_BBOX 0
 #define FDOV_DEBUG_BODY 0
 
