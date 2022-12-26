@@ -727,7 +727,7 @@ UID create_card_stack(Depot &depot, vec3 pos)
     return uidCardStack;
 }
 
-void deck_draw(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     UID uid = msg.uid;
     Deck *deck = (Deck *)depot.GetFacet(uid, Facet_Deck);
@@ -750,9 +750,11 @@ void deck_draw(Depot &depot, const Message &msg, const Trigger &trigger, void *u
             UID card = create_card(depot, cardProto, spawnPos);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);
-            body->impulseBuffer.x = (float)(rand() % 1000 - 500);
-            body->impulseBuffer.y = (float)(rand() % 1000 - 500);
-            body->jumpBuffer = rand() % 20;
+            body->impulseBuffer.x = 700 + (float)(rand() % 500 - 250);
+            body->impulseBuffer.x *= (rand() % 2) ? 1 : -1;
+            body->impulseBuffer.y = (float)(rand() % 500);
+            body->impulseBuffer.y *= (rand() % 2) ? 1 : -1;
+            body->jumpBuffer = 10.0f + (float)(rand() % 4);
 
             add_card_to_stack(depot, cardStack, card);
         } else {
@@ -809,7 +811,7 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
     Trigger deckDrawTrigger{};
     deckDrawTrigger.trigger = MsgType_Card_Notify_LeftQuickClick;
     deckDrawTrigger.message.uid = uidDeck;
-    deckDrawTrigger.callback = deck_draw;
+    deckDrawTrigger.callback = deck_draw_card;
     triggerList->triggers.push_back(deckDrawTrigger);
 
     return uidDeck;

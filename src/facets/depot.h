@@ -99,7 +99,7 @@ struct Depot {
     {
         gameState = state;
         gameStatePending = gameState;
-        frameArena.Init(KB(1), true);
+        frameArena.Init(KB(4));
         resourceArena.Init(KB(4));
     }
 
@@ -135,7 +135,7 @@ struct Depot {
     {
         collisionList.clear();
         msgQueue.clear();
-        frameArena.Clear();
+        frameArena.Reset();
     }
 
     void TransitionTo(GameState state)

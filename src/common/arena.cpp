@@ -3,9 +3,8 @@
 #include <cstdlib>
 #include <cstring>
 
-void Arena::Init(size_t bytes, bool allowResize)
+void Arena::Init(size_t bytes)
 {
-    canResize = allowResize;
     data = (uint8_t *)calloc(bytes, sizeof(*data));
     if (data) {
         capacity = bytes;
@@ -23,7 +22,8 @@ void Arena::Destroy(void)
 void *Arena::Alloc(size_t bytes)
 {
     DLB_ASSERT(capacity > 0);
-    if (size + bytes > capacity) {
+    if (used + bytes > capacity) {
+#if 0
         if (canResize) {
             size_t newCap = capacity * 2;
             uint8_t *newData = (uint8_t *)realloc(data, newCap);
@@ -37,14 +37,18 @@ void *Arena::Alloc(size_t bytes)
             DLB_ASSERT(!"You dun ran outta space, bruv");
             return 0;
         }
+#else
+        DLB_ASSERT(!"You dun ran outta space, bruv");
+        return 0;
+#endif
     }
-    void *ptr = data + size;
-    size += bytes;
+    void *ptr = data + used;
+    used += bytes;
     return ptr;
 }
 
-void Arena::Clear(void)
+void Arena::Reset(void)
 {
     memset(data, 0, capacity);
-    size = 0;
+    used = 0;
 }

@@ -76,15 +76,14 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 
         Animation &animation = sheet->animations[sprite.animation];
         int cell = animation.start + sprite.frame;
-        int cellPixels = cell * (int)sheet->cellSize.x;
 
         int sheetWidth = 0;
         int sheetHeight = 0;
         SDL_QueryTexture(texture->sdl_texture, 0, 0, &sheetWidth, &sheetHeight);
 
         rect srcRect{};
-        srcRect.x = cellPixels % sheetWidth;
-        srcRect.y = cellPixels / sheetHeight;
+        srcRect.x = (cell * (int)sheet->cellSize.x) % sheetWidth;
+        srcRect.y = (cell * (int)sheet->cellSize.x) / sheetWidth;
         srcRect.w = (int)sheet->cellSize.x;
         srcRect.h = (int)sheet->cellSize.y;
 
