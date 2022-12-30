@@ -3,6 +3,7 @@
 #define DLB_MATH_EXTERN
 #include "dlb/dlb_math.h"
 #include "dlb/dlb_rand.h"
+#include "dlb/dlb_hash.h"
 
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
@@ -14,13 +15,14 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <array>
 #include <bitset>
+#include <deque>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <deque>
-#include <queue>
 
 #define FDOV_VSYNC      1
 #define FDOV_FULLSCREEN 0

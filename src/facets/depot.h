@@ -43,6 +43,7 @@ struct Depot {
     std::unordered_map<std::string, UID>      uidByName   {};
     std::unordered_map<UID, std::string>      nameByUid   {};
     std::unordered_map<UID, uint32_t>         indexByUid  [Facet_Count]{};
+    //dlb_hash indexByUid[Facet_Count]{};
     //std::unordered_map<std::string, uint32_t> indexByName [Facet_Count]{};
 
     // Dense facet data arrays
@@ -103,6 +104,10 @@ struct Depot {
         gameStatePending = gameState;
         frameArena.Init(KB(16));
         resourceArena.Init(KB(4));
+
+        //for (int i = 0; i < Facet_Count; i++) {
+        //    dlb_hash_init(&indexByUid[i], DLB_HASH_INT, "indexByUid", 256);
+        //}
     }
 
     void Destroy(void)
@@ -121,6 +126,10 @@ struct Depot {
 
         frameArena.Destroy();
         resourceArena.Destroy();
+
+        //for (int i = 0; i < Facet_Count; i++) {
+        //    dlb_hash_free(&indexByUid[i]);
+        //}
     }
 
     void BeginFrame(void)
@@ -155,6 +164,10 @@ struct Depot {
         return fixedDt;
     }
 
+    inline double RealDt(void) {
+        return realDt;
+    }
+
     inline double DtSmooth(void) {
         return realDtSmooth;
     }
@@ -177,6 +190,7 @@ private:
     double nowPrev{};
     double now{};
     const double fixedDt = 1.0 / 60.0;
+    double realDt{};
     double realDtSmooth = fixedDt;
 
     InputQueue inputQueue{};  // raw input (abstracted from platform)

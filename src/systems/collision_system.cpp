@@ -58,9 +58,9 @@ void CollisionSystem::DetectCollisions(Depot &depot, CollisionList &collisionLis
             UID uidB = depot.position[j].uid;
 
             const rect bboxB = entity_bbox(depot, uidB);
-            if (!bboxB.w || !bboxB.h) {
-                continue;
-            }
+            //if (!bboxB.w || !bboxB.h) {
+            //    continue;
+            //}
 
             if (rect_intersect(&bboxA, &bboxB)) {
                 collisionList.push_back({ uidA, uidB, bboxA, bboxB });

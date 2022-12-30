@@ -1,4 +1,5 @@
 #pragma once
+#include "../common/basic.h"
 #include "facet.h"
 #include "material.h"
 
@@ -15,5 +16,5 @@ struct Card : public Facet {
 };
 
 struct CardStack : public Facet {
-    std::vector<UID> cards {};
+    std::vector<UID> cards{};
 };

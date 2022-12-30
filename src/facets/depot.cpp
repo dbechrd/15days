@@ -144,11 +144,11 @@ void Depot::Run(void)
         // Time is money
         nowPrev = now;
         now = clock_now();
-        double realDt = now - nowPrev;
-        realDt = MIN(realDt, fixedDt);  // cap to prevent spiral while debugging
-        realDtSmooth = LERP(realDtSmooth, realDt, 0.1);
+        realDt = now - nowPrev;
+        double cappedRealDt = MIN(realDt, fixedDt);  // cap to prevent spiral while debugging
+        realDtSmooth = LERP(realDtSmooth, cappedRealDt, 0.1);
 
-        physicsAccum += realDt;
+        physicsAccum += cappedRealDt;
         int physicsIters = 0;
         while (physicsAccum >= fixedDt) {
             physicsIters++;

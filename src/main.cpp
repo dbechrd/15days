@@ -495,15 +495,17 @@ UID create_player(Depot &depot)
 
 void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
-    const double dt = depot.DtSmooth();
     const double fps = depot.FpsSmooth();
+    const double dt = depot.DtSmooth();
     const double dtMillis = dt * 1000.0f;
-    const size_t fpsCounterMaxLen = 2048;
+    const double realDt = depot.RealDt();
+    const double realDtMillis = realDt * 1000.0f;
 
+    const size_t fpsCounterMaxLen = 2048;
     char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
     if (fpsCounterBuf) {
         snprintf(fpsCounterBuf, fpsCounterMaxLen,
-            "%.2f fps (%.2f ms)\n"
+            "%.2f fps (sim: %.2f ms, real: %.2f ms)\n"
 #if 1
             "make deck disappear when empty\n"
             "font atlas / glyph cache\n"
@@ -521,7 +523,7 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
             "networking (?)\n"
 #endif
             ,
-            fps, dtMillis
+            fps, dtMillis, realDtMillis
         );
 
         Message updateText{};
@@ -732,7 +734,11 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         return;
     }
 
+#if 1
+    while (deck->count) {
+#else
     if (deck->count) {
+#endif
         vec3 spawnPos{};
         Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
         if (position) {
@@ -969,3 +975,7 @@ int main(int argc, char *argv[])
 #include "dlb/dlb_math.h"
 #define DLB_RAND_IMPLEMENTATION
 #include "dlb/dlb_rand.h"
+#define DLB_HASH_IMPLEMENTATION
+#include "dlb/dlb_hash.h"
+#define DLB_MURMUR3_IMPLEMENTATION
+#include "dlb/dlb_murmur3.h"
