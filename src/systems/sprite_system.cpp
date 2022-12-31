@@ -51,17 +51,13 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
-        Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.GetSpritesheet(), Facet_Spritesheet);
-        if (!sheet) {
-            SDL_LogError(0, "ERROR: Can't draw a sprite with no spritesheet");
-            continue;
-        }
+        rect srcRect = sprite.GetSrcRect();
 
-        Texture *texture = (Texture *)depot.GetFacet(sheet->uid, Facet_Texture);
-        if (!texture) {
-            SDL_LogError(0, "ERROR: Can't draw a sprite whose spritesheet has no texture");
-            continue;
-        }
+        rect dstRect{};
+        dstRect.x = position->pos.x;
+        dstRect.y = position->pos.y - position->pos.z;
+        dstRect.w = srcRect.w;
+        dstRect.h = srcRect.h;
 
         float depth = position->pos.y - position->pos.z + position->size.y;
         for (Cursor &cursor : depot.cursor) {
@@ -70,32 +66,15 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             }
         }
 
-        Animation &animation = sheet->animations[sprite.GetAnimIndex()];
-        int cell = animation.start + sprite.GetAnimFrame();
-
-        int sheetWidth = 0;
-        int sheetHeight = 0;
-        SDL_QueryTexture(texture->sdl_texture, 0, 0, &sheetWidth, &sheetHeight);
-
-        rect srcRect{};
-        srcRect.x = (cell * (int)sheet->cellSize.x) % sheetWidth;
-        srcRect.y = (cell * (int)sheet->cellSize.x) / sheetWidth;
-        srcRect.w = (int)sheet->cellSize.x;
-        srcRect.h = (int)sheet->cellSize.y;
-
-        rect dstRect{};
-        dstRect.x = position->pos.x;
-        dstRect.y = position->pos.y - position->pos.z;
-        dstRect.w = srcRect.w;
-        dstRect.h = srcRect.h;
-
         DrawCommand drawSprite{};
         drawSprite.uid = sprite.uid;
         drawSprite.color = sprite.color;
         drawSprite.srcRect = srcRect;
         drawSprite.dstRect = dstRect;
-        drawSprite.texture = texture->sdl_texture;
+        drawSprite.texture = sprite.GetSDLTexture();
         drawSprite.depth = depth;
-        drawQueue.push(drawSprite);
+        drawQueue.push_back(drawSprite);
     }
+
+    std::sort(drawQueue.begin(), drawQueue.end());
 }

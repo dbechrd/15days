@@ -15,10 +15,13 @@ struct Sprite : public Facet {
 private:
     // These are private because they affect the bbox which gets updated on-demand
     UID  spritesheet {};
+    SDL_Texture *cached_sdl_texture {};  // idk if this is safe, but it saves two GetFacet() calls per card, per frame
+
     int  animation   {};
     int  frame       {};
+    rect srcRect     {};
 
-    void UpdateBbox(Depot &depot);
+    void UpdateRect(Depot &depot);
 
 public:
     inline UID GetSpritesheet(void) {
@@ -29,6 +32,12 @@ public:
     }
     inline int GetAnimFrame(void) {
         return frame;
+    }
+    inline rect GetSrcRect(void) {
+        return srcRect;
+    }
+    SDL_Texture *GetSDLTexture(void) {
+        return cached_sdl_texture;
     }
 };
 

@@ -37,7 +37,7 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             attackOverlay.dstRect.y += position->size.y - overlayHeight;
             attackOverlay.dstRect.h = ceilf(overlayHeight);
             attackOverlay.depth = depth + 0.001f;
-            drawQueue.push(attackOverlay);
+            drawQueue.push_back(attackOverlay);
         }
         if (combat.defendStartedAt) {
             assert(combat.defendCooldown);
@@ -52,7 +52,9 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             defendOverlay.dstRect.y += position->size.y - overlayHeight;
             defendOverlay.dstRect.h = ceilf(overlayHeight);
             defendOverlay.depth = depth + 0.001f;
-            drawQueue.push(defendOverlay);
+            drawQueue.push_back(defendOverlay);
         }
     }
+
+    std::sort(drawQueue.begin(), drawQueue.end());
 }

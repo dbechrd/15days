@@ -87,46 +87,17 @@ void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
                 text.color.a
             };
             drawGlyph.depth = 0;
-            drawQueue.push(drawGlyph);
+            drawQueue.push_back(drawGlyph);
 
-            // Drop glyph
+            // Draw glyph
             drawGlyph.dstRect = drawRect;
             drawGlyph.color = text.color;
             drawGlyph.depth = 1;
-            drawQueue.push(drawGlyph);
+            drawQueue.push_back(drawGlyph);
 
             cursor.x += glyphRect.w;
             lineHeight = MAX(lineHeight, glyphRect.h);
             c++;
         }
-    }
-
-    int atlasOffsetY = 10;
-
-    for (Font &font : depot.font) {
-        if (!font.glyphCache.atlasSurface)
-            continue;
-
-        rect rect{};
-        rect.x = SCREEN_W - font.glyphCache.atlasSurface->w - 10;
-        rect.y = atlasOffsetY;
-        rect.w = font.glyphCache.atlasSurface->w;
-        rect.h = font.glyphCache.atlasSurface->h;
-
-        DrawCommand drawGlyphAtlasBg{};
-        drawGlyphAtlasBg.uid = font.uid;
-        drawGlyphAtlasBg.dstRect = rect;
-        drawGlyphAtlasBg.color = C255(COLOR_BLACK);
-        drawGlyphAtlasBg.depth = 0;
-        drawQueue.push(drawGlyphAtlasBg);
-
-        DrawCommand drawGlyphAtlas{};
-        drawGlyphAtlas.uid = font.uid;
-        drawGlyphAtlas.dstRect = rect;
-        drawGlyphAtlas.texture = font.glyphCache.atlasTexture;
-        drawGlyphAtlas.depth = 1;
-        drawQueue.push(drawGlyphAtlas);
-
-        atlasOffsetY += rect.h + 10;
     }
 }

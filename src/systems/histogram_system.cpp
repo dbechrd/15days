@@ -52,7 +52,7 @@ void HistogramSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             drawCmd.uid = histo.uid;
             drawCmd.color = C255(COLOR_LIME);
             drawCmd.dstRect = rect;
-            drawQueue.push(drawCmd);
+            drawQueue.push_back(drawCmd);
 
             cursor.x += barWidth + barPadding;
         }

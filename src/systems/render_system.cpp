@@ -276,9 +276,7 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
     // TODO: Batch draw calls into temp allocator
     // then use SDL_RenderGeometryRaw to draw them all at once!!
 
-    while (!drawQueue.empty()) {
-        const DrawCommand &cmd = drawQueue.top();
-
+    for (const DrawCommand &cmd : drawQueue) {
         SDL_Rect srcRect{ (int)cmd.srcRect.x, (int)cmd.srcRect.y, (int)cmd.srcRect.w, (int)cmd.srcRect.h };
         SDL_FRect dstRect{ cmd.dstRect.x, cmd.dstRect.y, cmd.dstRect.w, cmd.dstRect.h };
 
@@ -379,8 +377,6 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             SDL_RenderDrawLinesF(renderer, points, ARRAY_SIZE(points));
         }
 #endif
-
-        drawQueue.pop();
     }
 }
 

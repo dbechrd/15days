@@ -222,6 +222,36 @@ void Depot::Run(void)
         histogramSystem.Display(now, *this, histogramQueue);
         textSystem.Display(now, *this, textQueue);
 
+        DrawQueue dbgAtlasQueue{};
+        int atlasOffsetY = 10;
+
+        for (Font &font : font) {
+            if (!font.glyphCache.atlasSurface)
+                continue;
+
+            rect rect{};
+            rect.x = SCREEN_W - font.glyphCache.atlasSurface->w - 10;
+            rect.y = atlasOffsetY;
+            rect.w = font.glyphCache.atlasSurface->w;
+            rect.h = font.glyphCache.atlasSurface->h;
+
+            DrawCommand drawGlyphAtlasBg{};
+            drawGlyphAtlasBg.uid = font.uid;
+            drawGlyphAtlasBg.dstRect = rect;
+            drawGlyphAtlasBg.color = C255(COLOR_BLACK);
+            drawGlyphAtlasBg.depth = 0;
+            dbgAtlasQueue.push_back(drawGlyphAtlasBg);
+
+            DrawCommand drawGlyphAtlas{};
+            drawGlyphAtlas.uid = font.uid;
+            drawGlyphAtlas.dstRect = rect;
+            drawGlyphAtlas.texture = font.glyphCache.atlasTexture;
+            drawGlyphAtlas.depth = 1;
+            dbgAtlasQueue.push_back(drawGlyphAtlas);
+
+            atlasOffsetY += rect.h + 10;
+    }
+
 #if 0
         if (inputQueue.size() || msgQueue.size()) {
             printf("Frame #%llu\n", frame);
@@ -248,6 +278,7 @@ void Depot::Run(void)
         renderSystem.Flush(*this, spriteQueue);
         renderSystem.Flush(*this, histogramQueue);
         renderSystem.Flush(*this, textQueue);
+        renderSystem.Flush(*this, dbgAtlasQueue);
         renderSystem.Present();
         EndFrame();
 

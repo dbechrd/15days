@@ -105,7 +105,7 @@ struct Depot {
     {
         gameState = state;
         gameStatePending = gameState;
-        frameArena.Init(KB(16));
+        frameArena.Init(KB(32));
         resourceArena.Init(KB(4));
 
         //for (int i = 0; i < Facet_Count; i++) {

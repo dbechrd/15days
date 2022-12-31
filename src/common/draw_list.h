@@ -11,7 +11,7 @@ struct DrawCommand {
 
     bool operator<(const DrawCommand &right) const
     {
-        return depth > right.depth;
+        return depth < right.depth;
     }
 };
 
@@ -22,4 +22,5 @@ struct DrawCommand {
 //    }
 //};
 
-typedef std::priority_queue<DrawCommand> DrawQueue;
+//typedef std::priority_queue<DrawCommand> SortedDrawQueue;
+typedef std::vector<DrawCommand> DrawQueue;
