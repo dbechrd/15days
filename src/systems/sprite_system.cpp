@@ -1,14 +1,10 @@
 #include "sprite_system.h"
 #include "../facets/depot.h"
 
-void SpriteSystem::InitSprite(Sprite &sprite, vec2 size, vec4 color)
+void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color, UID uidSpritesheet)
 {
-    sprite.size = size;
     sprite.color = color;
-    sprite.attackColor = C255(COLOR_RED); // { 150, 70, 70, 255 };
-    sprite.attackColor.a = 128;
-    sprite.defendColor = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
-    sprite.defendColor.a = 128;
+    sprite.SetSpritesheet(depot, uidSpritesheet);
 }
 
 void SpriteSystem::Update(double now, Depot &depot)
@@ -25,7 +21,7 @@ void SpriteSystem::Update(double now, Depot &depot)
         switch (msg.type) {
             case MsgType_Sprite_UpdateAnimation:
             {
-                sprite->animation = msg.data.sprite_updateanimation.animation;
+                sprite->SetAnimIndex(depot, msg.data.sprite_updateanimation.animation);
                 break;
             }
             default: break;
@@ -35,10 +31,10 @@ void SpriteSystem::Update(double now, Depot &depot)
     // Update animated sprites
     if (now - lastAnimAt >= fixedAnimDt) {
         for (Sprite &sprite : depot.sprite) {
-            Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.spritesheet, Facet_Spritesheet);
+            Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.GetSpritesheet(), Facet_Spritesheet);
             if (sheet) {
-                Animation &anim = sheet->animations[sprite.animation];
-                sprite.frame = (sprite.frame + 1) % anim.count;
+                Animation &anim = sheet->animations[sprite.GetAnimIndex()];
+                sprite.SetAnimFrame(depot, (sprite.GetAnimFrame() + 1) % anim.count);
             }
         }
         lastAnimAt = now;
@@ -55,27 +51,27 @@ void SpriteSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
-        Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.spritesheet, Facet_Spritesheet);
+        Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.GetSpritesheet(), Facet_Spritesheet);
         if (!sheet) {
             SDL_LogError(0, "ERROR: Can't draw a sprite with no spritesheet");
             continue;
         }
 
-        Texture *texture = (Texture *)depot.GetFacet(sprite.spritesheet, Facet_Texture);
+        Texture *texture = (Texture *)depot.GetFacet(sheet->uid, Facet_Texture);
         if (!texture) {
             SDL_LogError(0, "ERROR: Can't draw a sprite whose spritesheet has no texture");
             continue;
         }
 
-        float depth = position->pos.y - position->pos.z + sprite.size.y;
+        float depth = position->pos.y - position->pos.z + position->size.y;
         for (Cursor &cursor : depot.cursor) {
             if (cursor.uidDragSubject == sprite.uid) {
                 depth = SCREEN_H * 2.0f;
             }
         }
 
-        Animation &animation = sheet->animations[sprite.animation];
-        int cell = animation.start + sprite.frame;
+        Animation &animation = sheet->animations[sprite.GetAnimIndex()];
+        int cell = animation.start + sprite.GetAnimFrame();
 
         int sheetWidth = 0;
         int sheetHeight = 0;

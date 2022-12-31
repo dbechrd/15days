@@ -10,12 +10,14 @@ void PhysicsSystem::Update(double now, Depot &depot, double dt)
             printf("Warn: Physics body has no position: %u\n", body.uid);
             continue;
         }
+#if 0
         Sprite *sprite = (Sprite *)depot.GetFacet(body.uid, Facet_Sprite);
         if (!sprite) {
             DLB_ASSERT(0);
             printf("Warn: Physics body has no sprite: %u\n", body.uid);
             continue;
         }
+#endif
 
         if (fabsf(body.velocity.z) < MATH_EPSILON &&
             fabsf(position->pos.z) < MATH_EPSILON)

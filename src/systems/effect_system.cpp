@@ -53,14 +53,12 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
                 UID applyFxUid = msg.uid;
                 for (const Collision &collision : collisionList) {
                     UID recvFxUid = 0;
-                    if (collision.uidA == 26 && collision.uidB == 29) {
-                        printf("");
-                    }
-
                     if (applyFxUid == collision.uidA) {
                         recvFxUid = collision.uidB;
                     } else if (applyFxUid == collision.uidB) {
                         recvFxUid = collision.uidA;
+                    } else {
+                        continue;
                     }
 
                     Card *card = (Card *)depot.GetFacet(applyFxUid, Facet_Card);
@@ -91,10 +89,6 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
 void EffectSystem::ApplyFx_AnyToAny(Depot &depot, const CollisionList &collisionList)
 {
     for (const Collision &collision : collisionList) {
-        if (collision.uidA == 26 && collision.uidB == 29) {
-            printf("");
-        }
-
         Card *aCard = (Card *)depot.GetFacet(collision.uidA, Facet_Card);
         Card *bCard = (Card *)depot.GetFacet(collision.uidB, Facet_Card);
         if (!aCard || !bCard) {

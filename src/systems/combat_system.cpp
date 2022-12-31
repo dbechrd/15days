@@ -11,36 +11,30 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
-        Sprite *sprite = (Sprite *)depot.GetFacet(combat.uid, Facet_Sprite);
-        DLB_ASSERT(sprite);
-        if (!sprite) {
-            printf("WARN: Can't draw combat overlay with no sprite");
-            continue;
-        }
-
-        float depth = position->pos.y - position->pos.z + sprite->size.y;
+        float depth = position->pos.y - position->pos.z + position->size.y;
         for (Cursor &cursor : depot.cursor) {
-            if (cursor.uidDragSubject == sprite->uid) {
+            if (cursor.uidDragSubject == combat.uid) {
                 depth = SCREEN_H * 2.0f;
             }
         }
 
-        rect spriteRect{};
-        spriteRect.x = position->pos.x;
-        spriteRect.y = position->pos.y - position->pos.z;
-        spriteRect.w = sprite->size.x;
-        spriteRect.h = sprite->size.y;
+        rect bbox{};
+        bbox.x = position->pos.x;
+        bbox.y = position->pos.y - position->pos.z;
+        bbox.w = position->size.x;
+        bbox.h = position->size.y;
 
         if (combat.attackStartedAt) {
             DLB_ASSERT(combat.attackCooldown);
             float attackAlpha = (now - combat.attackStartedAt) / combat.attackCooldown;
-            float overlayHeight = (1.0 - attackAlpha) * sprite->size.y;
+            float overlayHeight = (1.0 - attackAlpha) * position->size.y;
 
             DrawCommand attackOverlay{};
-            attackOverlay.uid = sprite->uid;
-            attackOverlay.color = sprite->attackColor;
-            attackOverlay.dstRect = spriteRect;
-            attackOverlay.dstRect.y += sprite->size.y - overlayHeight;
+            attackOverlay.uid = combat.uid;
+            attackOverlay.color = C255(COLOR_RED); // { 150, 70, 70, 255 };
+            attackOverlay.color.a = 128;
+            attackOverlay.dstRect = bbox;
+            attackOverlay.dstRect.y += position->size.y - overlayHeight;
             attackOverlay.dstRect.h = ceilf(overlayHeight);
             attackOverlay.depth = depth + 0.001f;
             drawQueue.push(attackOverlay);
@@ -48,13 +42,14 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         if (combat.defendStartedAt) {
             assert(combat.defendCooldown);
             float defendAlpha = (now - combat.defendStartedAt) / combat.defendCooldown;
-            float overlayHeight = (1.0 - defendAlpha) * sprite->size.y;
+            float overlayHeight = (1.0 - defendAlpha) * position->size.y;
 
             DrawCommand defendOverlay{};
-            defendOverlay.uid = sprite->uid;
-            defendOverlay.color = sprite->defendColor;
-            defendOverlay.dstRect = spriteRect;
-            defendOverlay.dstRect.y += sprite->size.y - overlayHeight;
+            defendOverlay.uid = combat.uid;
+            defendOverlay.color = C255(COLOR_DODGER); //{ 70, 70, 150, 255 };
+            defendOverlay.color.a = 128;
+            defendOverlay.dstRect = bbox;
+            defendOverlay.dstRect.y += position->size.y - overlayHeight;
             defendOverlay.dstRect.h = ceilf(overlayHeight);
             defendOverlay.depth = depth + 0.001f;
             drawQueue.push(defendOverlay);

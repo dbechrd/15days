@@ -88,17 +88,32 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
     facet->uid = uid;
     facet->f_type = type;
     indexByUid[type][uid] = index;
+    //bitmapByUid[uid].set(type);
 
     return facet;
 }
 
 void *Depot::GetFacet(UID uid, FacetType type)
 {
+    //if (!bitmapByUid[uid].test(type)) {
+    //    return 0;
+    //}
+
+#if 1
+    hashesThisFrame++;
     if (!indexByUid[type].contains(uid)) {
         return 0;
     }
 
     size_t index = indexByUid[type][uid];
+#else
+    const auto &val = indexByUid[type].find(uid);
+    if (val == indexByUid[type].end()) {
+        return 0;
+    }
+
+    size_t index = val->second; // indexByUid[type][uid];
+#endif
     switch (type) {
         case Facet_Attach:        return &attach        [index];
         case Facet_Body:          return &body          [index];

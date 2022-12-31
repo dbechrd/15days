@@ -17,10 +17,10 @@ void CardSystem::UpdateCards(Depot &depot)
         }
 
         if (card.noClickUntil > depot.Now()) {
-            sprite->animation = 2;  // TODO: Clean up magic number, move deck back to 0
+            sprite->SetAnimIndex(depot, 2);  // TODO: Clean up magic number, move deck back to 0
             //sprite->color = C255(COLOR_GRAY_5);
         } else {
-            sprite->animation = cardProto->animation;
+            sprite->SetAnimIndex(depot, cardProto->animation);
             //sprite->color = {};
             card.noClickUntil = 0;
         }

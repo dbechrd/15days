@@ -43,6 +43,9 @@ struct Depot {
     std::unordered_map<std::string, UID>      uidByName   {};
     std::unordered_map<UID, std::string>      nameByUid   {};
     std::unordered_map<UID, uint32_t>         indexByUid  [Facet_Count]{};
+    // TODO: Is this a good idea? Should it be sparse? Does that defeat the purpose?
+    // Do I even need it anymore after memoizing bboxes?
+    std::array<std::bitset<32>, 8192>         bitmapByUid {};
     //dlb_hash indexByUid[Facet_Count]{};
     //std::unordered_map<std::string, uint32_t> indexByName [Facet_Count]{};
 
@@ -147,6 +150,8 @@ struct Depot {
         collisionList.clear();
         msgQueue.clear();
         frameArena.Reset();
+        hashesLastFrame = hashesThisFrame;
+        hashesThisFrame = 0;
     }
 
     void TransitionTo(GameState state)
@@ -180,11 +185,17 @@ struct Depot {
         return 1.0f / DtSmooth();
     }
 
+    inline size_t Hashes(void) {
+        return hashesLastFrame;
+    }
+
 private:
     GameState gameState{};
     GameState gameStatePending{};  // will change at the start of the next frame
     UID nextUid{1};
 
+    size_t hashesLastFrame{};
+    size_t hashesThisFrame{};
     uint64_t frame{};
     double physicsAccum{};
     double nowPrev{};

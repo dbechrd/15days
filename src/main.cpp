@@ -234,8 +234,8 @@ UID create_cursor(Depot &depot)
     int x = 0;
     int y = 0;
     SDL_GetMouseState(&x, &y);
-    position->pos.x = (float)x;
-    position->pos.y = (float)y;
+    position->pos = { (float)x, (float)y };
+    position->size = { 1, 1 };
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
@@ -411,37 +411,16 @@ UID create_player(Depot &depot)
 
     UID uidPlayer = depot.Alloc("player");
 
-    // TODO: Make keymaps be per-mode *not* Depots. There should only be 1 depot.
-    // TODO: Make a "card drag" mode that has a different keymap for the player
-
-    Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
-
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
-    //keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Combat_Secondary_Press);
-
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_RunUp);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_RunLeft);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_RunDown);
-    keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_RunRight);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_WalkUp);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_WalkLeft);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_WalkDown);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_WalkRight);
-    keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
+    Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
+    position->size = spritesheet->cellSize;
+    position->pos = {
+        SCREEN_W / 2.0f - position->size.x / 2.0f,
+        SCREEN_H / 2.0f - position->size.y / 2.0f,
+    };
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
-    depot.spriteSystem.InitSprite(*sprite, spritesheet->cellSize, C255(COLOR_WHEAT));
-    sprite->spritesheet = uidSpritesheet;
-    sprite->animation = 0;
-    sprite->frame = 0;
-
-    Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
-    position->pos = {
-        SCREEN_W / 2.0f - sprite->size.x / 2.0f,
-        SCREEN_H / 2.0f - sprite->size.y / 2.0f,
-    };
+    depot.spriteSystem.InitSprite(depot, *sprite, C255(COLOR_WHEAT), uidSpritesheet);
 
     Body *body = (Body *)depot.AddFacet(uidPlayer, Facet_Body);
     body->gravity = -50.0f;
@@ -460,6 +439,27 @@ UID create_player(Depot &depot)
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
+
+    {
+        // TODO: Make keymaps be per-mode *not* Depots. There should only be 1 depot.
+        // TODO: Make a "card drag" mode that has a different keymap for the player
+
+        Keymap *keymap = (Keymap *)depot.AddFacet(uidPlayer, Facet_Keymap);
+
+        keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_LEFT, 0, 0, Hotkey_Press, MsgType_Combat_Primary);
+        keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_RIGHT, 0, 0, Hotkey_Hold, MsgType_Combat_Secondary);
+        //keymap->hotkeys.emplace_back(HotkeyMod_Any, FDOV_SCANCODE_MOUSE_RIGHT, 0, 0, Hotkey_Press | Hotkey_Handled, MsgType_Combat_Secondary_Press);
+
+        keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_RunUp);
+        keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_RunLeft);
+        keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_RunDown);
+        keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_RunRight);
+        keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_W, 0, 0, Hotkey_Hold, MsgType_Movement_WalkUp);
+        keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_A, 0, 0, Hotkey_Hold, MsgType_Movement_WalkLeft);
+        keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_S, 0, 0, Hotkey_Hold, MsgType_Movement_WalkDown);
+        keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_D, 0, 0, Hotkey_Hold, MsgType_Movement_WalkRight);
+        keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
+    }
 
     add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
     add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
@@ -505,7 +505,7 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
     char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
     if (fpsCounterBuf) {
         snprintf(fpsCounterBuf, fpsCounterMaxLen,
-            "%.2f fps (sim: %.2f ms, real: %.2f ms)\n"
+            "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
 #if 1
             "make deck disappear when empty\n"
             "font atlas / glyph cache\n"
@@ -523,7 +523,7 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
             "networking (?)\n"
 #endif
             ,
-            fps, dtMillis, realDtMillis
+            fps, dtMillis, realDtMillis, depot.Hashes()
         );
 
         Message updateText{};
@@ -652,6 +652,9 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
 {
     UID uidCard = depot.Alloc(depot.nameByUid[uidCardProto].c_str(), false);
 
+    Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
+    position->pos = pos;
+
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
     card->cardProto = uidCardProto;
     card->noClickUntil = depot.Now() + 0.5;
@@ -665,17 +668,13 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
     Spritesheet *sheet = (Spritesheet *)depot.GetFacet(cardProto->spritesheet, Facet_Spritesheet);
     if (sheet) {
         Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
-        SpriteSystem::InitSprite(*sprite, sheet->cellSize, C255(COLOR_WHITE));
-        sprite->spritesheet = cardProto->spritesheet;
-        sprite->animation = cardProto->animation;
-        sprite->frame = 0;
+        SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), cardProto->spritesheet);
+        sprite->SetSpritesheet(depot, cardProto->spritesheet);
+        sprite->SetAnimIndex(depot, cardProto->animation);
     } else {
         DLB_ASSERT(!"no sheet");
         printf("Failed to find sheet for card\n");
     }
-
-    Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
-    position->pos = pos;
 
     Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
     body->gravity = -50.0f;
@@ -710,10 +709,10 @@ UID create_card_stack(Depot &depot, vec3 pos)
 {
     UID uidCardStack = depot.Alloc("card_stack", false);
 
-    depot.AddFacet(uidCardStack, Facet_CardStack);
-
     Position *position = (Position *)depot.AddFacet(uidCardStack, Facet_Position);
     position->pos = pos;
+
+    depot.AddFacet(uidCardStack, Facet_CardStack);
 
     Text *debugText = (Text *)depot.AddFacet(uidCardStack, Facet_Text);
     debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
@@ -775,18 +774,16 @@ UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
 {
     UID uidDeck = depot.Alloc("deck", false);
 
+    Position *position = (Position *)depot.AddFacet(uidDeck, Facet_Position);
+    position->pos = pos;
+
     Deck *deck = (Deck *)depot.AddFacet(uidDeck, Facet_Deck);
     deck->count = 100;
 
-    Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
-    SpriteSystem::InitSprite(*sprite, sheet->cellSize, C255(COLOR_WHITE));
-    sprite->spritesheet = spritesheet;
-    sprite->animation = animation;
-    sprite->frame = 0;
-
-    Position *position = (Position *)depot.AddFacet(uidDeck, Facet_Position);
-    position->pos = pos;
+    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheet);
+    sprite->SetSpritesheet(depot, spritesheet);
+    sprite->SetAnimIndex(depot, animation);
 
     Body *body = (Body *)depot.AddFacet(uidDeck, Facet_Body);
     body->gravity = -50.0f;

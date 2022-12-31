@@ -282,7 +282,6 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
         SDL_Rect srcRect{ (int)cmd.srcRect.x, (int)cmd.srcRect.y, (int)cmd.srcRect.w, (int)cmd.srcRect.h };
         SDL_FRect dstRect{ cmd.dstRect.x, cmd.dstRect.y, cmd.dstRect.w, cmd.dstRect.h };
 
-
         if (cmd.texture) {
             if (cmd.color.a) {
                 SDL_SetTextureColorMod(cmd.texture, cmd.color.r, cmd.color.g, cmd.color.b);

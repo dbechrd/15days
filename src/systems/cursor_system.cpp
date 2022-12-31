@@ -100,13 +100,6 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
 {
     for (Cursor &cursor : depot.cursor) {
         if (cursor.leftButtonDownAt) {
-            Position *cursorPos = (Position *)depot.GetFacet(cursor.uid, Facet_Position);
-            DLB_ASSERT(cursorPos);
-            if (!cursorPos) {
-                printf("WARN: Can't update a cursor with no position");
-                continue;
-            }
-
             // Check if there's something to start dragging
             if (!cursor.uidDragSubject) {
                 DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
