@@ -151,6 +151,39 @@ void *Depot::GetFacetByName(const char *name, FacetType type)
     return 0;
 }
 
+static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
+{
+    // Debug display for font atlases
+    int atlasOffsetY = 10;
+
+    for (Font &font : depot.font) {
+        if (!font.glyphCache.atlasSurface)
+            continue;
+
+        rect rect{};
+        rect.x = SCREEN_W - font.glyphCache.atlasSurface->w - 10;
+        rect.y = atlasOffsetY;
+        rect.w = font.glyphCache.atlasSurface->w;
+        rect.h = font.glyphCache.atlasSurface->h;
+
+        DrawCommand drawGlyphAtlasBg{};
+        drawGlyphAtlasBg.uid = font.uid;
+        drawGlyphAtlasBg.dstRect = rect;
+        drawGlyphAtlasBg.color = C255(COLOR_BLACK);
+        drawGlyphAtlasBg.depth = 0;
+        drawQueue.push_back(drawGlyphAtlasBg);
+
+        DrawCommand drawGlyphAtlas{};
+        drawGlyphAtlas.uid = font.uid;
+        drawGlyphAtlas.dstRect = rect;
+        drawGlyphAtlas.texture = font.glyphCache.atlasTexture;
+        drawGlyphAtlas.depth = 1;
+        drawQueue.push_back(drawGlyphAtlas);
+
+        atlasOffsetY += rect.h + 10;
+    }
+}
+
 void Depot::Run(void)
 {
     while (renderSystem.Running()) {
@@ -218,42 +251,17 @@ void Depot::Run(void)
         DrawQueue cardQueue{};
         DrawQueue histogramQueue{};
         DrawQueue textQueue{};
+        DrawQueue dbgAtlasQueue{};
         cardSystem.Display(now, *this, cardQueue);
         combatSystem.Display(now, *this, cardQueue);
         histogramSystem.Display(now, *this, histogramQueue);
         textSystem.Display(now, *this, textQueue);
 
-        DrawQueue dbgAtlasQueue{};
-        int atlasOffsetY = 10;
-
-        for (Font &font : font) {
-            if (!font.glyphCache.atlasSurface)
-                continue;
-
-            rect rect{};
-            rect.x = SCREEN_W - font.glyphCache.atlasSurface->w - 10;
-            rect.y = atlasOffsetY;
-            rect.w = font.glyphCache.atlasSurface->w;
-            rect.h = font.glyphCache.atlasSurface->h;
-
-            DrawCommand drawGlyphAtlasBg{};
-            drawGlyphAtlasBg.uid = font.uid;
-            drawGlyphAtlasBg.dstRect = rect;
-            drawGlyphAtlasBg.color = C255(COLOR_BLACK);
-            drawGlyphAtlasBg.depth = 0;
-            dbgAtlasQueue.push_back(drawGlyphAtlasBg);
-
-            DrawCommand drawGlyphAtlas{};
-            drawGlyphAtlas.uid = font.uid;
-            drawGlyphAtlas.dstRect = rect;
-            drawGlyphAtlas.texture = font.glyphCache.atlasTexture;
-            drawGlyphAtlas.depth = 1;
-            dbgAtlasQueue.push_back(drawGlyphAtlas);
-
-            atlasOffsetY += rect.h + 10;
-    }
-
 #if 0
+        DebugFontAtlas(*this, dbgAtlasQueue);
+#endif
+#if 0
+        // Debug print for message queue
         if (inputQueue.size() || msgQueue.size()) {
             printf("Frame #%llu\n", frame);
             if (inputQueue.size()) {

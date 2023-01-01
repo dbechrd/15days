@@ -898,12 +898,12 @@ int main(int argc, char *argv[])
         UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
         // Decks
-        create_deck(depot, { 100, 300, 0 }, uidCardSheet, 2);
+        create_deck(depot, { 600, 300, 0 }, uidCardSheet, 2);
 
         // Cards
-        create_card(depot, uidLighterProto, { 200, 300, 0 });
-        create_card(depot, uidBucketProto, { 300, 300, 0 });
-        create_card(depot, uidBombProto, { 400, 300, 0 });
+        create_card(depot, uidLighterProto, { 700, 300, 0 });
+        create_card(depot, uidBucketProto, { 800, 300, 0 });
+        create_card(depot, uidBombProto, { 900, 300, 0 });
 
         // TODO:
         // type_a  ,  type_b      , action
