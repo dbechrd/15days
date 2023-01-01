@@ -2,5 +2,5 @@
 #include "../common/basic.h"
 
 struct PhysicsSystem {
-    void Update(double now, Depot &depot, double dt);
+    void Update(Depot &depot, double dt);
 };

@@ -7,7 +7,7 @@ void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color, UID uidS
     sprite.SetSpritesheet(depot, uidSpritesheet);
 }
 
-void SpriteSystem::Update(double now, Depot &depot)
+void SpriteSystem::Update(Depot &depot)
 {
     // TODO: Update sprite states based on game events (e.g. combat messages)
     size_t size = depot.msgQueue.size();
@@ -29,7 +29,7 @@ void SpriteSystem::Update(double now, Depot &depot)
     }
 
     // Update animated sprites
-    if (now - lastAnimAt >= fixedAnimDt) {
+    if (depot.Now() - lastAnimAt >= fixedAnimDt) {
         for (Sprite &sprite : depot.sprite) {
             Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.GetSpritesheet(), Facet_Spritesheet);
             if (sheet) {
@@ -37,6 +37,6 @@ void SpriteSystem::Update(double now, Depot &depot)
                 sprite.SetAnimFrame(depot, (sprite.GetAnimFrame() + 1) % anim.count);
             }
         }
-        lastAnimAt = now;
+        lastAnimAt = depot.Now();
     }
 }

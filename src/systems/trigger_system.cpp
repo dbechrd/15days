@@ -1,7 +1,7 @@
 #include "trigger_system.h"
 #include "../facets/depot.h"
 
-void TriggerSystem::React(double now, Depot &depot)
+void TriggerSystem::React(Depot &depot)
 {
     for (int i = 0; i < depot.msgQueue.size(); i++) {
         Message msg = depot.msgQueue[i];

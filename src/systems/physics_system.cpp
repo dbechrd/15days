@@ -1,7 +1,7 @@
 #include "physics_system.h"
 #include "../facets/depot.h"
 
-void PhysicsSystem::Update(double now, Depot &depot, double dt)
+void PhysicsSystem::Update(Depot &depot, double dt)
 {
     for (Body &body : depot.body) {
         Position *position = (Position *)depot.GetFacet(body.uid, Facet_Position);

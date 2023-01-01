@@ -1,7 +1,7 @@
 #include "text_system.h"
 #include "../facets/depot.h"
 
-void TextSystem::React(double now, Depot &depot)
+void TextSystem::React(Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
@@ -24,7 +24,7 @@ void TextSystem::React(double now, Depot &depot)
     }
 }
 
-void TextSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
+void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
     for (Text &text : depot.text) {
         if (!text.str) {

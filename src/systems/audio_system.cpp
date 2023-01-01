@@ -181,7 +181,7 @@ void AudioSystem::StopSound(Depot &depot, UID soundUid)
     gSoloud.stopAudioSource(*sound->wav);
 }
 
-void AudioSystem::React(double now, Depot &depot)
+void AudioSystem::React(Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {

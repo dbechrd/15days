@@ -1,7 +1,7 @@
 #include "movement_system.h"
 #include "../facets/depot.h"
 
-void MovementSystem::React(double now, Depot &depot)
+void MovementSystem::React(Depot &depot)
 {
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {

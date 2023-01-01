@@ -6,5 +6,5 @@
 struct CardSystem {
     void UpdateCards(Depot &depot);
     void UpdateStacks(Depot &depot, const CollisionList &collisionList);
-    void Display(double now, Depot &depot, DrawQueue &drawQueue);
+    void Display(Depot &depot, DrawQueue &drawQueue);
 };

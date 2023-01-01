@@ -3,6 +3,6 @@
 #include "../common/draw_list.h"
 
 struct TextSystem {
-    void React(double now, Depot &depot);
-    void Display(double now, Depot &depot, DrawQueue &drawQueue);
+    void React(Depot &depot);
+    void Display(Depot &depot, DrawQueue &drawQueue);
 };

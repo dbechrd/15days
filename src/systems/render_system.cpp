@@ -107,7 +107,15 @@ void RenderSystem::Clear(vec4 color)
     SDL_RenderClear(renderer);
 }
 
-void RenderSystem::React(double now, Depot &depot)
+void RenderSystem::Shake(Depot &depot, float amount, float freq, double duration)
+{
+    shakeAmount = amount;
+    shakeFreq = freq;
+    shakeDuration = duration;
+    shakeStartedAt = depot.Now();
+}
+
+void RenderSystem::React(Depot &depot)
 {
     int oldDbgFontIdx = dbgFontIdx;
     for (const Message &msg : depot.msgQueue) {
@@ -115,6 +123,14 @@ void RenderSystem::React(double now, Depot &depot)
             case MsgType_Render_Quit:
             {
                 running = false;
+                break;
+            }
+            case MsgType_Render_Screenshake:
+            {
+                Shake(depot,
+                    msg.data.render_screenshake.amount,
+                    msg.data.render_screenshake.freq,
+                    msg.data.render_screenshake.duration);
                 break;
             }
             case MsgType_Render_ToggleVsync:
@@ -276,9 +292,36 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
     // TODO: Batch draw calls into temp allocator
     // then use SDL_RenderGeometryRaw to draw them all at once!!
 
+    vec2 shake{};
+
+    {
+        double shakeAlpha = (depot.Now() - shakeStartedAt) / shakeDuration;
+        if (shakeAlpha < 1.0) {
+            float distFromHalf = fabs(shakeAlpha - 0.5f);
+            float shakeMult = (0.5 - distFromHalf) * 2;
+
+            // TODO: Extract this out into a lookup table of shake types / intepolation types
+            const vec2 flashBang{ 0.97f, 1.01f };  // freq 200, (1 - alpha)
+            const vec2 noisy{ 0.83f, 1.13f };  // freq 200, (1 - alpha)
+
+            vec2 resonance = flashBang;
+
+            shake.x += sinf(depot.Now() * shakeFreq * resonance.x) * shakeAmount * (1.0 - shakeAlpha);
+            shake.y += cosf(depot.Now() * shakeFreq * resonance.y) * shakeAmount * (1.0 - shakeAlpha);
+        } else {
+            shakeAmount = 0;
+            shakeDuration = 0;
+            shakeStartedAt = 0;
+            shakeFreq = 0;
+        }
+    }
+
     for (const DrawCommand &cmd : drawQueue) {
         SDL_Rect srcRect{ (int)cmd.srcRect.x, (int)cmd.srcRect.y, (int)cmd.srcRect.w, (int)cmd.srcRect.h };
         SDL_FRect dstRect{ cmd.dstRect.x, cmd.dstRect.y, cmd.dstRect.w, cmd.dstRect.h };
+
+        dstRect.x += shake.x;
+        dstRect.y += shake.y;
 
         if (cmd.texture) {
             if (cmd.color.a) {

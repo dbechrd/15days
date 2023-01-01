@@ -1,7 +1,7 @@
 #include "combat_system.h"
 #include "../facets/depot.h"
 
-void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
+void CombatSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
     for (Combat &combat : depot.combat) {
         Position *position = (Position *)depot.GetFacet(combat.uid, Facet_Position);
@@ -26,7 +26,7 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
 
         if (combat.attackStartedAt) {
             DLB_ASSERT(combat.attackCooldown);
-            float attackAlpha = (now - combat.attackStartedAt) / combat.attackCooldown;
+            float attackAlpha = (depot.Now() - combat.attackStartedAt) / combat.attackCooldown;
             float overlayHeight = (1.0 - attackAlpha) * position->size.y;
 
             DrawCommand attackOverlay{};
@@ -41,7 +41,7 @@ void CombatSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         }
         if (combat.defendStartedAt) {
             assert(combat.defendCooldown);
-            float defendAlpha = (now - combat.defendStartedAt) / combat.defendCooldown;
+            float defendAlpha = (depot.Now() - combat.defendStartedAt) / combat.defendCooldown;
             float overlayHeight = (1.0 - defendAlpha) * position->size.y;
 
             DrawCommand defendOverlay{};

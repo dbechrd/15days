@@ -90,6 +90,21 @@ void add_sound_stop_trigger(Depot &depot, UID subject, MsgType msgType,
     triggerList->triggers.push_back(trigger);
 }
 
+void add_screenshake_trigger(Depot &depot, UID subject, MsgType msgType,
+    float amount, float freq, double duration)
+{
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
+
+    Trigger trigger{};
+    trigger.trigger = msgType;
+    //trigger.message.uid = target_camera_uid;
+    trigger.message.type = MsgType_Render_Screenshake;
+    trigger.message.data.render_screenshake.amount = amount;
+    trigger.message.data.render_screenshake.freq = freq;
+    trigger.message.data.render_screenshake.duration = duration;
+    triggerList->triggers.push_back(trigger);
+}
+
 void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
     const char *str, vec4 color)
 {
@@ -648,7 +663,7 @@ UID create_card_proto(Depot &depot, const char *name, UID uidMaterialProto,
     return uidCardProto;
 }
 
-UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
+UID create_card(Depot &depot, UID uidCardProto, vec3 pos, double invulnFor = 0)
 {
     UID uidCard = depot.Alloc(depot.nameByUid[uidCardProto].c_str(), false);
 
@@ -657,7 +672,7 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
 
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
     card->cardProto = uidCardProto;
-    card->noClickUntil = depot.Now() + 0.5;
+    card->noClickUntil = depot.Now() + invulnFor;
 
     CardProto *cardProto = (CardProto *)depot.GetFacet(uidCardProto, Facet_CardProto);
     if (cardProto->materialProto) {
@@ -722,13 +737,14 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         if (sprite) {
             // TODO: Pick cardProto from deck chances
             UID cardProto = depot.cardProto[dlb_rand32i_range(0, 2)].uid;
-            UID card = create_card(depot, cardProto, spawnPos);
+            UID card = create_card(depot, cardProto, spawnPos, 0.5);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);
             body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
             body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
             v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
             body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
+            depot.renderSystem.Shake(depot, 3.0f, 100.0f, 0.1f);
         } else {
             SDL_Log("Cannot draw from deck with no spritesheet\n");
         }
@@ -894,7 +910,8 @@ int main(int argc, char *argv[])
         UID uidBombProto = create_card_proto(depot, "bomb_card", 0, 0, uidCardSheet, 3);
         add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
         add_sound_stop_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
-        //add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
+        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
+        add_screenshake_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
         UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
         // Decks

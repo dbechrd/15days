@@ -1,7 +1,7 @@
 #include "histogram_system.h"
 #include "../facets/depot.h"
 
-void HistogramSystem::Update(double now, Depot &depot)
+void HistogramSystem::Update(Depot &depot)
 {
     // TODO: Animate it updating to make it look nice, whatever that means
     for (Histogram &histo : depot.histogram) {
@@ -10,7 +10,7 @@ void HistogramSystem::Update(double now, Depot &depot)
     }
 }
 
-void HistogramSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
+void HistogramSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
     for (Histogram &histo : depot.histogram) {
         Position *position = (Position *)depot.GetFacet(histo.uid, Facet_Position);

@@ -9,8 +9,7 @@ struct AudioSystem {
     FDOVResult Init(void);
     void DestroyDepot(const Depot &depot);
     void Destroy(void);
-    void React(double now, Depot &depot);
-    //void Display(double now, Depot &depot, DrawQueue &drawQueue);
+    void React(Depot &depot);
 
 private:
     //SDL_AudioDeviceID playbackDeviceId{};

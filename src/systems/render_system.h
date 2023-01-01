@@ -14,8 +14,9 @@ struct RenderSystem {
 
     bool Running(void);
     void Clear(vec4 color);
+    void Shake(Depot &depot, float amount, float freq, double duration);
 
-    void React(double now, Depot &depot);
+    void React(Depot &depot);
     void UpdateCachedTextures(Depot &depot);
     void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
@@ -27,4 +28,8 @@ private:
     int           dbgFontIdx  {0};
     SDL_Window   *window      {};
     SDL_Renderer *renderer    {};
+    double        shakeStartedAt {};
+    double        shakeDuration  {};
+    float         shakeAmount    {};
+    float         shakeFreq      {};
 };

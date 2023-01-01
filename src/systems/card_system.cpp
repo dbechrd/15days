@@ -142,7 +142,7 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
     }
 }
 
-void CardSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
+void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
     for (Deck &deck : depot.deck) {
         Position *position = (Position *)depot.GetFacet(deck.uid, Facet_Position);
@@ -249,6 +249,7 @@ void CardSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         drawSprite.depth = depth;
         drawQueue.push_back(drawSprite);
 
+#if 0
         Text *text = (Text *)depot.GetFacet(card.uid, Facet_Text);
         if (text) {
             const size_t uidLen = 8;
@@ -256,6 +257,7 @@ void CardSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
             snprintf(stackParent, uidLen, "%u", card.stackParent);
             text->str = stackParent;
         }
+#endif
     }
 
     std::sort(drawQueue.begin(), drawQueue.end());

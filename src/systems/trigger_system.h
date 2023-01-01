@@ -4,7 +4,7 @@
 #include "../facets/trigger.h"
 
 struct TriggerSystem {
-    void React(double now, Depot &depot);
+    void React(Depot &depot);
 
 private:
     void CheckTriggers(Depot &depot, TriggerList &triggerList, Message &msg);

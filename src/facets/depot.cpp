@@ -190,24 +190,26 @@ void Depot::Run(void)
         frame++;
 
         // Time is money
-        nowPrev = now;
-        now = clock_now();
-        realDt = now - nowPrev;
-        double cappedRealDt = MIN(realDt, fixedDt);  // cap to prevent spiral while debugging
-        realDtSmooth = LERP(realDtSmooth, cappedRealDt, 0.1);
-
-        physicsAccum += cappedRealDt;
         int physicsIters = 0;
-        while (physicsAccum >= fixedDt) {
-            physicsIters++;
-            physicsAccum -= fixedDt;
+        {
+            nowPrev = now;
+            now = clock_now();
+            realDt = now - nowPrev;
+            double cappedRealDt = MIN(realDt, fixedDt);  // cap to prevent spiral while debugging
+            realDtSmooth = LERP(realDtSmooth, cappedRealDt, 0.1);
+
+            physicsAccum += cappedRealDt;
+            while (physicsAccum >= fixedDt) {
+                physicsIters++;
+                physicsAccum -= fixedDt;
+            }
         }
 
         // Update game state
         BeginFrame();
 
         cursorSystem.UpdateCursors(*this);
-        histogramSystem.Update(now, *this);
+        histogramSystem.Update(*this);
 
         {
             // Collect SDL events into the appropriate queues
@@ -224,10 +226,10 @@ void Depot::Run(void)
         }
 
         // TODO: Make these pure generators
-        movementSystem.React(now, *this);  // reacts to Movement
+        movementSystem.React(*this);  // reacts to Movement
 
         for (int i = 0; i < physicsIters; i++) {
-            physicsSystem.Update(now, *this, fixedDt);
+            physicsSystem.Update(*this, fixedDt);
         }
 
         collisionSystem.DetectCollisions(*this, collisionList);
@@ -237,13 +239,13 @@ void Depot::Run(void)
         effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
-        triggerSystem.React(now, *this);   // reacts to *        generates *
+        triggerSystem.React(*this);   // reacts to *        generates *
 
         // Pure message reactors (do not modify msgQueue here!)
-        audioSystem.React(now, *this);     // reacts to Audio
-        spriteSystem.Update(now, *this);   // reacts to Sprite
-        textSystem.React(now, *this);      // reacts to Text
-        renderSystem.React(now, *this);    // reacts to Render
+        audioSystem.React(*this);     // reacts to Audio
+        spriteSystem.Update(*this);   // reacts to Sprite
+        textSystem.React(*this);      // reacts to Text
+        renderSystem.React(*this);    // reacts to Render
 
         renderSystem.UpdateCachedTextures(*this);
 
@@ -252,10 +254,10 @@ void Depot::Run(void)
         DrawQueue histogramQueue{};
         DrawQueue textQueue{};
         DrawQueue dbgAtlasQueue{};
-        cardSystem.Display(now, *this, cardQueue);
-        combatSystem.Display(now, *this, cardQueue);
-        histogramSystem.Display(now, *this, histogramQueue);
-        textSystem.Display(now, *this, textQueue);
+        cardSystem.Display(*this, cardQueue);
+        combatSystem.Display(*this, cardQueue);
+        histogramSystem.Display(*this, histogramQueue);
+        textSystem.Display(*this, textQueue);
 
 #if 0
         DebugFontAtlas(*this, dbgAtlasQueue);

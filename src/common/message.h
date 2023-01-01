@@ -48,6 +48,7 @@ enum MsgType {
     MsgType_Render_ToggleVsync,
     MsgType_Render_DbgSetFontNext,
     MsgType_Render_DbgSetFontPrev,
+    MsgType_Render_Screenshake,
 
     MsgType_Sprite_UpdateAnimation,
 
@@ -86,6 +87,12 @@ struct Msg_Render_FrameBegin {
     double realDtSmooth {};
 };
 
+struct Msg_Render_Screenshake {
+    float  amount{};
+    float  freq{};
+    double duration{};
+};
+
 struct Msg_Sprite_UpdateAnimation {
     int animation {};
 };
@@ -117,6 +124,7 @@ struct Message {
         Msg_Physics_ApplyImpulse physics_applyimpulse;
         Msg_Physics_Notify_Collide physics_notify_collide;
         Msg_Render_FrameBegin render_framebegin;
+        Msg_Render_Screenshake render_screenshake;
         Msg_Sprite_UpdateAnimation sprite_updateanimation;
         Msg_Text_UpdateText text_updatetext;
     } data {};
