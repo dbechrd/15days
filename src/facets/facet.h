@@ -14,7 +14,6 @@ enum FacetType {
     Facet_Attach,
     Facet_Body,
     Facet_Card,
-    Facet_CardStack,
     Facet_Combat,
     Facet_Cursor,
     Facet_Deck,

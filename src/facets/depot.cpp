@@ -54,7 +54,6 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
         EMPLACE(Facet_Body,          body);
         EMPLACE(Facet_Card,          card);
         EMPLACE(Facet_CardProto,     cardProto);
-        EMPLACE(Facet_CardStack,     cardStack);
         EMPLACE(Facet_Combat,        combat);
         EMPLACE(Facet_Cursor,        cursor);
         EMPLACE(Facet_Deck,          deck);
@@ -119,7 +118,6 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Body:          return &body          [index];
         case Facet_Card:          return &card          [index];
         case Facet_CardProto:     return &cardProto     [index];
-        case Facet_CardStack:     return &cardStack     [index];
         case Facet_Combat:        return &combat        [index];
         case Facet_Cursor:        return &cursor        [index];
         case Facet_Deck:          return &deck          [index];
@@ -199,6 +197,7 @@ void Depot::Run(void)
 
         collisionSystem.DetectCollisions(*this, collisionList);
         cursorSystem.UpdateDragTargets(*this, collisionList);
+        cardSystem.UpdateStacks(*this, collisionList);
         effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
@@ -214,11 +213,11 @@ void Depot::Run(void)
         renderSystem.UpdateCachedTextures(*this);
 
         // Populate draw queue(s)
-        DrawQueue spriteQueue{};
+        DrawQueue cardQueue{};
         DrawQueue histogramQueue{};
         DrawQueue textQueue{};
-        spriteSystem.Display(now, *this, spriteQueue);
-        combatSystem.Display(now, *this, spriteQueue);
+        cardSystem.Display(now, *this, cardQueue);
+        combatSystem.Display(now, *this, cardQueue);
         histogramSystem.Display(now, *this, histogramQueue);
         textSystem.Display(now, *this, textQueue);
 
@@ -275,7 +274,7 @@ void Depot::Run(void)
 
         // Render draw queue(s)
         renderSystem.Clear(C_GRASS);
-        renderSystem.Flush(*this, spriteQueue);
+        renderSystem.Flush(*this, cardQueue);
         renderSystem.Flush(*this, histogramQueue);
         renderSystem.Flush(*this, textQueue);
         renderSystem.Flush(*this, dbgAtlasQueue);

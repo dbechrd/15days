@@ -11,10 +11,7 @@ struct CardProto : public Facet {
 };
 
 struct Card : public Facet {
+    UID    stackParent  {};
     UID    cardProto    {};
     double noClickUntil {};  // timestamp of when next click is allowed on card
-};
-
-struct CardStack : public Facet {
-    std::vector<UID> cards{};
 };

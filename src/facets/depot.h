@@ -54,7 +54,6 @@ struct Depot {
     std::vector<Body>          body          {};
     std::vector<Card>          card          {};
     std::vector<CardProto>     cardProto     {};
-    std::vector<CardStack>     cardStack     {};
     std::vector<Combat>        combat        {};
     std::vector<Cursor>        cursor        {};
     std::vector<Deck>          deck          {};

@@ -8,7 +8,6 @@ struct SpriteSystem {
     static void InitSprite(Depot &depot, Sprite &sprite, vec4 color, UID uidSpritesheet);
 
     void Update(double now, Depot &depot);
-    void Display(double now, Depot &depot, DrawQueue &drawQueue);
 
 private:
     const double fixedAnimDt = 1.0 / 20.0;

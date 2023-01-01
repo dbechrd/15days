@@ -508,8 +508,8 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
             "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
 #if 1
             "make deck disappear when empty\n"
-            "font atlas / glyph cache\n"
-            "text drop shadow\n"
+            //"font atlas / glyph cache\n"
+            //"text drop shadow\n"
             "runes\n"
             "volume control\n"
             "sell stuff\n"
@@ -699,32 +699,6 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos)
     return uidCard;
 }
 
-void add_card_to_stack(Depot &depot, UID uidStack, UID uidCard)
-{
-    CardStack *cardStack = (CardStack *)depot.GetFacet(uidStack, Facet_CardStack);
-    cardStack->cards.push_back(uidCard);
-}
-
-UID create_card_stack(Depot &depot, vec3 pos)
-{
-    UID uidCardStack = depot.Alloc("card_stack", false);
-
-    Position *position = (Position *)depot.AddFacet(uidCardStack, Facet_Position);
-    position->pos = pos;
-
-    depot.AddFacet(uidCardStack, Facet_CardStack);
-
-    Text *debugText = (Text *)depot.AddFacet(uidCardStack, Facet_Text);
-    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    debugText->str = 0;
-    debugText->align = TextAlign_VBottom_HCenter;
-    debugText->color = C255(COLOR_WHITE);
-
-    add_special_relay_trigger(depot, uidCardStack, draggable_sounds(depot));
-
-    return uidCardStack;
-}
-
 void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     UID uid = msg.uid;
@@ -733,7 +707,7 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         return;
     }
 
-#if 1
+#if 0
     while (deck->count) {
 #else
     if (deck->count) {
@@ -748,7 +722,6 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         if (sprite) {
             // TODO: Pick cardProto from deck chances
             UID cardProto = depot.cardProto[dlb_rand32i_range(0, 2)].uid;
-            UID cardStack = create_card_stack(depot, spawnPos);
             UID card = create_card(depot, cardProto, spawnPos);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);
@@ -756,8 +729,6 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
             body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
             v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
             body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
-
-            add_card_to_stack(depot, cardStack, card);
         } else {
             SDL_Log("Cannot draw from deck with no spritesheet\n");
         }
