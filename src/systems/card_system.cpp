@@ -90,9 +90,10 @@ void CardSystem::UpdateCards(Depot &depot)
             vec3 targetPos = parentPos->pos;
             targetPos.y += 30.0f;
 
-            position->pos.x = LERP(position->pos.x, targetPos.x, 0.5f);
-            position->pos.y = LERP(position->pos.y, targetPos.y, 0.5f);
-            position->pos.z = LERP(position->pos.z, targetPos.z, 0.5f);
+            const float lerpFac = 1.0f - powf(0.5f, depot.RealDt() * 60.0f);
+            position->pos.x = LERP(position->pos.x, targetPos.x, lerpFac);
+            position->pos.y = LERP(position->pos.y, targetPos.y, lerpFac);
+            position->pos.z = LERP(position->pos.z, targetPos.z, lerpFac);
         }
 
         Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
