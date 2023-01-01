@@ -4,7 +4,7 @@
 #include "../common/draw_list.h"
 
 struct CardSystem {
-    void UpdateStacks(Depot &depot, const CollisionList &collisionList);
     void UpdateCards(Depot &depot);
+    void UpdateStacks(Depot &depot, const CollisionList &collisionList);
     void Display(double now, Depot &depot, DrawQueue &drawQueue);
 };

@@ -1,10 +1,56 @@
 #include "card_system.h"
 #include "../facets/depot.h"
 
+void CardSystem::UpdateCards(Depot &depot)
+{
+    for (Card &card : depot.card) {
+        if (card.stackParent) {
+            Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
+            DLB_ASSERT(position);
+
+            Position *parentPos = (Position *)depot.GetFacet(card.stackParent, Facet_Position);
+            DLB_ASSERT(parentPos);
+
+            vec3 targetPos = parentPos->pos;
+            targetPos.y += 30.0f;
+
+            const float lerpFac = 1.0f - powf(1.0f - 0.5f, depot.RealDt() * 60.0f);
+            position->pos.x = LERP(position->pos.x, targetPos.x, lerpFac);
+            position->pos.y = LERP(position->pos.y, targetPos.y, lerpFac);
+            position->pos.z = LERP(position->pos.z, targetPos.z, lerpFac);
+        }
+
+        Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
+        if (!sprite) {
+            printf("WARN: Can't update a card with no sprite");
+            continue;
+        }
+
+        CardProto *cardProto = (CardProto *)depot.GetFacet(card.cardProto, Facet_CardProto);
+        if (!cardProto) {
+            printf("WARN: Can't update a card with no card prototype");
+            continue;
+        }
+
+        if (card.noClickUntil > depot.Now()) {
+            sprite->SetAnimIndex(depot, 2);  // TODO: Clean up magic number, move deck back to 0
+            //sprite->color = C255(COLOR_GRAY_5);
+        } else if (card.noClickUntil) {
+            sprite->SetAnimIndex(depot, cardProto->animation);
+            //sprite->color = {};
+            card.noClickUntil = 0;
+
+            Message msgTryStack{};
+            msgTryStack.type = MsgType_Card_Notify_DragEnd;
+            msgTryStack.uid = card.uid;
+            depot.msgQueue.push_back(msgTryStack);
+        }
+    }
+}
+
 void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
 {
     DLB_ASSERT(depot.cursor.size() == 1);
-    Cursor *cursor = &depot.cursor[0];
 
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
@@ -25,7 +71,6 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 }
 
                 card->stackParent = 0;
-                printf("Pick %u\n", draggedCard);
                 break;
             }
             case MsgType_Card_Notify_DragEnd: {
@@ -35,7 +80,6 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                     // Decks aren't cards
                     continue;
                 }
-                printf("Drop %u", droppedCardUid);
 
                 std::unordered_set<UID> stackUids{};
 
@@ -85,58 +129,15 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                         lastChild = (Card *)depot.GetFacet(lastChild->stackChild, Facet_Card);
                     }
 
-                    DLB_ASSERT(lastChild ->uid != droppedCardUid);
-                    card->stackParent = lastChild ->uid;
-                    lastChild ->stackChild = card->uid;
-                    printf(" on %u", card->stackParent);
+                    DLB_ASSERT(lastChild);
+                    DLB_ASSERT(lastChild->uid != droppedCardUid);
+                    card->stackParent = lastChild->uid;
+                    lastChild->stackChild = card->uid;
                 }
 
-                printf("\n");
                 break;
             }
             default: break;
-        }
-    }
-}
-
-void CardSystem::UpdateCards(Depot &depot)
-{
-    for (Card &card : depot.card) {
-        if (card.stackParent) {
-            Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
-            DLB_ASSERT(position);
-
-            Position *parentPos = (Position *)depot.GetFacet(card.stackParent, Facet_Position);
-            DLB_ASSERT(parentPos);
-
-            vec3 targetPos = parentPos->pos;
-            targetPos.y += 30.0f;
-
-            const float lerpFac = 1.0f - powf(0.5f, depot.RealDt() * 60.0f);
-            position->pos.x = LERP(position->pos.x, targetPos.x, lerpFac);
-            position->pos.y = LERP(position->pos.y, targetPos.y, lerpFac);
-            position->pos.z = LERP(position->pos.z, targetPos.z, lerpFac);
-        }
-
-        Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
-        if (!sprite) {
-            printf("WARN: Can't update a card with no sprite");
-            continue;
-        }
-
-        CardProto *cardProto = (CardProto *)depot.GetFacet(card.cardProto, Facet_CardProto);
-        if (!cardProto) {
-            printf("WARN: Can't update a card with no card prototype");
-            continue;
-        }
-
-        if (card.noClickUntil > depot.Now()) {
-            sprite->SetAnimIndex(depot, 2);  // TODO: Clean up magic number, move deck back to 0
-            //sprite->color = C255(COLOR_GRAY_5);
-        } else if (card.noClickUntil) {
-            sprite->SetAnimIndex(depot, cardProto->animation);
-            //sprite->color = {};
-            card.noClickUntil = 0;
         }
     }
 }

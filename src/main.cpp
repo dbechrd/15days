@@ -265,7 +265,7 @@ UID card_spritesheet(Depot &depot)
 
 UID campfire_spritesheet(Depot &depot)
 {
-    const char *filename = "texture/campfire.bmp";
+    const char *filename = "texture/campfire_small.bmp";
     // Check if already loaded
     Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(filename, Facet_Spritesheet);
     if (existingSheet) {
@@ -275,7 +275,7 @@ UID campfire_spritesheet(Depot &depot)
     UID uidSheetCampfire = load_bitmap(depot, filename);
     Spritesheet *sheetCampfire = (Spritesheet *)depot.AddFacet(uidSheetCampfire, Facet_Spritesheet);
     sheetCampfire->cells = 9;
-    sheetCampfire->cellSize = { 256, 256 };
+    sheetCampfire->cellSize = { 100, 150 };
     sheetCampfire->animations.push_back({ 0, 1 });
     sheetCampfire->animations.push_back({ 1, 8 });
     return uidSheetCampfire;

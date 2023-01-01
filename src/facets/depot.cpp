@@ -199,6 +199,7 @@ void Depot::Run(void)
 
         collisionSystem.DetectCollisions(*this, collisionList);
         cursorSystem.UpdateDragTargets(*this, collisionList);
+        cardSystem.UpdateCards(*this);
         cardSystem.UpdateStacks(*this, collisionList);
         effectSystem.ApplyDragFx(*this, collisionList);
 
@@ -207,7 +208,6 @@ void Depot::Run(void)
 
         // Pure message reactors (do not modify msgQueue here!)
         audioSystem.React(now, *this);     // reacts to Audio
-        cardSystem.UpdateCards(*this);     // just updates itself
         spriteSystem.Update(now, *this);   // reacts to Sprite
         textSystem.React(now, *this);      // reacts to Text
         renderSystem.React(now, *this);    // reacts to Render

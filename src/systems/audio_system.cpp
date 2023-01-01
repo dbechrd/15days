@@ -125,7 +125,7 @@ FDOVResult AudioSystem::Init(void)
         return FDOV_INIT_FAILED;
     }
 
-    gSoloud.setGlobalVolume(0.5f);
+    gSoloud.setGlobalVolume(0.1f);
 
     return FDOV_SUCCESS;
 #endif
