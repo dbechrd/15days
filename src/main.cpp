@@ -305,8 +305,8 @@ UID create_narrator(Depot &depot, UID subject)
     //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
     //position->pos.x = windowW / 2.0f;
     //position->pos.y = 200.0f;
-    position->pos.x = SCREEN_W / 2.0f;
-    position->pos.y = 200;
+    position->pos.x = 10.0f;
+    position->pos.y = 4.0f;
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = load_font(depot, "font/KarminaBold.otf", 64);
@@ -566,7 +566,7 @@ UID create_fps_counter(Depot &depot)
     //position->pos.x = windowW / 2.0f;
     //position->pos.y = 200.0f;
     position->pos.x = 10;
-    position->pos.y = 10;
+    position->pos.y = 90;
 
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
     //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);

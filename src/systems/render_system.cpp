@@ -304,7 +304,7 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             const vec2 flashBang{ 0.97f, 1.01f };  // freq 200, (1 - alpha)
             const vec2 noisy{ 0.83f, 1.13f };  // freq 200, (1 - alpha)
 
-            vec2 resonance = flashBang;
+            vec2 resonance = noisy;
 
             shake.x += sinf(depot.Now() * shakeFreq * resonance.x) * shakeAmount * (1.0 - shakeAlpha);
             shake.y += cosf(depot.Now() * shakeFreq * resonance.y) * shakeAmount * (1.0 - shakeAlpha);

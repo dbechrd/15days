@@ -12,7 +12,7 @@ void CardSystem::UpdateCards(Depot &depot)
             DLB_ASSERT(parentPos);
 
             vec3 targetPos = parentPos->pos;
-            targetPos.y += 30.0f;
+            targetPos.y += 22.0f;
 
             const float lerpFac = 1.0f - powf(1.0f - 0.5f, depot.RealDt() * 60.0f);
             position->pos.x = LERP(position->pos.x, targetPos.x, lerpFac);
