@@ -19,6 +19,11 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                     continue;
                 }
 
+                Card *prev = (Card *)depot.GetFacet(card->stackParent, Facet_Card);
+                if (prev) {
+                    prev->stackChild = 0;
+                }
+
                 card->stackParent = 0;
                 printf("Pick %u\n", draggedCard);
                 break;
@@ -32,21 +37,32 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 }
                 printf("Drop %u", droppedCardUid);
 
+                std::unordered_set<UID> stackUids{};
+
+                {
+                    DLB_ASSERT(card->stackParent == 0);
+                    Card *c = card;
+                    while (c) {
+                        stackUids.insert(c->uid);
+                        c = (Card *)depot.GetFacet(c->stackChild, Facet_Card);
+                    }
+                }
+
                 float maxDepth = 0;
-                UID topCardUid = 0;
+                Card *topCard = 0;
                 for (const Collision &collision : collisionList) {
-                    // Don't drop cards on themselves, heh
-                    if (collision.uidA == droppedCardUid || collision.uidB == droppedCardUid) {
+                    // Check if cursor collision, and resolve out-of-order A/B nonsense
+                    UID targetUid = 0;
+                    if (droppedCardUid == collision.uidA) {
+                        targetUid = collision.uidB;
+                    } else if (droppedCardUid == collision.uidB) {
+                        targetUid = collision.uidA;
+                    } else {
                         continue;
                     }
 
-                    // Check if cursor collision, and resolve out-of-order A/B nonsense
-                    UID targetUid = 0;
-                    if (cursor->uid == collision.uidA) {
-                        targetUid = collision.uidB;
-                    } else if (cursor->uid == collision.uidB) {
-                        targetUid = collision.uidA;
-                    } else {
+                    // Don't drop cards on other cards in the same stack (including themselves!)
+                    if (stackUids.contains(targetUid)) {
                         continue;
                     }
 
@@ -57,15 +73,21 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                         Position *targetPos = (Position *)depot.GetFacet(targetUid, Facet_Position);
                         DLB_ASSERT(targetPos);
                         if (targetPos && targetPos->Depth() > maxDepth) {
-                            topCardUid = targetUid;
+                            topCard = targetCard;
                             maxDepth = targetPos->Depth();
                         }
                     }
                 }
 
-                if (topCardUid) {
-                    DLB_ASSERT(topCardUid != droppedCardUid);
-                    card->stackParent = topCardUid;
+                if (topCard) {
+                    Card *lastChild = topCard;
+                    while (lastChild && lastChild->stackChild) {
+                        lastChild = (Card *)depot.GetFacet(lastChild->stackChild, Facet_Card);
+                    }
+
+                    DLB_ASSERT(lastChild ->uid != droppedCardUid);
+                    card->stackParent = lastChild ->uid;
+                    lastChild ->stackChild = card->uid;
                     printf(" on %u", card->stackParent);
                 }
 
@@ -205,11 +227,17 @@ void CardSystem::Display(double now, Depot &depot, DrawQueue &drawQueue)
         dstRect.h = srcRect.h;
 
         float depth = pos.y - pos.z + size.y;
-        //for (Cursor &cursor : depot.cursor) {
-        //    if (cursor.uidDragSubject == sprite->uid) {
-        //        depth = SCREEN_H * 2.0f;
-        //    }
-        //}
+        for (Cursor &cursor : depot.cursor) {
+            Card *c = &card;
+            float stackDepth = 0;
+            while (c) {
+                if (cursor.uidDragSubject == c->uid) {
+                    depth = SCREEN_H * 2.0f + stackDepth;
+                }
+                stackDepth++;
+                c = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
+            }
+        }
 
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;

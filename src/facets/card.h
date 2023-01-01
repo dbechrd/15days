@@ -12,6 +12,7 @@ struct CardProto : public Facet {
 
 struct Card : public Facet {
     UID    stackParent  {};
+    UID    stackChild   {};
     UID    cardProto    {};
     double noClickUntil {};  // timestamp of when next click is allowed on card
 };

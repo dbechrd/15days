@@ -94,6 +94,8 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
 
 void *Depot::GetFacet(UID uid, FacetType type)
 {
+    if (!uid) return 0;
+
     //if (!bitmapByUid[uid].test(type)) {
     //    return 0;
     //}
