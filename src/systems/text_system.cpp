@@ -61,6 +61,11 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
                 }
             }
 
+            if (!font->glyphCache.rects.contains((uint32_t)*c)) {
+                c++;
+                continue;
+            }
+
             rect glyphRect = font->glyphCache.rects[*c];
             DLB_ASSERT(glyphRect.w);
             DLB_ASSERT(glyphRect.h);
@@ -74,7 +79,7 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
             drawGlyph.uid = text.uid;
             drawGlyph.srcRect = glyphRect;
             drawGlyph.texture = font->glyphCache.atlasTexture;
-
+#if 0
             // Draw drop shadow
             drawGlyph.dstRect = drawRect;
             drawGlyph.dstRect.x += 1 + font->ptsize / 32;
@@ -88,14 +93,14 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
             };
             drawGlyph.depth = 0;
             drawQueue.push_back(drawGlyph);
-
+#endif
             // Draw glyph
             drawGlyph.dstRect = drawRect;
             drawGlyph.color = text.color;
             drawGlyph.depth = 1;
             drawQueue.push_back(drawGlyph);
 
-            cursor.x += glyphRect.w;
+            cursor.x += glyphRect.w - font->outline;
             lineHeight = MAX(lineHeight, glyphRect.h);
             c++;
         }

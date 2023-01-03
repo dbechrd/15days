@@ -169,7 +169,8 @@ static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
         DrawCommand drawGlyphAtlasBg{};
         drawGlyphAtlasBg.uid = font.uid;
         drawGlyphAtlasBg.dstRect = rect;
-        drawGlyphAtlasBg.color = C255(COLOR_BLACK);
+        drawGlyphAtlasBg.color = C255(COLOR_WHEAT);
+        drawGlyphAtlasBg.color.a = 0.8f * 255.0f;
         drawGlyphAtlasBg.depth = 0;
         drawQueue.push_back(drawGlyphAtlasBg);
 
@@ -259,7 +260,7 @@ void Depot::Run(void)
         histogramSystem.Display(*this, histogramQueue);
         textSystem.Display(*this, textQueue);
 
-#if 0
+#if FDOV_DEBUG_GLYPH_ATLAS
         DebugFontAtlas(*this, dbgAtlasQueue);
 #endif
 #if 0

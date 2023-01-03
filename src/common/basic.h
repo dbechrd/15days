@@ -24,11 +24,12 @@
 #include <unordered_set>
 #include <vector>
 
-#define FDOV_VSYNC      1
-#define FDOV_FULLSCREEN 0
-#define FDOV_DRAG_BBOX  0
-#define FDOV_DEBUG_BBOX 0
-#define FDOV_DEBUG_BODY 0
+#define FDOV_VSYNC             1
+#define FDOV_FULLSCREEN        0
+#define FDOV_DRAG_BBOX         0
+#define FDOV_DEBUG_BBOX        0
+#define FDOV_DEBUG_BODY        0
+#define FDOV_DEBUG_GLYPH_ATLAS 0
 
 // TODO: These need to be queried from rendersystem or something
 #if FDOV_FULLSCREEN

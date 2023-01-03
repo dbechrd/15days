@@ -26,6 +26,8 @@ UID load_font(Depot &depot, const char *filename, int ptsize)
     Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
     font->filename = filename;
     font->ptsize = ptsize;
+    font->outline = 2;
+    font->outlineOffset = 1;
     font->ttf_font = TTF_OpenFont(filename, ptsize);
     if (!font->ttf_font) {
         SDL_LogError(0, "Failed to load font %s\n", filename);
@@ -571,7 +573,8 @@ UID create_fps_counter(Depot &depot)
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
     //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     //text->font = load_font(depot, "font/FiraCode-Bold.ttf", 16);
-    text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    //text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    text->font = load_font(depot, "font/pricedown_bl.ttf", 16);
 
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
@@ -703,11 +706,12 @@ UID create_card(Depot &depot, UID uidCardProto, vec3 pos, double invulnFor = 0)
     float mass = 1.0f;
     body->invMass = 1.0f / mass;
 
-    Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
-    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    debugText->str = 0;
-    debugText->align = TextAlign_VBottom_HCenter;
-    debugText->color = C255(COLOR_WHITE);
+    //Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
+    //debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    //debugText->str = depot.nameByUid[uidCardProto].c_str();
+    //debugText->align = TextAlign_VBottom_HCenter;
+    //debugText->color = C255(COLOR_WHITE);
+    //debugText->offset.x += 8;
 
     add_special_relay_trigger(depot, uidCard, uidCardProto);
 
@@ -905,14 +909,14 @@ int main(int argc, char *argv[])
         add_flag_to_material_proto(depot, uidFlammableMaterialProto, MaterialFlag_Flammable);
 
         // Card prototypes
-        UID uidLighterProto = create_card_proto(depot, "lighter_card", 0, uidFireFxList, uidCardSheet, 0);
-        UID uidBucketProto = create_card_proto(depot, "bucket_card", 0, uidWaterFxList, uidCardSheet, 1);
-        UID uidBombProto = create_card_proto(depot, "bomb_card", 0, 0, uidCardSheet, 3);
+        UID uidLighterProto = create_card_proto(depot, "Lighter", 0, uidFireFxList, uidCardSheet, 0);
+        UID uidBucketProto = create_card_proto(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, 1);
+        UID uidBombProto = create_card_proto(depot, "Bomb", 0, 0, uidCardSheet, 3);
         add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
         add_sound_stop_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
         add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
         add_screenshake_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
-        UID uidCampfireProto = create_card_proto(depot, "campfire_card", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
+        UID uidCampfireProto = create_card_proto(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
         // Decks
         create_deck(depot, { 600, 300, 0 }, uidCardSheet, 2);
