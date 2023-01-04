@@ -261,4 +261,47 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
     }
 
     std::sort(drawQueue.begin(), drawQueue.end());
+
+    // HACK(dlb): Don't put dis here u dummy, it's the player, not a card
+    // NOTE(guy): Okay boomer, but why even have a player in a card game?
+    for (Combat &player : depot.combat) {
+        Position *position = (Position *)depot.GetFacet(player.uid, Facet_Position);
+        vec3 pos = position->pos;
+        vec2 size = position->size;
+
+        Sprite *sprite = (Sprite *)depot.GetFacet(player.uid, Facet_Sprite);
+        if (!sprite) {
+            SDL_LogError(0, "ERROR: Can't draw a card with no sprite");
+            continue;
+        }
+
+        rect srcRect = sprite->GetSrcRect();
+
+        rect dstRect{};
+        dstRect.x = pos.x;
+        dstRect.y = pos.y - pos.z;
+        dstRect.w = srcRect.w;
+        dstRect.h = srcRect.h;
+
+        float depth = pos.y - pos.z + size.y;
+
+        DrawCommand drawSprite{};
+        drawSprite.uid = sprite->uid;
+        drawSprite.color = sprite->color;
+        drawSprite.srcRect = srcRect;
+        drawSprite.dstRect = dstRect;
+        drawSprite.texture = sprite->GetSDLTexture();
+        drawSprite.depth = depth;
+        drawQueue.push_back(drawSprite);
+
+#if 0
+        Text *text = (Text *)depot.GetFacet(card.uid, Facet_Text);
+        if (text) {
+            const size_t uidLen = 8;
+            char *stackParent = (char *)depot.frameArena.Alloc(uidLen);
+            snprintf(stackParent, uidLen, "%u", card.stackParent);
+            text->str = stackParent;
+        }
+#endif
+    }
 }

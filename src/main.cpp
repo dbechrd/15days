@@ -27,7 +27,7 @@ UID load_font(Depot &depot, const char *filename, int ptsize)
     font->filename = filename;
     font->ptsize = ptsize;
     font->outline = 2;
-    font->outlineOffset = 1;
+    font->outlineOffset = 0;
     font->ttf_font = TTF_OpenFont(filename, ptsize);
     if (!font->ttf_font) {
         SDL_LogError(0, "Failed to load font %s\n", filename);
@@ -313,8 +313,17 @@ UID create_narrator(Depot &depot, UID subject)
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
     text->font = load_font(depot, "font/KarminaBold.otf", 64);
     text->str = "15 Days";
+    text->str =
+        C_RED     "Red "
+        C_GREEN   "Green "
+        C_BLUE    "Blue "
+        C_CYAN    "Cyan "
+        C_MAGENTA "Magenta "
+        C_YELLOW  "Yellow "
+        C_WHITE   "White"
+    ;
     text->align = TextAlign_VBottom_HCenter;
-    text->color = C255(COLOR_WHITE);
+    text->color = C255(COLOR_RED);
 
     add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
     add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
@@ -573,8 +582,8 @@ UID create_fps_counter(Depot &depot)
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
     //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
     //text->font = load_font(depot, "font/FiraCode-Bold.ttf", 16);
-    //text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    text->font = load_font(depot, "font/pricedown_bl.ttf", 16);
+    text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    //text->font = load_font(depot, "font/pricedown_bl.ttf", 16);
 
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
@@ -726,8 +735,9 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         return;
     }
 
-#if 0
-    while (deck->count) {
+#if 1
+    int i = 0;
+    while (deck->count && i++ < 1) {
 #else
     if (deck->count) {
 #endif
@@ -739,8 +749,16 @@ void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, vo
         }
         Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
         if (sprite) {
-            // TODO: Pick cardProto from deck chances
-            UID cardProto = depot.cardProto[dlb_rand32i_range(0, 2)].uid;
+            // TODO: Search by name or use enum or something smart
+            UID cardProto = 0;
+            float rng = dlb_rand32f_range(0, 1);
+            if (rng < 0.5f) {
+                cardProto = depot.cardProto[0].uid; // fire
+            } else if (rng < 0.95f) {
+                cardProto = depot.cardProto[1].uid; // water
+            } else {
+                cardProto = depot.cardProto[2].uid; // bomb
+            }
             UID card = create_card(depot, cardProto, spawnPos, 0.5);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);

@@ -51,6 +51,9 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
         const char *c = text.str;
         vec2 cursor{ x, y };
         float lineHeight = 0;
+
+        vec4 color = C255(COLOR_WHITE);
+
         while (*c) {
             switch (*c) {
                 case '\n': {
@@ -59,6 +62,30 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
                     c++;
                     continue;
                 }
+            }
+
+            char cNext = *(c+1);
+            // `` = literal backtick, don't do this color stuffs
+            if (*c == '`' && cNext != '`') {
+                c++;
+                if (!*c || !isdigit(*c)) {
+                    break;
+                }
+                DLB_ASSERT(*c);
+                DLB_ASSERT(isdigit(*c));
+                switch (*c) {
+                    case '0': color = {   0,   0,   0, 255 }; break;
+                    case '1': color = {  43,  75, 255, 255 }; break;
+                    case '2': color = {  49, 165,   0, 255 }; break;
+                    case '3': color = {   0, 196, 196, 255 }; break;
+                    case '4': color = { 165,   0,   0, 255 }; break;
+                    case '5': color = { 198,  79, 198, 255 }; break;
+                    case '6': color = { 234, 199,   0, 255 }; break;
+                    case '7': color = { 255, 255, 255, 255 }; break;
+                    default: printf("WARN: Dats a weird color value, mang\n"); break;
+                }
+                c++;
+                continue;
             }
 
             if (!font->glyphCache.rects.contains((uint32_t)*c)) {
@@ -79,24 +106,8 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
             drawGlyph.uid = text.uid;
             drawGlyph.srcRect = glyphRect;
             drawGlyph.texture = font->glyphCache.atlasTexture;
-#if 0
-            // Draw drop shadow
             drawGlyph.dstRect = drawRect;
-            drawGlyph.dstRect.x += 1 + font->ptsize / 32;
-            drawGlyph.dstRect.y += 1 + font->ptsize / 32;
-            const float darkenFactor = 0; //0.33f;
-            drawGlyph.color = {
-                text.color.r * darkenFactor,
-                text.color.g * darkenFactor,
-                text.color.b * darkenFactor,
-                text.color.a
-            };
-            drawGlyph.depth = 0;
-            drawQueue.push_back(drawGlyph);
-#endif
-            // Draw glyph
-            drawGlyph.dstRect = drawRect;
-            drawGlyph.color = text.color;
+            drawGlyph.color = color;
             drawGlyph.depth = 1;
             drawQueue.push_back(drawGlyph);
 

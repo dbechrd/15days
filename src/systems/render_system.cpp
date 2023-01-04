@@ -278,7 +278,6 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                         dstRect.w = glyphOutline->w;
                         dstRect.h = glyphOutline->h;
 
-                        printf("Add %c\n", *c);
                         gc->rects[*c] = dstRect;
                         // TODO: Padding?
                         gc->cursor.x += glyphOutline->w + gc->padding;
@@ -325,8 +324,8 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
     {
         double shakeAlpha = (depot.Now() - shakeStartedAt) / shakeDuration;
         if (shakeAlpha < 1.0) {
-            float distFromHalf = fabs(shakeAlpha - 0.5f);
-            float shakeMult = (0.5 - distFromHalf) * 2;
+            //float distFromHalf = fabs(shakeAlpha - 0.5f);
+            //float shakeMult = (0.5 - distFromHalf) * 2;
 
             // TODO: Extract this out into a lookup table of shake types / intepolation types
             const vec2 flashBang{ 0.97f, 1.01f };  // freq 200, (1 - alpha)
