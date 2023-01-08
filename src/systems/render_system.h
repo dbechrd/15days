@@ -12,6 +12,8 @@ struct RenderSystem {
     void DestroyDepot(Depot &depot);
     void Destroy();
 
+    UID LoadTexture_BMP(Depot &depot, const char *filename);
+
     bool Running(void);
     void Clear(vec4 color);
     void Shake(Depot &depot, float amount, float freq, double duration);

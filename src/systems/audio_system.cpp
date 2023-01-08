@@ -1,24 +1,6 @@
 #include "audio_system.h"
 #include "../facets/depot.h"
 
-void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
-{
-#if 0
-    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
-    if (!sound.data) {
-        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
-    }
-#else
-    sound.filename = filename;
-    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
-    new (sound.wav) SoLoud::Wav;
-    SoLoud::result res = sound.wav->load(filename);
-    if (res) {
-        printf("Failed to load wav: %s\n  %u\n", filename, res);
-    }
-#endif
-}
-
 void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
 {
     char formatBuf[16]{};
@@ -125,7 +107,7 @@ FDOVResult AudioSystem::Init(void)
         return FDOV_INIT_FAILED;
     }
 
-    gSoloud.setGlobalVolume(0.1f);
+    gSoloud.setGlobalVolume(0.2f);
 
     return FDOV_SUCCESS;
 #endif
@@ -144,6 +126,39 @@ void AudioSystem::Destroy(void)
     SDL_CloseAudioDevice(playbackDeviceId);
 #else
     gSoloud.deinit();
+#endif
+}
+
+UID AudioSystem::LoadSound(Depot &depot, const char *filename)
+{
+    // Check if already loaded
+    Sound *existingSound = (Sound *)depot.GetFacetByName(filename, Facet_Sound);
+    if (existingSound) {
+        return existingSound->uid;
+    }
+
+    // Load a new audio buffer
+    UID uidSound = depot.Alloc(filename);
+    Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound);
+    InitSound(depot, *sound, filename);
+    return uidSound;
+}
+
+void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
+{
+#if 0
+    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
+    if (!sound.data) {
+        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
+    }
+#else
+    sound.filename = filename;
+    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
+    new (sound.wav) SoLoud::Wav;
+    SoLoud::result res = sound.wav->load(filename);
+    if (res) {
+        printf("Failed to load wav: %s\n  %u\n", filename, res);
+    }
 #endif
 }
 

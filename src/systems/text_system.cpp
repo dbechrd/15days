@@ -1,6 +1,33 @@
 #include "text_system.h"
 #include "../facets/depot.h"
 
+UID TextSystem::LoadFont(Depot &depot, const char *filename, int ptsize)
+{
+    size_t keyLen = strlen(filename) + 10;
+    char *key = (char *)depot.frameArena.Alloc(keyLen);
+    snprintf(key, keyLen, "%s?ptsize=%d", filename, ptsize);
+
+    // Check if already loaded
+    Font *existingFont = (Font *)depot.GetFacetByName(key, Facet_Font);
+    if (existingFont) {
+        return existingFont->uid;
+    }
+
+    // Load a new font
+    UID uidFont = depot.Alloc(key);
+    Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
+    font->filename = filename;
+    font->ptsize = ptsize;
+    font->outline = 1;
+    font->outlineOffset = { 1, 0 };
+    font->ttf_font = TTF_OpenFont(filename, ptsize);
+    if (!font->ttf_font) {
+        SDL_LogError(0, "Failed to load font %s\n", filename);
+    }
+
+    return uidFont;
+}
+
 void TextSystem::React(Depot &depot)
 {
     size_t size = depot.msgQueue.size();

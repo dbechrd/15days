@@ -96,6 +96,21 @@ void RenderSystem::Destroy(void)
     SDL_Quit();
 }
 
+UID RenderSystem::LoadTexture_BMP(Depot &depot, const char *filename)
+{
+    // Check if already loaded
+    Sound *existingTexture = (Sound *)depot.GetFacetByName(filename, Facet_Texture);
+    if (existingTexture) {
+        return existingTexture->uid;
+    }
+
+    // Load a new texture
+    UID uidTexture = depot.Alloc(filename);
+    Texture *texture = (Texture *)depot.AddFacet(uidTexture, Facet_Texture);
+    depot.renderSystem.InitTexture(*texture, filename);
+    return uidTexture;
+}
+
 bool RenderSystem::Running(void)
 {
     return running;
@@ -192,7 +207,8 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font && font->ttf_font) {
-                DLB_ASSERT(font->outlineOffset <= font->outline);
+                DLB_ASSERT(fabs(font->outlineOffset.x <= font->outline));
+                DLB_ASSERT(fabs(font->outlineOffset.y <= font->outline));
 
                 GlyphCache *gc = &font->glyphCache;
 
@@ -290,8 +306,8 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                         if (SDL_BlitSurface(glyphOutline, 0, gc->atlasSurface, &fuckSDLdst) < 0) {
                             SDL_LogError(0, "Blit failed :(");
                         }
-                        fuckSDLdst.x += font->outline - font->outlineOffset;
-                        fuckSDLdst.y += font->outline - font->outlineOffset;
+                        fuckSDLdst.x += font->outline - font->outlineOffset.x;
+                        fuckSDLdst.y += font->outline - font->outlineOffset.y;
                         if (SDL_BlitSurface(glyph, 0, gc->atlasSurface, &fuckSDLdst) < 0) {
                             SDL_LogError(0, "Blit failed :(");
                         }

@@ -9,222 +9,6 @@ dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
 const char *debugFont = "font/OpenSans-Bold.ttf";
 
-UID load_font(Depot &depot, const char *filename, int ptsize)
-{
-    size_t keyLen = strlen(filename) + 10;
-    char *key = (char *)depot.frameArena.Alloc(keyLen);
-    snprintf(key, keyLen, "%s?ptsize=%d", filename, ptsize);
-
-    // Check if already loaded
-    Font *existingFont = (Font *)depot.GetFacetByName(key, Facet_Font);
-    if (existingFont) {
-        return existingFont->uid;
-    }
-
-    // Load a new font
-    UID uidFont = depot.Alloc(key);
-    Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
-    font->filename = filename;
-    font->ptsize = ptsize;
-    font->outline = 2;
-    font->outlineOffset = 0;
-    font->ttf_font = TTF_OpenFont(filename, ptsize);
-    if (!font->ttf_font) {
-        SDL_LogError(0, "Failed to load font %s\n", filename);
-    }
-
-    return uidFont;
-}
-
-
-UID load_sound(Depot &depot, const char *filename)
-{
-    // Check if already loaded
-    Sound *existingSound = (Sound *)depot.GetFacetByName(filename, Facet_Sound);
-    if (existingSound) {
-        return existingSound->uid;
-    }
-
-    // Load a new audio buffer
-    UID uidSound = depot.Alloc(filename);
-    Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound);
-    depot.audioSystem.InitSound(depot, *sound, filename);
-    return uidSound;
-}
-
-UID load_bitmap(Depot &depot, const char *filename)
-{
-    // Check if already loaded
-    Sound *existingTexture = (Sound *)depot.GetFacetByName(filename, Facet_Texture);
-    if (existingTexture) {
-        return existingTexture->uid;
-    }
-
-    // Load a new texture
-    UID uidTexture = depot.Alloc(filename);
-    Texture *texture = (Texture *)depot.AddFacet(uidTexture, Facet_Texture);
-    depot.renderSystem.InitTexture(*texture, filename);
-    return uidTexture;
-}
-
-void add_sound_play_trigger(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile, bool override = true)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    trigger.message.uid = load_sound(depot, soundFile);
-    trigger.message.type = MsgType_Audio_PlaySound;
-    trigger.message.data.audio_playsound.override = override;
-    triggerList->triggers.push_back(trigger);
-}
-
-void add_sound_stop_trigger(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    trigger.message.uid = load_sound(depot, soundFile);
-    trigger.message.type = MsgType_Audio_StopSound;
-    triggerList->triggers.push_back(trigger);
-}
-
-void add_screenshake_trigger(Depot &depot, UID subject, MsgType msgType,
-    float amount, float freq, double duration)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    //trigger.message.uid = target_camera_uid;
-    trigger.message.type = MsgType_Render_Screenshake;
-    trigger.message.data.render_screenshake.amount = amount;
-    trigger.message.data.render_screenshake.freq = freq;
-    trigger.message.data.render_screenshake.duration = duration;
-    triggerList->triggers.push_back(trigger);
-}
-
-void add_text_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
-    const char *str, vec4 color)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    trigger.message.uid = dst;
-    trigger.message.type = MsgType_Text_UpdateText;
-    trigger.message.data.text_updatetext.str = str;
-    trigger.message.data.text_updatetext.color = color;
-    triggerList->triggers.push_back(trigger);
-}
-
-//void only_if_drag_landed_on_trigger_target(Depot &depot, const Message &msg,
-//    const Trigger &trigger, void *userData)
-//{
-//    DLB_ASSERT(msg.type == MsgType_Card_Notify_DragEnd);
-//
-//    UID target = (UID)(size_t)userData;
-//
-//    if (msg.data.card_dragend.landedOn == target) {
-//        depot.msgQueue.push_back(trigger.message);
-//    }
-//}
-
-void add_animation_update_trigger(Depot &depot, UID src, MsgType msgType, UID dst,
-    int animation, TriggerCallback callback = 0, void *userData = 0)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    trigger.message.uid = dst;
-    trigger.message.type = MsgType_Sprite_UpdateAnimation;
-    trigger.message.data.sprite_updateanimation.animation = animation;
-    trigger.callback = callback;
-    trigger.userData = userData;
-    triggerList->triggers.push_back(trigger);
-}
-
-void add_special_relay_trigger(Depot &depot, UID src, UID dst)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
-
-    Trigger relayTrigger{};
-    relayTrigger.trigger = MsgType_Special_RelayAllMessages;
-    relayTrigger.message.uid = dst;
-    triggerList->triggers.push_back(relayTrigger);
-}
-
-//rect entity_bbox(Depot &depot, UID uid)
-//{
-//    rect bbox{};
-//
-//    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
-//    if (position) {
-//        bbox.x = position->pos.x;
-//        bbox.y = position->pos.y - position->pos.z;
-//        bbox.w = 1;
-//        bbox.h = 1;
-//    }
-//    Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
-//    if (sprite) {
-//        bbox.w = sprite->size.w;
-//        bbox.h = sprite->size.h;
-//    }
-//    Text *text = (Text *)depot.GetFacet(uid, Facet_Text);
-//    if (text) {
-//        // TODO: Have to account for both the text offset (in pos check)
-//        // as well as alignment offsets for this to work correctly. We
-//        // should make Sprite->GetBBox() and Text->GetBBox() helpers or
-//        // something.
-//        Texture *texture = (Texture *)depot.GetFacet(uid, Facet_Texture);
-//        if (texture) {
-//            bbox.w = texture->size.w;
-//            bbox.h = texture->size.h;
-//        }
-//    }
-//
-//    return bbox;
-//}
-//
-//UID find_sprite_at_screen_pos(Depot &depot, UID uid, vec2 *offset)
-//{
-//    rect bboxA = entity_bbox(depot, uid);
-//    if (!bboxA.w || !bboxA.h) {
-//        return 0;
-//    }
-//
-//    UID uidLandedOn = 0;
-//    float maxDepth = 0;
-//    for (Sprite &sprite : depot.sprite) {
-//        if (sprite.uid == uid) {
-//            continue;
-//        }
-//
-//        rect bboxB = entity_bbox(depot, sprite.uid);
-//        if (!bboxB.w || !bboxB.h) {
-//            continue;
-//        }
-//
-//        float depth = bboxB.y + bboxB.h;
-//        if (depth < maxDepth) {
-//            continue;
-//        }
-//
-//        if (rect_intersect(&bboxA, &bboxB)) {
-//            if (offset) {
-//                *offset = { (float)(bboxA.x - bboxB.x), (float)(bboxA.y - bboxB.y) };
-//            }
-//            uidLandedOn = sprite.uid;
-//            maxDepth = depth;
-//        }
-//    }
-//    return uidLandedOn;
-//}
-
 UID create_global_keymap(Depot &depot)
 {
     // TODO: This is maybe "Menu" or something?
@@ -270,7 +54,7 @@ UID card_spritesheet(Depot &depot)
         return existingSheet->uid;
     }
 
-    UID uidSheetCards = load_bitmap(depot, filename);
+    UID uidSheetCards = depot.renderSystem.LoadTexture_BMP(depot, filename);
     Spritesheet *sheetCards = (Spritesheet *)depot.AddFacet(uidSheetCards, Facet_Spritesheet);
     sheetCards->cells = 10;
     sheetCards->cellSize = { 100, 150 };
@@ -289,7 +73,7 @@ UID campfire_spritesheet(Depot &depot)
         return existingSheet->uid;
     }
 
-    UID uidSheetCampfire = load_bitmap(depot, filename);
+    UID uidSheetCampfire = depot.renderSystem.LoadTexture_BMP(depot, filename);
     Spritesheet *sheetCampfire = (Spritesheet *)depot.AddFacet(uidSheetCampfire, Facet_Spritesheet);
     sheetCampfire->cells = 9;
     sheetCampfire->cellSize = { 100, 150 };
@@ -311,7 +95,7 @@ UID create_narrator(Depot &depot, UID subject)
     position->pos.y = 4.0f;
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
-    text->font = load_font(depot, "font/KarminaBold.otf", 64);
+    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
     text->str = "15 Days";
     text->str =
         C_RED     "Red "
@@ -325,16 +109,16 @@ UID create_narrator(Depot &depot, UID subject)
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_RED);
 
-    add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
-    add_sound_play_trigger(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
-    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_IdleBegin,
+    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_IdleBegin,
         uidNarrator, "Neutral", C255(COLOR_GRAY_4));
     // Subject triggers
-    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_AttackBegin,
+    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_AttackBegin,
         uidNarrator, "Primary", C255(COLOR_RED));
-    add_text_update_trigger(depot, subject, MsgType_Combat_Notify_DefendBegin,
+    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_DefendBegin,
         uidNarrator, "Secondary", C255(COLOR_DODGER));
 
     // TODO: NarratorSystem
@@ -426,7 +210,7 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
 
 UID create_player(Depot &depot)
 {
-    UID uidSpritesheet = load_bitmap(depot, "texture/player.bmp");
+    UID uidSpritesheet = depot.renderSystem.LoadTexture_BMP(depot, "texture/player.bmp");
     Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheet, Facet_Spritesheet);
     spritesheet->cells = 1;
     spritesheet->cellSize = { 70, 140 };
@@ -461,7 +245,7 @@ UID create_player(Depot &depot)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidPlayer, Facet_Text);
-    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -487,10 +271,10 @@ UID create_player(Depot &depot)
         keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
     }
 
-    add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
-    add_sound_play_trigger(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
-    add_sound_play_trigger(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
-    add_sound_play_trigger(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
@@ -580,10 +364,10 @@ UID create_fps_counter(Depot &depot)
     position->pos.y = 90;
 
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
-    //text->font = load_font(depot, "font/ChivoMono-Bold.ttf", 16);
-    //text->font = load_font(depot, "font/FiraCode-Bold.ttf", 16);
-    text->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    //text->font = load_font(depot, "font/pricedown_bl.ttf", 16);
+    //text->font = depot.textSystem.LoadFont(depot, "font/ChivoMono-Bold.ttf", 16);
+    //text->font = depot.textSystem.LoadFont(depot, "font/FiraCode-Bold.ttf", 16);
+    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
+    //text->font = depot.textSystem.LoadFont(depot, "font/pricedown_bl.ttf", 16);
 
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
@@ -594,8 +378,8 @@ UID create_fps_counter(Depot &depot)
         histo->values.push_back(i);
     };
 
-    add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_play_trigger(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, false);
@@ -645,184 +429,62 @@ void add_flag_to_material_proto(Depot &depot, UID uidMaterialProto, MaterialFlag
     materialProto->flags.set(flag);
 }
 
-UID draggable_sounds(Depot &depot)
+void create_cards(Depot &depot)
 {
-    const char *name = "draggable_sounds";
+    UID uidCardSheet = card_spritesheet(depot);
+    UID uidCampfireSheet = campfire_spritesheet(depot);
 
-    // Check if already loaded
-    if (depot.uidByName.contains(name)) {
-        return depot.uidByName[name];
-    }
+    // Effects
+    Effect fxIgnite{ .type = Effect_IgniteFlammable };
+    Effect fxExtinguish{ .type = Effect_ExtinguishFlammable };
 
-    UID uidDraggableSounds = depot.Alloc(name);
-    add_sound_play_trigger(depot, uidDraggableSounds, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    add_sound_play_trigger(depot, uidDraggableSounds, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
-    return uidDraggableSounds;
-}
+    // Effect lists
+    UID uidFireFxList = create_effect_list(depot, "fire_fx");
+    add_effect_to_effect_list(depot, uidFireFxList, fxIgnite);
 
-UID create_card_proto(Depot &depot, const char *name, UID uidMaterialProto,
-    UID uidEffectList, UID spritesheet, int animation)
-{
-    UID uidCardProto = depot.Alloc(name);
-    CardProto *cardProto = (CardProto *)depot.AddFacet(uidCardProto, Facet_CardProto);
-    cardProto->materialProto = uidMaterialProto;
-    cardProto->effectList = uidEffectList;
-    cardProto->spritesheet = spritesheet;
-    cardProto->animation = animation;
+    UID uidWaterFxList = create_effect_list(depot, "water_fx");
+    add_effect_to_effect_list(depot, uidWaterFxList, fxExtinguish);
 
-    add_special_relay_trigger(depot, uidCardProto, draggable_sounds(depot));
+    // Materials
+    UID uidFlammableMaterialProto = create_material_proto(depot, "flammable_material");
+    add_flag_to_material_proto(depot, uidFlammableMaterialProto, MaterialFlag_Flammable);
 
-    return uidCardProto;
-}
+    // Card prototypes
+    UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, 0);
+    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, 1);
+    UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, 3);
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
+    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
+    depot.triggerSystem.Trigger_Render_Screenshake(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
+    UID uidCampfireProto = depot.cardSystem.PrototypeCard(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
 
-UID create_card(Depot &depot, UID uidCardProto, vec3 pos, double invulnFor = 0)
-{
-    UID uidCard = depot.Alloc(depot.nameByUid[uidCardProto].c_str(), false);
+    // Decks
+    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, uidCardSheet, 2);
 
-    Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
-    position->pos = pos;
+    // Cards
+    depot.cardSystem.SpawnCard(depot, uidLighterProto, { 700, 300, 0 });
+    depot.cardSystem.SpawnCard(depot, uidBucketProto, { 800, 300, 0 });
+    depot.cardSystem.SpawnCard(depot, uidBombProto, { 900, 300, 0 });
 
-    Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
-    card->cardProto = uidCardProto;
-    card->noClickUntil = depot.Now() + invulnFor;
+    // TODO:
+    // type_a  ,  type_b      , action
+    // campfire,  water_bucket, extinguish
+    // campfire,  lighter     , ignite
 
-    CardProto *cardProto = (CardProto *)depot.GetFacet(uidCardProto, Facet_CardProto);
-    if (cardProto->materialProto) {
-        Material *material = (Material *)depot.AddFacet(uidCard, Facet_Material);
-        material->materialProto = cardProto->materialProto;
-    }
+    // action    , require_flags, exclude_flags, state
+    // extinguish, flammable    ,              , on_fire = false
+    // ignite    , flammable    ,              , on_fire = true
 
-    Spritesheet *sheet = (Spritesheet *)depot.GetFacet(cardProto->spritesheet, Facet_Spritesheet);
-    if (sheet) {
-        Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
-        SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), cardProto->spritesheet);
-        sprite->SetSpritesheet(depot, cardProto->spritesheet);
-        sprite->SetAnimIndex(depot, cardProto->animation);
-    } else {
-        DLB_ASSERT(!"no sheet");
-        printf("Failed to find sheet for card\n");
-    }
-
-    Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
-    body->gravity = -50.0f;
-    body->friction = 0.001f;
-    //body->drag = 0.001f;
-    body->drag = 0.05f;
-    body->restitution = 0.0f;
-    body->jumpImpulse = 800.0f;
-    body->speed = 20.0f;
-    body->runMult = 2.0f;
-    float mass = 1.0f;
-    body->invMass = 1.0f / mass;
-
-    //Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
-    //debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    //debugText->str = depot.nameByUid[uidCardProto].c_str();
-    //debugText->align = TextAlign_VBottom_HCenter;
-    //debugText->color = C255(COLOR_WHITE);
-    //debugText->offset.x += 8;
-
-    add_special_relay_trigger(depot, uidCard, uidCardProto);
-
-    return uidCard;
-}
-
-void deck_draw_card(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
-{
-    UID uid = msg.uid;
-    Deck *deck = (Deck *)depot.GetFacet(uid, Facet_Deck);
-    if (!deck) {
-        return;
-    }
-
-#if 1
-    int i = 0;
-    while (deck->count && i++ < 1) {
-#else
-    if (deck->count) {
-#endif
-        vec3 spawnPos{};
-        Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
-        if (position) {
-            spawnPos = position->pos;
-            spawnPos.y += 50;  // TODO: Rand pop
-        }
-        Sprite *sprite = (Sprite *)depot.GetFacet(uid, Facet_Sprite);
-        if (sprite) {
-            // TODO: Search by name or use enum or something smart
-            UID cardProto = 0;
-            float rng = dlb_rand32f_range(0, 1);
-            if (rng < 0.5f) {
-                cardProto = depot.cardProto[0].uid; // fire
-            } else if (rng < 0.95f) {
-                cardProto = depot.cardProto[1].uid; // water
-            } else {
-                cardProto = depot.cardProto[2].uid; // bomb
-            }
-            UID card = create_card(depot, cardProto, spawnPos, 0.5);
-
-            Body *body = (Body *)depot.GetFacet(card, Facet_Body);
-            body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
-            body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
-            depot.renderSystem.Shake(depot, 3.0f, 100.0f, 0.1f);
-        } else {
-            SDL_Log("Cannot draw from deck with no spritesheet\n");
-        }
-        deck->count--;
-    }
-
-    if (!deck->count) {
-        // TODO: Destroy the deck
-        // TODO: Remove "Trigger" as a Facet and go back to std::vector<Trigger> inside of TriggerList??
-    }
-}
-
-UID create_deck(Depot &depot, vec3 pos, UID spritesheet, int animation)
-{
-    UID uidDeck = depot.Alloc("deck", false);
-
-    Position *position = (Position *)depot.AddFacet(uidDeck, Facet_Position);
-    position->pos = pos;
-
-    Deck *deck = (Deck *)depot.AddFacet(uidDeck, Facet_Deck);
-    deck->count = 100;
-
-    Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
-    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheet);
-    sprite->SetSpritesheet(depot, spritesheet);
-    sprite->SetAnimIndex(depot, animation);
-
-    Body *body = (Body *)depot.AddFacet(uidDeck, Facet_Body);
-    body->gravity = -50.0f;
-    body->friction = 0.001f;
-    //body->drag = 0.001f;
-    body->drag = 0.05f;
-    body->restitution = 0.0f;
-    body->jumpImpulse = 800.0f;
-    body->speed = 20.0f;
-    body->runMult = 2.0f;
-    float mass = 1.0f;
-    body->invMass = 1.0f / mass;
-
-    Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
-    debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
-    debugText->str = 0;
-    debugText->align = TextAlign_VBottom_HCenter;
-    debugText->color = C255(COLOR_WHITE);
-
-    add_special_relay_trigger(depot, uidDeck, draggable_sounds(depot));
-
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidDeck, Facet_TriggerList, false);
-
-    Trigger deckDrawTrigger{};
-    deckDrawTrigger.trigger = MsgType_Card_Notify_LeftQuickClick;
-    deckDrawTrigger.message.uid = uidDeck;
-    deckDrawTrigger.callback = deck_draw_card;
-    triggerList->triggers.push_back(deckDrawTrigger);
-
-    return uidDeck;
+    UID uidCampfire = depot.cardSystem.SpawnCard(depot, uidCampfireProto, { 200, 500, 0 });
+    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, 1);
+    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, 0);
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
+    // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_extinguish.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_extinguish.wav", true);
+    // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_start.wav");
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -861,9 +523,6 @@ int main(int argc, char *argv[])
     //vec4 cYellow = { 255, 232, 150, 255 };
     //vec4 cOrange = { 255, 124,  30, 255 };
 
-    // TODO: Use dlb_rand or something
-    dlb_rand32_seed(SDL_GetTicks64());
-
     int err;
     assert(FDOV_FIRST_SCANCODE == SDL_NUM_SCANCODES);
 
@@ -894,75 +553,13 @@ int main(int argc, char *argv[])
         SDL_Log("Failed to initalize audio subsystem\n");
     }
 
-    // TODO: Resource loader (maybe RenderSystem::LoadFont()?)
-    // https://github.com/grimfang4/SDL_FontCache
-    // https://github.com/libsdl-org/SDL_ttf/blob/main/showfont.c
+    dlb_rand32_seed(SDL_GetTicks64());
 
-    // Create an entity to hold the global keymap (the plan is to have a global
-    // keymap per gamestate eventually)
     create_global_keymap(depot);
     create_cursor(depot);
-
-    // Create player/narrator
     create_player(depot);
     create_fps_counter(depot);
-
-    {
-        UID uidCardSheet = card_spritesheet(depot);
-        UID uidCampfireSheet = campfire_spritesheet(depot);
-
-        // Effects
-        Effect fxIgnite     { .type = Effect_IgniteFlammable };
-        Effect fxExtinguish { .type = Effect_ExtinguishFlammable };
-
-        // Effect lists
-        UID uidFireFxList = create_effect_list(depot, "fire_fx");
-        add_effect_to_effect_list(depot, uidFireFxList, fxIgnite);
-
-        UID uidWaterFxList = create_effect_list(depot, "water_fx");
-        add_effect_to_effect_list(depot, uidWaterFxList, fxExtinguish);
-
-        // Materials
-        UID uidFlammableMaterialProto = create_material_proto(depot, "flammable_material");
-        add_flag_to_material_proto(depot, uidFlammableMaterialProto, MaterialFlag_Flammable);
-
-        // Card prototypes
-        UID uidLighterProto = create_card_proto(depot, "Lighter", 0, uidFireFxList, uidCardSheet, 0);
-        UID uidBucketProto = create_card_proto(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, 1);
-        UID uidBombProto = create_card_proto(depot, "Bomb", 0, 0, uidCardSheet, 3);
-        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
-        add_sound_stop_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
-        add_sound_play_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
-        add_screenshake_trigger(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
-        UID uidCampfireProto = create_card_proto(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
-
-        // Decks
-        create_deck(depot, { 600, 300, 0 }, uidCardSheet, 2);
-
-        // Cards
-        create_card(depot, uidLighterProto, { 700, 300, 0 });
-        create_card(depot, uidBucketProto, { 800, 300, 0 });
-        create_card(depot, uidBombProto, { 900, 300, 0 });
-
-        // TODO:
-        // type_a  ,  type_b      , action
-        // campfire,  water_bucket, extinguish
-        // campfire,  lighter     , ignite
-
-        // action    , require_flags, exclude_flags, state
-        // extinguish, flammable    ,              , on_fire = false
-        // ignite    , flammable    ,              , on_fire = true
-
-        UID uidCampfire = create_card(depot, uidCampfireProto, { 200, 500, 0 });
-        add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, 1);
-        add_animation_update_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, 0);
-        add_sound_play_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
-        // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-        add_sound_stop_trigger(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_extinguish.wav");
-        add_sound_play_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_extinguish.wav", true);
-        // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-        add_sound_stop_trigger(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_start.wav");
-    }
+    create_cards(depot);
 
     // Run the game
     depot.TransitionTo(GameState_Play);

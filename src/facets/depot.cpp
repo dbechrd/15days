@@ -226,8 +226,7 @@ void Depot::Run(void)
             inputQueue.clear();
         }
 
-        // TODO: Make these pure generators
-        movementSystem.React(*this);  // reacts to Movement
+        movementSystem.React(*this);  // reacts to Movement_*
 
         for (int i = 0; i < physicsIters; i++) {
             physicsSystem.Update(*this, fixedDt);
@@ -243,8 +242,9 @@ void Depot::Run(void)
         triggerSystem.React(*this);   // reacts to *        generates *
 
         // Pure message reactors (do not modify msgQueue here!)
-        audioSystem.React(*this);     // reacts to Audio
+        cardSystem.React(*this);      // reacts to Card
         spriteSystem.Update(*this);   // reacts to Sprite
+        audioSystem.React(*this);     // reacts to Audio
         textSystem.React(*this);      // reacts to Text
         renderSystem.React(*this);    // reacts to Render
 
