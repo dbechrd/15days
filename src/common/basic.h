@@ -50,5 +50,6 @@ struct Depot;
     color.a * 255  \
 }
 
-#define C_GRASS { 49, 134, 112, 255 }  // blue-green
-//#define C_GRASS { 255, 249, 216, 255 }  // wheat
+//#define C_GRASS { 49, 134, 112, 255 }  // blue-green
+#define C_GRASS { 18, 100, 38, 255 }     // green
+//#define C_GRASS { 255, 249, 216, 255 } // wheat

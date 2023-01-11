@@ -1,62 +1,29 @@
 #include "input_system.h"
 #include "../facets/depot.h"
 
-void InputSystem::ProcessInput(
-    double now,
-    Depot &depot,
-    const InputQueue &inputQueue)
+// Return true if you want to skip further processing of hotkeys
+bool CheckHotkeysDebug(Depot &depot, const InputEvent &e)
 {
-#if 1
-    bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(true);
-    static bool ctrlWasPressed = 0;
-    if (lCtrl && lCtrl != ctrlWasPressed) {
-        printf("");
-    }
-    ctrlWasPressed = lCtrl;
-#endif
-
-    // Reset state
-    for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
-        buttons[i].BeginFrame();
-    }
-    for (Keymap &keymap : depot.keymap) {
-        for (KeymapHotkey &hotkey : keymap.hotkeys) {
-            hotkey.state.BeginFrame();
-        }
-    }
-
-    // Process each input event
-    for (const InputEvent &e : inputQueue) {
-        // Process a single event
-        buttons[e.scancode].Set(e.down, now);
-
-        for (Keymap &keymap : depot.keymap) {
-            // Check if the event triggered any new hotkeys
-            CheckHotkeys(now, buttons, keymap, depot.msgQueue);
-        }
-    }
-
-    for (Keymap &keymap : depot.keymap) {
-        // Trigger commands for repeating hotkeys that are still active but
-        // didn't change state (i.e. handled == false check in Active())
-        for (KeymapHotkey &hotkey : keymap.hotkeys) {
-            bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
-            if (active) {
-                Message msg{};
-                msg.uid = keymap.uid;
-                msg.type = hotkey.msgType;
-                // TODO: Set msg.data if necessary? Hmm..
-                depot.msgQueue.push_back(msg);
+    switch (e.scancode) {
+        case SDL_SCANCODE_K: {
+            if (e.down) {
+                static int kern = 0;
+                printf("kern: %d\n", kern);
+                for (Font &font : depot.font) {
+                    TTF_SetFontKerning(font.ttf_font, kern);
+                }
+                kern = !kern;
             }
+            break;
         }
+        default: break;
     }
+
+    return false;
 }
 
-void InputSystem::CheckHotkeys(
-    double now,
-    ButtonState buttons[FDOV_SCANCODE_COUNT],
-    Keymap &keymap,
-    MsgQueue &msgQueue)
+void CheckHotkeys(double now, ButtonState buttons[FDOV_SCANCODE_COUNT],
+                  Keymap &keymap, MsgQueue &msgQueue)
 {
     // Determine if that event caused any hotkeys to trigger.
     // If so, queue a command.
@@ -120,3 +87,56 @@ void InputSystem::CheckHotkeys(
         }
     }
 }
+
+void InputSystem::ProcessInput(Depot &depot, const InputQueue &inputQueue)
+{
+#if 1
+    bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(true);
+    static bool ctrlWasPressed = 0;
+    if (lCtrl && lCtrl != ctrlWasPressed) {
+        printf("");
+    }
+    ctrlWasPressed = lCtrl;
+#endif
+
+    // Reset state
+    for (int i = 0; i < FDOV_SCANCODE_COUNT; i++) {
+        buttons[i].BeginFrame();
+    }
+    for (Keymap &keymap : depot.keymap) {
+        for (KeymapHotkey &hotkey : keymap.hotkeys) {
+            hotkey.state.BeginFrame();
+        }
+    }
+
+    // Process each input event
+    for (const InputEvent &e : inputQueue) {
+        // Process a single event
+        buttons[e.scancode].Set(e.down, depot.Now());
+
+        if (CheckHotkeysDebug(depot, e)) {
+            continue;
+        }
+
+        for (Keymap &keymap : depot.keymap) {
+            // Check if the event triggered any new hotkeys
+            CheckHotkeys(depot.Now(), buttons, keymap, depot.msgQueue);
+        }
+    }
+
+    for (Keymap &keymap : depot.keymap) {
+        // Trigger commands for repeating hotkeys that are still active but
+        // didn't change state (i.e. handled == false check in Active())
+        for (KeymapHotkey &hotkey : keymap.hotkeys) {
+            bool active = (hotkey.flags & Hotkey_Hold) && hotkey.state.Active();
+            if (active) {
+                Message msg{};
+                msg.uid = keymap.uid;
+                msg.type = hotkey.msgType;
+                // TODO: Set msg.data if necessary? Hmm..
+                depot.msgQueue.push_back(msg);
+            }
+        }
+    }
+}
+

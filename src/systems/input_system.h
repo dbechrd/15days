@@ -6,17 +6,14 @@
 
 struct InputSystem {
 public:
-    void ProcessInput(
-        double now,
-        Depot &depot,
-        const InputQueue &inputQueue);
+    void ProcessInput(Depot &depot, const InputQueue &inputQueue);
 
 private:
     ButtonState buttons[FDOV_SCANCODE_COUNT]{};
 
-    void CheckHotkeys(
+    /*void CheckHotkeys(
         double now,
         ButtonState buttons[FDOV_SCANCODE_COUNT],
         Keymap &keymap,
-        MsgQueue &msgQueue);
+        MsgQueue &msgQueue);*/
 };

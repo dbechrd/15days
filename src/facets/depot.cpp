@@ -222,7 +222,7 @@ void Depot::Run(void)
             // only if the mouse is within the window bounds or smth)
             //
             // Translate inputs into messages using the active keymap(s)
-            inputSystem.ProcessInput(now, *this, inputQueue);
+            inputSystem.ProcessInput(*this, inputQueue);
             inputQueue.clear();
         }
 

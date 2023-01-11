@@ -18,8 +18,17 @@ UID TextSystem::LoadFont(Depot &depot, const char *filename, int ptsize)
     Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
     font->filename = filename;
     font->ptsize = ptsize;
-    font->outline = 1;
-    font->outlineOffset = { 1, 0 };
+#if 0
+    font->outline = 0;
+    font->outlineOffset = { 2, 1 };
+    if (ptsize >= 32) {
+        font->outlineOffset.x += 1;
+        font->outlineOffset.y += 1;
+    }
+#else
+    font->outline = 2;
+    font->outlineOffset = { 0 };
+#endif
     font->ttf_font = TTF_OpenFont(filename, ptsize);
     if (!font->ttf_font) {
         SDL_LogError(0, "Failed to load font %s\n", filename);
@@ -53,6 +62,8 @@ void TextSystem::React(Depot &depot)
 
 void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
+    static bool debugKern = true;
+
     for (Text &text : depot.text) {
         if (!text.str) {
             continue;
@@ -73,6 +84,8 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
+        bool hasKerning = TTF_GetFontKerning(font->ttf_font);
+
         // TODO: TextAlign (always centered along x and y for now)
 
         const char *c = text.str;
@@ -81,6 +94,7 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
 
         vec4 color = C255(COLOR_WHITE);
 
+        char cPrev = 0;
         while (*c) {
             switch (*c) {
                 case '\n': {
@@ -120,6 +134,14 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
                 continue;
             }
 
+            if (hasKerning) {
+                int kern = TTF_GetFontKerningSizeGlyphs32(font->ttf_font, cPrev, *c);
+                if (debugKern) {
+                    printf("Kern for '%c','%c' = %d\n", cPrev, *c, kern);
+                }
+                cursor.x += (float)kern;
+            }
+
             rect glyphRect = font->glyphCache.rects[*c];
             DLB_ASSERT(glyphRect.w);
             DLB_ASSERT(glyphRect.h);
@@ -140,7 +162,10 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
 
             cursor.x += glyphRect.w - font->outline;
             lineHeight = MAX(lineHeight, glyphRect.h);
+            cPrev = *c;
             c++;
         }
     }
+
+    debugKern = false;
 }

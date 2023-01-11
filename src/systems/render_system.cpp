@@ -207,8 +207,8 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
             Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
             if (font && font->ttf_font) {
-                DLB_ASSERT(fabs(font->outlineOffset.x <= font->outline));
-                DLB_ASSERT(fabs(font->outlineOffset.y <= font->outline));
+                //DLB_ASSERT(fabs(font->outlineOffset.x <= font->outline));
+                //DLB_ASSERT(fabs(font->outlineOffset.y <= font->outline));
 
                 GlyphCache *gc = &font->glyphCache;
 
@@ -236,23 +236,37 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
                         TTF_SetFontOutline(font->ttf_font, font->outline);
                         SDL_Surface *glyphOutline = TTF_RenderGlyph32_Blended(font->ttf_font, *c, { 0, 0, 0, 255 });
-                        TTF_SetFontOutline(font->ttf_font, 0);
-                        SDL_Surface *glyph = TTF_RenderGlyph32_Blended(font->ttf_font, *c, { 255, 255, 255, 255 });
+                        SDL_SetSurfaceBlendMode(glyphOutline, SDL_BLENDMODE_BLEND);
 
-                        SDL_SetSurfaceBlendMode(glyphOutline, SDL_BLENDMODE_NONE);
-                        SDL_SetSurfaceBlendMode(glyph, SDL_BLENDMODE_BLEND);
+                        TTF_SetFontOutline(font->ttf_font, 0);
+                        SDL_Surface *glyphBody = TTF_RenderGlyph32_Blended(font->ttf_font, *c, { 255, 255, 255, 255 });
+                        SDL_SetSurfaceBlendMode(glyphBody, SDL_BLENDMODE_BLEND);
+
+                        // DEBUG: This shows outline color aliasing.. meh how to get rid of it?
+                        //SDL_SetSurfaceBlendMode(glyphBody, SDL_BLENDMODE_MUL);
+
+                        rect glyphRect{};
+                        glyphRect.x = gc->cursor.x;
+                        glyphRect.y = gc->cursor.y;
+                        glyphRect.w = MAX(glyphOutline->w + fabs(font->outlineOffset.x), glyphBody->w);
+                        glyphRect.h = MAX(glyphOutline->h + fabs(font->outlineOffset.h), glyphBody->h);
+
+                        float neededWidth = gc->cursor.x + glyphRect.w + gc->padding;
+                        float neededHeight = gc->cursor.y + glyphRect.h + gc->padding;
 
                         if (!gc->atlasSurface) {
                             // Create new surface
                             gc->atlasSurface = SDL_CreateRGBSurfaceWithFormat(
                                 0,
-                                (int)gc->minSize.w,
-                                (int)gc->minSize.h,
+                                MAX((int)gc->minSize.w, neededWidth),
+                                MAX((int)gc->minSize.h, neededHeight),
                                 32,
                                 SDL_PIXELFORMAT_BGRA32
                             );
                             SDL_SetSurfaceBlendMode(gc->atlasSurface, SDL_BLENDMODE_NONE);
-                        } else if (gc->cursor.x + glyphOutline->w + gc->padding > gc->atlasSurface->w) {
+                        }
+
+                        if (neededWidth > gc->atlasSurface->w) {
                             // line filled, go to next line
                             gc->cursor.x = gc->padding;
                             gc->cursor.y += gc->lineHeight + gc->padding;
@@ -260,17 +274,14 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                         }
 
                         // NOTE: This could also happen in the middle of a line for taller characters
-                        float neededHeight = gc->cursor.y + glyphOutline->h + gc->padding;
-                        if (neededHeight > gc->atlasSurface->h) {
+                        if (neededWidth > gc->atlasSurface->w || neededHeight > gc->atlasSurface->h) {
                             // Resize existing surface
-                            float newHeight = MAX(
-                                gc->atlasSurface->h * gc->growthFactor,
-                                neededHeight
-                            );
+                            float newWidth  = MAX(gc->atlasSurface->w, neededWidth);
+                            float newHeight = MAX(gc->atlasSurface->h * gc->growthFactor, neededHeight);
+
                             SDL_Surface *newSurface = SDL_CreateRGBSurfaceWithFormat(
                                 0,
-                                (int)(gc->atlasSurface->w),
-                                (int)newHeight,
+                                newWidth, newHeight,
                                 32,
                                 SDL_PIXELFORMAT_BGRA32
                             );
@@ -286,36 +297,38 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                             );
                             SDL_FreeSurface(gc->atlasSurface);
                             gc->atlasSurface = newSurface;
+                            //SDL_SetSurfaceBlendMode(gc->atlasSurface, SDL_BLENDMODE_BLEND);
                         }
 
-                        rect dstRect{};
-                        dstRect.x = gc->cursor.x;
-                        dstRect.y = gc->cursor.y;
-                        dstRect.w = glyphOutline->w;
-                        dstRect.h = glyphOutline->h;
-
-                        gc->rects[*c] = dstRect;
                         // TODO: Padding?
-                        gc->cursor.x += glyphOutline->w + gc->padding;
-                        gc->lineHeight = MAX(gc->lineHeight, glyphOutline->h);
+                        gc->cursor.x += glyphRect.w + gc->padding;
+                        gc->lineHeight = MAX(gc->lineHeight, glyphRect.h);
 
                         // WE HAVE: 377888772 = SDL_PIXELFORMAT_BGRA8888 = SDL_PIXELFORMAT_ARGB32
                         // WE WANT: 372645892 = SDL_PIXELFORMAT_ARGB8888 = SDL_PIXELFORMAT_BGRA32
 
-                        SDL_Rect fuckSDLdst = { (int)dstRect.x, (int)dstRect.y, (int)dstRect.w, (int)dstRect.h };
-                        if (SDL_BlitSurface(glyphOutline, 0, gc->atlasSurface, &fuckSDLdst) < 0) {
-                            SDL_LogError(0, "Blit failed :(");
-                        }
-                        fuckSDLdst.x += font->outline - font->outlineOffset.x;
-                        fuckSDLdst.y += font->outline - font->outlineOffset.y;
-                        if (SDL_BlitSurface(glyph, 0, gc->atlasSurface, &fuckSDLdst) < 0) {
-                            SDL_LogError(0, "Blit failed :(");
+                        SDL_Rect sdlDstGlyphOutline = { (int)glyphRect.x, (int)glyphRect.y, (int)glyphRect.w, (int)glyphRect.h };
+                        sdlDstGlyphOutline.x += font->outlineOffset.x;
+                        sdlDstGlyphOutline.y += font->outlineOffset.y;
+                        if (SDL_BlitSurface(glyphOutline, 0, gc->atlasSurface, &sdlDstGlyphOutline) < 0) {
+                            SDL_LogError(0, "Blit failed: %s", SDL_GetError());
                         }
 
-                        SDL_FreeSurface(glyph);
+                        SDL_Rect sdlDstGlyphBody = { (int)glyphRect.x, (int)glyphRect.y, (int)glyphRect.w, (int)glyphRect.h };
+                        sdlDstGlyphBody.x += font->outline;
+                        sdlDstGlyphBody.y += font->outline;
+                        if (SDL_BlitSurface(glyphBody, 0, gc->atlasSurface, &sdlDstGlyphBody) < 0) {
+                            SDL_LogError(0, "Blit failed: %s", SDL_GetError());
+                        }
+
+                        gc->rects[*c] = glyphRect;
+
                         SDL_FreeSurface(glyphOutline);
-                        glyph = 0;
+                        SDL_FreeSurface(glyphBody);
                         glyphOutline = 0;
+                        glyphBody = 0;
+
+                        printf("%c ", *c);
                     }
                 }
 
