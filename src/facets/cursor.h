@@ -8,8 +8,9 @@ struct Cursor : public Facet {
     bool   leftButtonQuickClick  {};
     double rightButtonDownAt     {};
     double rightButtonQuickClick {};
+    vec2   dragBeginPos          {};  // screen pos of cursor when drag began
     UID    uidDragSubject        {};  // UID of entity being dragged by this cursor, if any
-    vec2   dragOffset            {};  // offset of where entity was clicked on dragBegin
+    vec2   dragSubjectOffset     {};  // offset of where entity was clicked on dragBegin
     double quickClickMaxDt       {};  // max dt in seconds for click to be considered "quick"
     //// TODO: CameraSystem should probably populate this?
     //bool  worldActive {};  // if false, world position is undefined

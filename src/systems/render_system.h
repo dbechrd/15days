@@ -14,6 +14,8 @@ struct RenderSystem {
 
     UID LoadTexture_BMP(Depot &depot, const char *filename);
 
+    SDL_Window *Window(void) { return window; }
+
     bool Running(void);
     void Clear(vec4 color);
     void Shake(Depot &depot, float amount, float freq, double duration);
@@ -25,11 +27,11 @@ struct RenderSystem {
 
     void InitTexture(Texture &texture, const char *filename);
 private:
-    bool          vsync       {FDOV_VSYNC};
-    bool          running     {false};
-    int           dbgFontIdx  {0};
-    SDL_Window   *window      {};
-    SDL_Renderer *renderer    {};
+    bool          vsync          {FDOV_VSYNC};
+    bool          running        {false};
+    int           dbgFontIdx     {0};
+    SDL_Window   *window         {};
+    SDL_Renderer *renderer       {};
     double        shakeStartedAt {};
     double        shakeDuration  {};
     float         shakeAmount    {};

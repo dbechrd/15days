@@ -12,7 +12,7 @@ enum MsgType {
     MsgType_Card_Notify_DragBegin,
     MsgType_Card_Notify_DragUpdate,
     MsgType_Card_Notify_DragEnd,
-    MsgType_Card_Notify_LeftQuickClick,
+    MsgType_Card_Notify_LeftClick,
     MsgType_Card_Spawn,
 
     MsgType_Combat_Primary,
@@ -60,6 +60,10 @@ enum MsgType {
 
 struct Msg_Audio_PlaySound {
     bool override {};
+};
+
+struct Msg_Card_Notify_DragEnd {
+    vec2 dragDelta {};  // delta pos of mouse compared to where drag was started
 };
 
 struct Msg_Combat_Primary {
@@ -119,6 +123,7 @@ struct Message {
     MsgType type {};
     union {
         Msg_Audio_PlaySound audio_playsound;
+        Msg_Card_Notify_DragEnd card_dragend;
         Msg_Combat_Notify_AttackBegin combat_attackbegin;
         Msg_Combat_Notify_DefendBegin combat_defendbegin;
         Msg_FpsCounter_Notify_Update fpscounter_notify_update;

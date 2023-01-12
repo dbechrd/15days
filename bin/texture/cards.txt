@@ -1,0 +1,16 @@
+type spritesheet
+image texture/cards.bmp
+cells 10
+cell_width 100
+cell_height 150
+anims 10
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1
+anim_frames 1

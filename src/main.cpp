@@ -87,25 +87,42 @@ UID create_narrator(Depot &depot, UID subject)
     UID uidNarrator = depot.Alloc("narrator");
 
     Position *position = (Position *)depot.AddFacet(uidNarrator, Facet_Position);
-    //int windowW = 0, windowH = 0;
-    //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
-    //position->pos.x = windowW / 2.0f;
-    //position->pos.y = 200.0f;
-    position->pos.x = 10.0f;
-    position->pos.y = 4.0f;
+    int windowWidth = 0, windowHeight = 0;
+    SDL_GetWindowSize(depot.renderSystem.Window(), &windowWidth, &windowHeight);
+    position->pos.x = windowWidth / 2.0f;
+    position->pos.y = 200.0f;
+
+    Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
+    if (campPos) {
+        position->pos.x = campPos->pos.x - 100.0f;
+        position->pos.y = campPos->pos.y - 100.0f;
+    }
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
+#if 0
     text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
     text->str = "15 Days";
+#endif
+#if 0
+    position->pos.x = 10.0f;
+    position->pos.y = 4.0f;
+    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
     text->str =
-        C_RED     "Red "
-        C_GREEN   "Green "
-        C_BLUE    "Blue "
-        C_CYAN    "Cyan "
-        C_MAGENTA "Magenta "
-        C_YELLOW  "Yellow "
-        C_WHITE   "White"
-    ;
+        C_RED     "Red"
+        C_GREEN   " Green"
+        C_BLUE    " Blue"
+        C_CYAN    " Cyan"
+        C_MAGENTA " Magenta"
+        C_YELLOW  " Yellow"
+        C_WHITE   " White";
+#endif
+#if 1
+    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 20);
+    text->str = "The" C_GREEN " camp" C_WHITE " is your home.\n"
+        "Your adventure starts here.\n"
+        C_RED "+10 health" C_WHITE " while in camp.";
+#endif
+
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_RED);
 
@@ -453,6 +470,7 @@ void create_cards(Depot &depot)
     UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, 0);
     UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, 1);
     UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, 3);
+    UID uidCampProto = depot.cardSystem.PrototypeCard(depot, "Camp", 0, 0, uidCardSheet, 4);
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
     depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
@@ -463,9 +481,14 @@ void create_cards(Depot &depot)
     depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, uidCardSheet, 2);
 
     // Cards
-    depot.cardSystem.SpawnCard(depot, uidLighterProto, { 700, 300, 0 });
-    depot.cardSystem.SpawnCard(depot, uidBucketProto, { 800, 300, 0 });
-    depot.cardSystem.SpawnCard(depot, uidBombProto, { 900, 300, 0 });
+    UNUSED(uidLighterProto);
+    UNUSED(uidBucketProto);
+    UNUSED(uidBombProto);
+    UNUSED(uidCampProto);
+    //depot.cardSystem.SpawnCard(depot, uidLighterProto, { 700, 300, 0 });
+    //depot.cardSystem.SpawnCard(depot, uidBucketProto, { 800, 300, 0 });
+    //depot.cardSystem.SpawnCard(depot, uidBombProto, { 900, 300, 0 });
+    depot.cardSystem.SpawnCard(depot, uidCampProto, { 900, 300, 0 });
 
     // TODO:
     // type_a  ,  type_b      , action
@@ -557,9 +580,9 @@ int main(int argc, char *argv[])
 
     create_global_keymap(depot);
     create_cursor(depot);
-    create_player(depot);
     create_fps_counter(depot);
     create_cards(depot);
+    create_player(depot);
 
     // Run the game
     depot.TransitionTo(GameState_Play);

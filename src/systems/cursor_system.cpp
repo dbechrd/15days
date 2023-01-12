@@ -99,13 +99,21 @@ DragTarget GetDragTarget(Depot &depot, UID cursor, const CollisionList &collisio
 void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisionList)
 {
     for (Cursor &cursor : depot.cursor) {
+        Position *cursorPos = (Position *)depot.GetFacet(cursor.uid, Facet_Position);
+        DLB_ASSERT(cursorPos);
+        if (!cursorPos) {
+            printf("WARN: Can't update a cursor with no position");
+            continue;
+        }
+
         if (cursor.leftButtonDownAt) {
             // Check if there's something to start dragging
             if (!cursor.uidDragSubject) {
                 DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
                 if (dragTarget.uid) {
+                    cursor.dragBeginPos = { cursorPos->pos.x, cursorPos->pos.y };
                     cursor.uidDragSubject = dragTarget.uid;
-                    cursor.dragOffset = dragTarget.offset;
+                    cursor.dragSubjectOffset = dragTarget.offset;
 
                     Message dragBegin{};
                     dragBegin.type = MsgType_Card_Notify_DragBegin;
@@ -116,18 +124,11 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
 
             // Update drag subject's position
             if (cursor.uidDragSubject) {
-                Position *cursorPos = (Position *)depot.GetFacet(cursor.uid, Facet_Position);
-                DLB_ASSERT(cursorPos);
-                if (!cursorPos) {
-                    printf("WARN: Can't update a cursor with no position");
-                    continue;
-                }
-
                 Position *subjectPos = (Position *)depot.GetFacet(cursor.uidDragSubject, Facet_Position);
                 if (subjectPos) {
                     // TODO: ApplyImpulse instead for smoother following?
-                    subjectPos->pos.x = (float)cursorPos->pos.x - cursor.dragOffset.x;
-                    subjectPos->pos.y = (float)cursorPos->pos.y - cursor.dragOffset.y;
+                    subjectPos->pos.x = (float)cursorPos->pos.x - cursor.dragSubjectOffset.x;
+                    subjectPos->pos.y = (float)cursorPos->pos.y - cursor.dragSubjectOffset.y;
 
                     Message dragUpdate{};
                     dragUpdate.type = MsgType_Card_Notify_DragUpdate;
@@ -142,40 +143,34 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
                 } else {
                     // Whatever we were dragging has disappeared, reset drag state
                     cursor.uidDragSubject = 0;
-                    cursor.dragOffset = {};
+                    cursor.dragSubjectOffset = {};
                 }
             }
         } else if (cursor.uidDragSubject) {
+            vec2 dragDelta{
+                cursorPos->pos.x - cursor.dragBeginPos.x,
+                cursorPos->pos.y - cursor.dragBeginPos.y
+            };
+
             Message dragEnd{};
             dragEnd.type = MsgType_Card_Notify_DragEnd;
             dragEnd.uid = cursor.uidDragSubject;
+            dragEnd.data.card_dragend.dragDelta.x = dragDelta.x;
+            dragEnd.data.card_dragend.dragDelta.x = dragDelta.y;
             depot.msgQueue.push_back(dragEnd);
 
-            // Button no longer held down, reset drag state
-            cursor.uidDragSubject = 0;
-            cursor.dragOffset = {};
-        }
+            float tinyDrag = 5.0f;  // ignore tiny accidental drags
+            if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
+                Message quickClick{};
+                quickClick.type = MsgType_Card_Notify_LeftClick;
+                quickClick.uid = cursor.uidDragSubject;
+                depot.msgQueue.push_back(quickClick);
+            }
 
-#if 0
-        if (!cursor.leftButton && cursor.rightButton) {
-            DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
-            if (dragTarget.uid) {
-                Message rightClick{};
-                rightClick.type = MsgType_Card_Notify_RightClick;
-                rightClick.uid = dragTarget.uid;
-                depot.msgQueue.push_back(rightClick);
-            }
+            // Button no longer held down, reset drag state
+            cursor.dragBeginPos = {};
+            cursor.uidDragSubject = 0;
+            cursor.dragSubjectOffset = {};
         }
-#else
-        if (cursor.leftButtonQuickClick) {
-            DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
-            if (dragTarget.uid) {
-                Message rightClick{};
-                rightClick.type = MsgType_Card_Notify_LeftQuickClick;
-                rightClick.uid = dragTarget.uid;
-                depot.msgQueue.push_back(rightClick);
-            }
-        }
-#endif
     }
 }

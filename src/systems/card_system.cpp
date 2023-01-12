@@ -69,7 +69,7 @@ UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, int animation
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidDeck, Facet_TriggerList, false);
 
     Trigger deckDrawTrigger{};
-    deckDrawTrigger.trigger = MsgType_Card_Notify_LeftQuickClick;
+    deckDrawTrigger.trigger = MsgType_Card_Notify_LeftClick;
     deckDrawTrigger.message.uid = uidDeck;
     deckDrawTrigger.message.type = MsgType_Card_Spawn;
     triggerList->triggers.push_back(deckDrawTrigger);
@@ -456,6 +456,10 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
     }
 
     std::sort(drawQueue.begin(), drawQueue.end());
+
+
+
+
 
     // HACK(dlb): Don't put dis here u dummy, it's the player, not a card
     // NOTE(guy): Okay boomer, but why even have a player in a card game?

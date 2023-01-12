@@ -26,7 +26,7 @@ UID TextSystem::LoadFont(Depot &depot, const char *filename, int ptsize)
         font->outlineOffset.y += 1;
     }
 #else
-    font->outline = 2;
+    font->outline = 1;
     font->outlineOffset = { 0 };
 #endif
     font->ttf_font = TTF_OpenFont(filename, ptsize);
