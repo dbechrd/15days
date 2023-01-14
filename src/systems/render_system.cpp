@@ -1,6 +1,26 @@
 #include "render_system.h"
 #include "../facets/depot.h"
 
+void RenderSystem::InitTexture(Texture &texture, const char *filename)
+{
+    SDL_Surface *surface = SDL_LoadBMP(filename);
+    if (!surface) {
+        static SDL_Surface *pinkSquare{};
+        if (!pinkSquare) {
+            pinkSquare = SDL_CreateRGBSurface(0, 16, 16, 32, 0, 0, 0, 0);
+            SDL_FillRect(pinkSquare, 0, 0xFFFF00FF);
+        }
+        surface = pinkSquare;
+        filename = "FILE_FAILED_TO_LOAD_PINK_SQUARE";
+        printf("Failed to load texture: %s\n  %s\n", filename, SDL_GetError());
+    }
+
+    texture.filename = filename;
+    texture.size = { (float)surface->w, (float)surface->h };
+    texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+}
+
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
 {
 #if FDOV_VSYNC
@@ -482,17 +502,4 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 void RenderSystem::Present(void)
 {
     SDL_RenderPresent(renderer);
-}
-
-void RenderSystem::InitTexture(Texture &texture, const char *filename)
-{
-    SDL_Surface *surface = SDL_LoadBMP(filename);
-    if (surface) {
-        texture.filename = filename;
-        texture.size = { (float)surface->w, (float)surface->h };
-        texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);
-    } else {
-        printf("Failed to load texture: %s\n  %s\n", filename, SDL_GetError());
-    }
 }

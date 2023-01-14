@@ -8,6 +8,8 @@ struct SDL_Window;
 struct SDL_Renderer;
 
 struct RenderSystem {
+    void InitTexture(Texture &texture, const char *filename);
+
     FDOVResult Init(const char *title, int width, int height);
     void DestroyDepot(Depot &depot);
     void Destroy();
@@ -25,7 +27,6 @@ struct RenderSystem {
     void Flush(Depot &depot, DrawQueue &drawQueue);
     void Present(void);
 
-    void InitTexture(Texture &texture, const char *filename);
 private:
     bool          vsync          {FDOV_VSYNC};
     bool          running        {false};

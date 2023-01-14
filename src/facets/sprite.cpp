@@ -39,9 +39,9 @@ void Sprite::UpdateRect(Depot &depot)
 
     ///////////////////////////////////////////////////////////////////////////
 
-    Texture *texture = (Texture *)depot.GetFacet(sheet->uid, Facet_Texture);
+    Texture *texture = (Texture *)depot.GetFacet(sheet->texture, Facet_Texture);
     if (!texture) {
-        SDL_LogError(0, "ERROR: Can't update sprite rect when spritesheet has no texture");
+        SDL_LogError(0, "Can't update sprite rect when spritesheet has no texture");
         return;
     }
 

@@ -5,5 +5,5 @@
 
 struct EventSystemSDL {
     // TODO: This should take windowEventQueue, textInputQueue, etc. perhaps
-    void ProcessEvents(InputQueue &inputQueue, MsgQueue &msgQueue);
+    void ProcessEvents(InputQueue &inputQueue);
 };

@@ -45,23 +45,305 @@ UID create_cursor(Depot &depot)
     return uidCursor;
 }
 
-UID card_spritesheet(Depot &depot)
+struct Slice {
+    const char * data   {};  // nil terminated, read-only
+    size_t       length {};
+};
+
+struct Parser {
+    enum Error {
+        E_SUCCESS,         // no error
+        E_EOF,             // reached EOF prematurely
+        E_UNEXPECTED_CHAR, // unexpected character encountered
+    };
+
+    Slice  buffer {};  // i like pizza
+    size_t cursor {};  // offset of next byte to read
+
+    // DEBUG INFO
+    const char *filename {};
+    size_t      line     {};
+    size_t      column   {};
+
+    Parser(const char *filename) : filename(filename) {};
+
+    void PrintError(const char *fmt, ...)
+    {
+        printf("[%s:%zu:%zu] ", filename, line, column);
+
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(stdout, fmt, args);
+        va_end(args);
+    }
+
+    bool Eof(void)
+    {
+        return cursor == buffer.length;
+    }
+
+    Error Peek(char &c)
+    {
+        if (Eof()) return E_EOF;
+
+        c = buffer.data[cursor];
+        return E_SUCCESS;
+    }
+
+    Error IgnoreComment(void)
+    {
+        char c{};
+        Error err = ExpectChar('#');
+        if (err) return err;
+
+        err = Peek(c);
+        while (!err && c != '\n') {
+            ReadChar(c);
+            err = Peek(c);
+        }
+
+        return err;
+    }
+
+    Error IgnoreWhitespace(bool andNewlines = false)
+    {
+        char c{};
+        Error err = Peek(c);
+        bool done = false;
+        while (!err && !done) {
+            switch (c) {
+                case ' ': {
+                    ReadChar(c);
+                    break;
+                }
+                case '#': {
+                    IgnoreComment();
+                    break;
+                }
+                case '\r': {
+                    ReadChar(c);
+                    break;
+                }
+                case '\n': {
+                    if (andNewlines) {
+                        ReadChar(c);
+                    } else {
+                        done = true;
+                    }
+                    break;
+                }
+                default: {
+                    done = true;
+                    break;
+                }
+            }
+            err = Peek(c);
+        }
+
+        return E_SUCCESS;
+    }
+
+    Error ReadChar(char &c)
+    {
+        if (Eof()) return E_EOF;
+
+        c = buffer.data[cursor];
+        column++;
+        if (c == '\n') {
+            line++;
+            column = 0;
+        }
+
+        cursor++;
+        return E_SUCCESS;
+    }
+
+    Error ExpectChar(char c)
+    {
+        char found{};
+        Error err = Peek(found);
+        if (err) return err;
+
+        if (found != c) {
+            if (SDL_isprint(found)) {
+                PrintError("Expected '%c' found '%c' instead.\n", c, found);
+            } else {
+                PrintError("Expected '%c' found '%02x' instead.\n", c, found);
+            }
+            return E_UNEXPECTED_CHAR;
+        }
+
+        return E_SUCCESS;
+    }
+
+    Error ExpectString(const char *str, size_t length)
+    {
+        Error err{};
+
+        size_t offset = 0;
+        while (offset < length) {
+            char c{};
+            err = ReadChar(c);
+            if (err || c != str[offset]) {
+                break;
+            }
+            offset++;
+        }
+
+        if (offset < length) {
+            // If fails really early, get some more context if available
+            size_t contextLen = MAX(10, offset);
+            if (cursor + contextLen > buffer.length) {
+                contextLen = buffer.length - cursor;
+            }
+
+            // Don't print non-printable characters in context
+            for (int i = 0; i < contextLen; i++) {
+                if (!SDL_isprint(buffer.data[cursor + i])) {
+                    contextLen = i;
+                    break;
+                }
+            }
+
+            PrintError("Expected '%.*s' found '%.*s' instead.\n",
+                (int)length, str,
+                (int)contextLen, buffer.data + cursor
+            );
+            return E_UNEXPECTED_CHAR;
+        }
+
+        err = IgnoreWhitespace();
+        return err;
+    }
+
+    Error ParseString(Slice &slice)
+    {
+        slice.data = buffer.data + cursor;
+        char c{};
+        while (Peek(c) == E_SUCCESS) {
+            if (!SDL_isgraph(buffer.data[cursor])) {
+                if (!SDL_isspace(buffer.data[cursor])) {
+                    PrintError("Expected printable character, found '%02x' instead.\n", c);
+                }
+                break;
+            }
+
+            ReadChar(c);
+            slice.length++;
+        }
+
+        if (!slice.length) {
+            slice.data = 0;
+            return E_UNEXPECTED_CHAR;
+        }
+
+        return IgnoreWhitespace();
+    }
+
+    Error ParsePositiveInteger(Slice &slice)
+    {
+        slice.data = buffer.data + cursor;
+        char c{};
+        while (Peek(c) == E_SUCCESS) {
+            if (!SDL_isdigit(buffer.data[cursor])) {
+                if (!SDL_isspace(buffer.data[cursor])) {
+                    PrintError("Expected printable character, found '%02x' instead.\n", c);
+                }
+                break;
+            }
+
+            ReadChar(c);
+            slice.length++;
+        }
+
+        if (!slice.length) {
+            slice.data = 0;
+            return E_UNEXPECTED_CHAR;
+        }
+
+        return IgnoreWhitespace();
+    }
+};
+
+Parser::Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResult)
 {
-    const char *filename = "texture/cards.bmp";
+    Parser parser{ filename };
+    parser.buffer.data = (const char *)SDL_LoadFile(filename, &parser.buffer.length);
+
+    Parser::Error err{};
+    err = parser.IgnoreWhitespace(true);                if (err) return err;
+
+    err = parser.ExpectString(CSTR("15dy"));            if (err) return err;
+    err = parser.ExpectChar('\n');                      if (err) return err;
+    err = parser.IgnoreWhitespace(true);                if (err) return err;
+
+    err = parser.ExpectString(CSTR("type"));            if (err) return err;
+    err = parser.ExpectString(CSTR("spritesheet"));     if (err) return err;
+    err = parser.ExpectChar('\n');                      if (err) return err;
+    err = parser.IgnoreWhitespace(true);                if (err) return err;
+
+    uidResult = depot.Alloc(filename);
+    Spritesheet *sheet = (Spritesheet *)depot.AddFacet(uidResult, Facet_Spritesheet);
+
+    err = parser.ExpectString(CSTR("image"));           if (err) return err;
+    Slice strImagePath{};
+    err = parser.ParseString(strImagePath);             if (err) return err;
+    err = parser.ExpectChar('\n');                      if (err) return err;
+    err = parser.IgnoreWhitespace(true);                if (err) return err;
+
+    // HACK: Garbage std::string stuff.. be smarter here later
+    sheet->texture = depot.renderSystem.LoadTexture_BMP(depot,
+        std::string(strImagePath.data, strImagePath.length).c_str());
+
+    err = parser.ExpectString(CSTR("cells"));           if (err) return err;
+    Slice strCellCount{};
+    err = parser.ParsePositiveInteger(strCellCount);    if (err) return err;
+    Slice strCellWidth{};
+    err = parser.ParsePositiveInteger(strCellWidth);    if (err) return err;
+    Slice strCellHeight{};
+    err = parser.ParsePositiveInteger(strCellHeight);   if (err) return err;
+    err = parser.ExpectChar('\n');                      if (err) return err;
+    err = parser.IgnoreWhitespace(true);                if (err) return err;
+
+    // TODO: Validation, remove std::string hax, etc.
+    sheet->cells = (int)atol(std::string(strCellCount.data, strCellCount.length).c_str());
+    sheet->cellSize.x = (int)atol(std::string(strCellWidth.data, strCellWidth.length).c_str());
+    sheet->cellSize.y = (int)atol(std::string(strCellHeight.data, strCellHeight.length).c_str());
+
+    //sheet->cells = 10;
+    //sheet->cellSize = { 100, 150 };
+
+    for (int i = 0; i < sheet->cells; i++) {
+#if 0
+        // TODO: Read anim lines here
+#else
+        sheet->animations.push_back({ i, 1 });
+#endif
+    }
+
+    SDL_free((void *)parser.buffer.data);
+
+    // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
+    // return values in functions meant to return things, all sorts of nonsensical
+    // bullshit occurs.
+    return Parser::E_SUCCESS;
+}
+
+UID load_spritesheet(Depot &depot, const char *filename)
+{
     // Check if already loaded
     Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(filename, Facet_Spritesheet);
     if (existingSheet) {
         return existingSheet->uid;
     }
 
-    UID uidSheetCards = depot.renderSystem.LoadTexture_BMP(depot, filename);
-    Spritesheet *sheetCards = (Spritesheet *)depot.AddFacet(uidSheetCards, Facet_Spritesheet);
-    sheetCards->cells = 10;
-    sheetCards->cellSize = { 100, 150 };
-    for (int i = 0; i < sheetCards->cells; i++) {
-        sheetCards->animations.push_back({ i, 1 });
+    UID uidSpritesheet{};
+    Parser::Error err = parse_spritesheet(depot, filename, uidSpritesheet);
+    if (err) {
+        printf("Failed to load spritesheet '%s' :(\n", filename);
+        uidSpritesheet = 0;
     }
-    return uidSheetCards;
+    return uidSpritesheet;
 }
 
 UID campfire_spritesheet(Depot &depot)
@@ -73,12 +355,15 @@ UID campfire_spritesheet(Depot &depot)
         return existingSheet->uid;
     }
 
-    UID uidSheetCampfire = depot.renderSystem.LoadTexture_BMP(depot, filename);
+    UID uidSheetCampfire = depot.Alloc(filename, false);
     Spritesheet *sheetCampfire = (Spritesheet *)depot.AddFacet(uidSheetCampfire, Facet_Spritesheet);
     sheetCampfire->cells = 9;
     sheetCampfire->cellSize = { 100, 150 };
     sheetCampfire->animations.push_back({ 0, 1 });
     sheetCampfire->animations.push_back({ 1, 8 });
+
+    sheetCampfire->texture = depot.renderSystem.LoadTexture_BMP(depot, filename);
+
     return uidSheetCampfire;
 }
 
@@ -227,7 +512,8 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
 
 UID create_player(Depot &depot)
 {
-    UID uidSpritesheet = depot.renderSystem.LoadTexture_BMP(depot, "texture/player.bmp");
+    const char *spritesheetFilename = "texture/player.bmp";
+    UID uidSpritesheet = depot.Alloc(spritesheetFilename, false);
     Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheet, Facet_Spritesheet);
     spritesheet->cells = 1;
     spritesheet->cellSize = { 70, 140 };
@@ -235,6 +521,7 @@ UID create_player(Depot &depot)
     animation.start = 0;
     animation.count = 1;
     spritesheet->animations.push_back(animation);
+    spritesheet->texture = depot.renderSystem.LoadTexture_BMP(depot, "texture/player.bmp");
 
     UID uidPlayer = depot.Alloc("player");
 
@@ -448,7 +735,7 @@ void add_flag_to_material_proto(Depot &depot, UID uidMaterialProto, MaterialFlag
 
 void create_cards(Depot &depot)
 {
-    UID uidCardSheet = card_spritesheet(depot);
+    UID uidCardSheet = load_spritesheet(depot, "spritesheet/cards.txt");
     UID uidCampfireSheet = campfire_spritesheet(depot);
 
     // Effects

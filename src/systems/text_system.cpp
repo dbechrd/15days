@@ -62,7 +62,7 @@ void TextSystem::React(Depot &depot)
 
 void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
-    static bool debugKern = true;
+    static bool debugKern = false;
 
     for (Text &text : depot.text) {
         if (!text.str) {

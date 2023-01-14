@@ -7,6 +7,7 @@ struct SpriteSystem {
     // TODO: I feel like someone else maybe should own this, but idk yet
     static void InitSprite(Depot &depot, Sprite &sprite, vec4 color, UID uidSpritesheet);
 
+    void React(Depot &depot);
     void Update(Depot &depot);
 
 private:

@@ -212,9 +212,22 @@ void Depot::Run(void)
         cursorSystem.UpdateCursors(*this);
         histogramSystem.Update(*this);
 
+        // TODO: Think about pub-sub as a better form of message bus than this
+        // MsgQueue thing that gets read/written everywhere.
+
+        // TODO: If something has a side effect, defer it when possible by
+        // adding it to its own dedicated queue as oppposed to mixing
+        // everything into One Big Queue (TM). E.g. collisionList essentially
+        // does this right now, but has a lot of O(n) iterations that we could
+        // maybe remove.
+
         {
+            // TODO: Stop using a queue for this, just capture state of every
+            // key / mouse / quit request into a map (handle instantaneous
+            // down/up events properly, they should report down for 1 frame).
+
             // Collect SDL events into the appropriate queues
-            eventSystemSDL.ProcessEvents(inputQueue, msgQueue);
+            eventSystemSDL.ProcessEvents(inputQueue);
 
             // TODO(dlb): Top-down stack order (e.g. menu handles input before game
             // when open, and marks all inputs as handled to prevent it from leaking
@@ -233,21 +246,25 @@ void Depot::Run(void)
         }
 
         collisionSystem.DetectCollisions(*this, collisionList);
-        cursorSystem.UpdateDragTargets(*this, collisionList);
-        cardSystem.UpdateCards(*this);
+
+        cursorSystem.UpdateDragTargets(*this, collisionList);  // gen: card_dragbegin, card_dragupdate, card_leftclick
+
+        // Update cards based on their parent positions
+        cardSystem.UpdateCards(*this);                         // gen: sprite_updateanim, card_dragend (hack for first bounce)
         cardSystem.UpdateStacks(*this, collisionList);
         effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
-        triggerSystem.React(*this);   // reacts to *        generates *
+        triggerSystem.React(*this);   // reacts to *, generates *
 
         // Pure message reactors (do not modify msgQueue here!)
         cardSystem.React(*this);      // reacts to Card
-        spriteSystem.Update(*this);   // reacts to Sprite
+        spriteSystem.React(*this);    // reacts to Sprite
         audioSystem.React(*this);     // reacts to Audio
         textSystem.React(*this);      // reacts to Text
         renderSystem.React(*this);    // reacts to Render
 
+        spriteSystem.Update(*this);
         renderSystem.UpdateCachedTextures(*this);
 
         // Populate draw queue(s)

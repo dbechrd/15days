@@ -47,7 +47,8 @@ struct Animation {
 };
 
 struct Spritesheet : public Facet {
-    vec2 cellSize {};
+    UID  texture  {};
     int  cells    {};
+    vec2 cellSize {};
     std::vector<Animation> animations {};
 };

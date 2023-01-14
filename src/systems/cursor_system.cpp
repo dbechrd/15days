@@ -106,6 +106,7 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             continue;
         }
 
+        // Update uid drag subject
         if (cursor.leftButtonDownAt) {
             // Check if there's something to start dragging
             if (!cursor.uidDragSubject) {
@@ -121,31 +122,6 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
                     depot.msgQueue.push_back(dragBegin);
                 }
             }
-
-            // Update drag subject's position
-            if (cursor.uidDragSubject) {
-                Position *subjectPos = (Position *)depot.GetFacet(cursor.uidDragSubject, Facet_Position);
-                if (subjectPos) {
-                    // TODO: ApplyImpulse instead for smoother following?
-                    subjectPos->pos.x = (float)cursorPos->pos.x - cursor.dragSubjectOffset.x;
-                    subjectPos->pos.y = (float)cursorPos->pos.y - cursor.dragSubjectOffset.y;
-
-                    Message dragUpdate{};
-                    dragUpdate.type = MsgType_Card_Notify_DragUpdate;
-                    dragUpdate.uid = cursor.uidDragSubject;
-                    depot.msgQueue.push_back(dragUpdate);
-
-                    // TODO: This should probably generate a message instead..
-                    //Message applyImpulse{};
-                    //applyImpulse.type = MsgType_Physics_ApplyImpulse;
-                    //applyImpulse.uid = cursor->uidDragSubject;
-                    //depot.msgQueue.push_back(applyImpulse);
-                } else {
-                    // Whatever we were dragging has disappeared, reset drag state
-                    cursor.uidDragSubject = 0;
-                    cursor.dragSubjectOffset = {};
-                }
-            }
         } else if (cursor.uidDragSubject) {
             vec2 dragDelta{
                 cursorPos->pos.x - cursor.dragBeginPos.x,
@@ -159,18 +135,47 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             dragEnd.data.card_dragend.dragDelta.x = dragDelta.y;
             depot.msgQueue.push_back(dragEnd);
 
-            float tinyDrag = 5.0f;  // ignore tiny accidental drags
+            Message msgTryStack{};
+            msgTryStack.type = MsgType_Card_TryToStack;
+            msgTryStack.uid = cursor.uidDragSubject;
+            depot.msgQueue.push_back(msgTryStack);
+
+            float tinyDrag = 5.0f;  // still process clicks after tiny, accidental drags
             if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
-                Message quickClick{};
-                quickClick.type = MsgType_Card_Notify_LeftClick;
-                quickClick.uid = cursor.uidDragSubject;
-                depot.msgQueue.push_back(quickClick);
+                Message leftClick{};
+                leftClick.type = MsgType_Card_Notify_LeftClick;
+                leftClick.uid = cursor.uidDragSubject;
+                depot.msgQueue.push_back(leftClick);
             }
 
             // Button no longer held down, reset drag state
             cursor.dragBeginPos = {};
             cursor.uidDragSubject = 0;
             cursor.dragSubjectOffset = {};
+        }
+
+        // Update drag subject's position
+        if (cursor.uidDragSubject) {
+            Position *subjectPos = (Position *)depot.GetFacet(cursor.uidDragSubject, Facet_Position);
+            if (subjectPos) {
+                Message dragUpdate{};
+                dragUpdate.type = MsgType_Card_Notify_DragUpdate;
+                dragUpdate.uid = cursor.uidDragSubject;
+                depot.msgQueue.push_back(dragUpdate);
+
+                // TODO: This should probably generate a message instead..
+                subjectPos->pos.x = (float)cursorPos->pos.x - cursor.dragSubjectOffset.x;
+                subjectPos->pos.y = (float)cursorPos->pos.y - cursor.dragSubjectOffset.y;
+
+                //Message applyImpulse{};
+                //applyImpulse.type = MsgType_Physics_ApplyImpulse;
+                //applyImpulse.uid = cursor->uidDragSubject;
+                //depot.msgQueue.push_back(applyImpulse);
+            } else {
+                // Whatever we were dragging has disappeared, reset drag state
+                cursor.uidDragSubject = 0;
+                cursor.dragSubjectOffset = {};
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ enum MsgType {
     MsgType_Card_Notify_DragEnd,
     MsgType_Card_Notify_LeftClick,
     MsgType_Card_Spawn,
+    MsgType_Card_TryToStack,
 
     MsgType_Combat_Primary,
     MsgType_Combat_Secondary,

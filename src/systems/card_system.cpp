@@ -19,6 +19,8 @@ UID CardSystem::CardDragSounds(Depot &depot)
 UID CardSystem::PrototypeCard(Depot &depot, const char *name, UID uidMaterialProto,
     UID uidEffectList, UID spritesheet, int animation)
 {
+    DLB_ASSERT(spritesheet);
+
     UID uidCardProto = depot.Alloc(name);
     CardProto *cardProto = (CardProto *)depot.AddFacet(uidCardProto, Facet_CardProto);
     cardProto->materialProto = uidMaterialProto;
@@ -215,28 +217,29 @@ void CardSystem::UpdateCards(Depot &depot)
             position->pos.z = LERP(position->pos.z, targetPos.z, lerpFac);
         }
 
-        Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
-        if (!sprite) {
-            printf("WARN: Can't update a card with no sprite");
-            continue;
-        }
-
-        CardProto *cardProto = (CardProto *)depot.GetFacet(card.cardProto, Facet_CardProto);
-        if (!cardProto) {
-            printf("WARN: Can't update a card with no card prototype");
-            continue;
-        }
-
         if (card.noClickUntil > depot.Now()) {
-            sprite->SetAnimIndex(depot, 2);  // TODO: Clean up magic number, move deck back to 0
-            //sprite->color = C255(COLOR_GRAY_5);
+            Message msgUpdateAnim{};
+            msgUpdateAnim.uid = card.uid;
+            msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
+            msgUpdateAnim.data.sprite_updateanimation.animation = 2;
+            depot.msgQueue.push_back(msgUpdateAnim);
         } else if (card.noClickUntil) {
-            sprite->SetAnimIndex(depot, cardProto->animation);
-            //sprite->color = {};
             card.noClickUntil = 0;
 
+            CardProto *cardProto = (CardProto *)depot.GetFacet(card.cardProto, Facet_CardProto);
+            if (!cardProto) {
+                printf("WARN: Can't update a card with no card prototype");
+                continue;
+            }
+
+            Message msgUpdateAnim{};
+            msgUpdateAnim.uid = card.uid;
+            msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
+            msgUpdateAnim.data.sprite_updateanimation.animation = cardProto->animation;
+            depot.msgQueue.push_back(msgUpdateAnim);
+
             Message msgTryStack{};
-            msgTryStack.type = MsgType_Card_Notify_DragEnd;
+            msgTryStack.type = MsgType_Card_TryToStack;
             msgTryStack.uid = card.uid;
             depot.msgQueue.push_back(msgTryStack);
         }
@@ -268,7 +271,7 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 card->stackParent = 0;
                 break;
             }
-            case MsgType_Card_Notify_DragEnd: {
+            case MsgType_Card_TryToStack: {
                 UID droppedCardUid = msg.uid;
                 Card *card = (Card *)depot.GetFacet(droppedCardUid, Facet_Card);
                 if (!card) {

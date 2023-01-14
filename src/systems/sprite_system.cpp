@@ -7,9 +7,8 @@ void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color, UID uidS
     sprite.SetSpritesheet(depot, uidSpritesheet);
 }
 
-void SpriteSystem::Update(Depot &depot)
+void SpriteSystem::React(Depot &depot)
 {
-    // TODO: Update sprite states based on game events (e.g. combat messages)
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
         Message msg = depot.msgQueue[i];
@@ -27,7 +26,10 @@ void SpriteSystem::Update(Depot &depot)
             default: break;
         }
     }
+}
 
+void SpriteSystem::Update(Depot &depot)
+{
     // Update animated sprites
     if (depot.Now() - lastAnimAt >= fixedAnimDt) {
         for (Sprite &sprite : depot.sprite) {
