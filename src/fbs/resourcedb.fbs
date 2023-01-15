@@ -7,7 +7,7 @@ table Animation {
 }
 
 table Spritesheet {
-    name:string;
+    name:string (key);
     texture_path:string;
     cell_count:int;
     cell_width:int;
@@ -16,7 +16,7 @@ table Spritesheet {
 }
 
 table ResourceDB {
-    name:string;
+    name:string (key);
     spritesheets:[Spritesheet];
 }
 
