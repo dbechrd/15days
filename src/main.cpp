@@ -1,6 +1,7 @@
 #include "common/basic.h"
 #include "common/message.h"
 #include "facets/depot.h"
+#include "fbg/resourcedb_generated.h"
 
 DLB_ASSERT_HANDLER(dlb_assert_callback) {
     printf("[%s:%u] %s\n", filename, line, expr);
@@ -50,13 +51,15 @@ struct Slice {
     size_t       length {};
 };
 
-struct Parser {
-    enum Error {
-        E_SUCCESS,         // no error
-        E_EOF,             // reached EOF prematurely
-        E_UNEXPECTED_CHAR, // unexpected character encountered
-    };
+enum Error {
+    E_SUCCESS,         // no error
+    E_EOF,             // reached EOF prematurely
+    E_UNEXPECTED_CHAR, // unexpected character encountered
+    E_IO_ERROR,        // failed to read/write file
+    E_VERIFY_FAILED,   // for flatbuffers
+};
 
+struct Parser {
     Slice  buffer {};  // i like pizza
     size_t cursor {};  // offset of next byte to read
 
@@ -71,7 +74,7 @@ struct Parser {
     {
         printf("[%s:%zu:%zu] ", filename, line, column);
 
-        va_list args;
+        va_list args{};
         va_start(args, fmt);
         vfprintf(stdout, fmt, args);
         va_end(args);
@@ -265,12 +268,80 @@ struct Parser {
     }
 };
 
-Parser::Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResult)
+Error make_default_resourcedb(const char *filename)
 {
+    flatbuffers::FlatBufferBuilder fbb;
+
+    std::vector<flatbuffers::Offset<DB::Animation>> anims;
+    char buf[32]{};
+    for (int i = 0; i < 10; i++) {
+        snprintf(buf, sizeof(buf), "card_%d", i);
+        anims.push_back(DB::CreateAnimationDirect(fbb, buf, i, 1));
+    }
+
+    std::vector<flatbuffers::Offset<DB::Spritesheet>> sheets;
+    sheets.push_back(DB::CreateSpritesheetDirect(fbb, "cards", "texture/cards.bmp", 10, 100, 150, &anims));
+
+    auto db = DB::CreateResourceDBDirect(fbb, "resourcedb", &sheets);
+    DB::FinishResourceDBBuffer(fbb, db);
+
+    SDL_RWops *pak = SDL_RWFromFile("db/resourcedb.fbb", "w");
+    if (!pak) {
+        return E_IO_ERROR;
+    }
+
+    size_t bytesWritten = SDL_RWwrite(pak, fbb.GetBufferPointer(), 1, fbb.GetSize());
+    if (bytesWritten < fbb.GetSize()) {
+        return E_IO_ERROR;
+    }
+
+    SDL_RWclose(pak);
+    return E_SUCCESS;
+}
+
+Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResult)
+{
+    {
+        const char *fbbFilename = "db/resourcedb.fbb";
+        size_t size{};
+        void *data = SDL_LoadFile(fbbFilename, &size);
+        if (!data) {
+            make_default_resourcedb(fbbFilename);
+            data = SDL_LoadFile(fbbFilename, &size);
+            if (!data) {
+                return E_IO_ERROR;
+            }
+        }
+
+        const DB::ResourceDB *resourceDb = DB::GetResourceDB(data);
+        flatbuffers::Verifier fbv((const u8 *)data, size);
+        if (!DB::VerifyResourceDBBuffer(fbv)) {
+            return E_VERIFY_FAILED;
+        }
+
+        printf("resdb %s\n", resourceDb->name()->c_str());
+        for (const auto &sheet : *resourceDb->spritesheets()) {
+            printf("  sheet %s has %d %dx%d cells \n",
+                sheet->name()->c_str(),
+                sheet->cell_count(),
+                sheet->cell_width(),
+                sheet->cell_height()
+            );
+            for (const auto &anim : *sheet->animations()) {
+                printf("    anim %s start %d count %d\n",
+                    anim->name()->c_str(),
+                    anim->frame_start(),
+                    anim->frame_count()
+                );
+            }
+        }
+        SDL_free(data);
+    }
+
     Parser parser{ filename };
     parser.buffer.data = (const char *)SDL_LoadFile(filename, &parser.buffer.length);
 
-    Parser::Error err{};
+    Error err{};
     err = parser.IgnoreWhitespace(true);                if (err) return err;
 
     err = parser.ExpectString(CSTR("15dy"));            if (err) return err;
@@ -326,7 +397,7 @@ Parser::Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResu
     // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
     // return values in functions meant to return things, all sorts of nonsensical
     // bullshit occurs.
-    return Parser::E_SUCCESS;
+    return E_SUCCESS;
 }
 
 UID load_spritesheet(Depot &depot, const char *filename)
@@ -338,7 +409,7 @@ UID load_spritesheet(Depot &depot, const char *filename)
     }
 
     UID uidSpritesheet{};
-    Parser::Error err = parse_spritesheet(depot, filename, uidSpritesheet);
+    Error err = parse_spritesheet(depot, filename, uidSpritesheet);
     if (err) {
         printf("Failed to load spritesheet '%s' :(\n", filename);
         uidSpritesheet = 0;

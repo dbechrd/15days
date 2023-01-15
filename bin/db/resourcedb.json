@@ -1,0 +1,63 @@
+{
+  name: "resourcedb",
+  spritesheets: [
+    {
+      name: "cards",
+      texture_path: "texture/cards.bmp",
+      cell_count: 10,
+      cell_width: 100,
+      cell_height: 150,
+      animations: [
+        {
+          name: "card_0",
+          frame_count: 1
+        },
+        {
+          name: "card_1",
+          frame_start: 1,
+          frame_count: 1
+        },
+        {
+          name: "card_2",
+          frame_start: 2,
+          frame_count: 1
+        },
+        {
+          name: "card_3",
+          frame_start: 3,
+          frame_count: 1
+        },
+        {
+          name: "card_4",
+          frame_start: 4,
+          frame_count: 1
+        },
+        {
+          name: "card_5",
+          frame_start: 5,
+          frame_count: 1
+        },
+        {
+          name: "card_6",
+          frame_start: 6,
+          frame_count: 1
+        },
+        {
+          name: "card_7",
+          frame_start: 7,
+          frame_count: 1
+        },
+        {
+          name: "card_8",
+          frame_start: 8,
+          frame_count: 1
+        },
+        {
+          name: "card_9",
+          frame_start: 9,
+          frame_count: 1
+        }
+      ]
+    }
+  ]
+}

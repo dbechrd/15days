@@ -1,0 +1,26 @@
+namespace DB;
+
+table Animation {
+    name:string (key);
+    frame_start:int;
+    frame_count:int;
+}
+
+table Spritesheet {
+    name:string (key);
+    texture_path:string;
+    cell_count:int;
+    cell_width:int;
+    cell_height:int;
+    animations:[Animation];
+}
+
+table ResourceDB {
+    name:string (key);
+    spritesheets:[Spritesheet];
+}
+
+root_type ResourceDB;
+
+file_identifier "15dy";
+file_extension "fbb";
