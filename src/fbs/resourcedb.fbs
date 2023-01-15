@@ -2,6 +2,7 @@ namespace DB;
 
 table Animation {
     name:string;
+    desc:string;
     frame_start:int;
     frame_count:int;
 }

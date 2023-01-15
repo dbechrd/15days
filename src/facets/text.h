@@ -1,14 +1,14 @@
 #pragma once
 #include "facet.h"
 
-#define C_BLACK   "`0"
-#define C_BLUE    "`1"
-#define C_GREEN   "`2"
-#define C_CYAN    "`3"
-#define C_RED     "`4"
-#define C_MAGENTA "`5"
-#define C_YELLOW  "`6"
-#define C_WHITE   "`7"
+#define C_WHITE   "`w"
+#define C_RED     "`r"
+#define C_GREEN   "`g"
+#define C_BLUE    "`b"
+#define C_CYAN    "`c"
+#define C_MAGENTA "`m"
+#define C_YELLOW  "`y"
+#define C_BLACK   "`k"
 
 enum TextAlign {
     TextAlign_VTop_HLeft,

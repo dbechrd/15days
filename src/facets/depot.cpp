@@ -32,6 +32,10 @@ UID Depot::Alloc(const char *name, bool unique)
 
 void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
 {
+    if (type == Facet_Text) {
+        printf("");
+    }
+
     void *existingFacet = GetFacet(uid, type);
     if (existingFacet) {
         if (warnDupe) {

@@ -27,6 +27,7 @@ private:
 
 struct Animation {
     const char * name  {};
+    const char * desc  {};
     int          start {};
     int          count {};
 };

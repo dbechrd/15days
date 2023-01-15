@@ -31,17 +31,15 @@ struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_FRAME_START = 6,
-    VT_FRAME_COUNT = 8
+    VT_DESC = 6,
+    VT_FRAME_START = 8,
+    VT_FRAME_COUNT = 10
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
-  bool KeyCompareLessThan(const Animation *o) const {
-    return *name() < *o->name();
-  }
-  int KeyCompareWithValue(const char *_name) const {
-    return strcmp(name()->c_str(), _name);
+  const flatbuffers::String *desc() const {
+    return GetPointer<const flatbuffers::String *>(VT_DESC);
   }
   int32_t frame_start() const {
     return GetField<int32_t>(VT_FRAME_START, 0);
@@ -51,8 +49,10 @@ struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffsetRequired(verifier, VT_NAME) &&
+           VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_DESC) &&
+           verifier.VerifyString(desc()) &&
            VerifyField<int32_t>(verifier, VT_FRAME_START, 4) &&
            VerifyField<int32_t>(verifier, VT_FRAME_COUNT, 4) &&
            verifier.EndTable();
@@ -65,6 +65,9 @@ struct AnimationBuilder {
   flatbuffers::uoffset_t start_;
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(Animation::VT_NAME, name);
+  }
+  void add_desc(flatbuffers::Offset<flatbuffers::String> desc) {
+    fbb_.AddOffset(Animation::VT_DESC, desc);
   }
   void add_frame_start(int32_t frame_start) {
     fbb_.AddElement<int32_t>(Animation::VT_FRAME_START, frame_start, 0);
@@ -79,7 +82,6 @@ struct AnimationBuilder {
   flatbuffers::Offset<Animation> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<Animation>(end);
-    fbb_.Required(o, Animation::VT_NAME);
     return o;
   }
 };
@@ -87,11 +89,13 @@ struct AnimationBuilder {
 inline flatbuffers::Offset<Animation> CreateAnimation(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> desc = 0,
     int32_t frame_start = 0,
     int32_t frame_count = 0) {
   AnimationBuilder builder_(_fbb);
   builder_.add_frame_count(frame_count);
   builder_.add_frame_start(frame_start);
+  builder_.add_desc(desc);
   builder_.add_name(name);
   return builder_.Finish();
 }
@@ -99,12 +103,15 @@ inline flatbuffers::Offset<Animation> CreateAnimation(
 inline flatbuffers::Offset<Animation> CreateAnimationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
+    const char *desc = nullptr,
     int32_t frame_start = 0,
     int32_t frame_count = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto desc__ = desc ? _fbb.CreateString(desc) : 0;
   return DB::CreateAnimation(
       _fbb,
       name__,
+      desc__,
       frame_start,
       frame_count);
 }
@@ -221,10 +228,10 @@ inline flatbuffers::Offset<Spritesheet> CreateSpritesheetDirect(
     int32_t cell_count = 0,
     int32_t cell_width = 0,
     int32_t cell_height = 0,
-    std::vector<flatbuffers::Offset<DB::Animation>> *animations = nullptr) {
+    const std::vector<flatbuffers::Offset<DB::Animation>> *animations = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
-  auto animations__ = animations ? _fbb.CreateVectorOfSortedTables<DB::Animation>(animations) : 0;
+  auto animations__ = animations ? _fbb.CreateVector<flatbuffers::Offset<DB::Animation>>(*animations) : 0;
   return DB::CreateSpritesheet(
       _fbb,
       name__,

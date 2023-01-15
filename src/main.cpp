@@ -59,47 +59,12 @@ enum Error {
     E_VERIFY_FAILED,   // for flatbuffers
 };
 
-Error make_default_resourcedb(const char *filename)
-{
-    flatbuffers::FlatBufferBuilder fbb;
-
-    std::vector<flatbuffers::Offset<DB::Animation>> anims;
-    char buf[32]{};
-    for (int i = 0; i < 10; i++) {
-        snprintf(buf, sizeof(buf), "card_%d", i);
-        anims.push_back(DB::CreateAnimationDirect(fbb, buf, i, 1));
-    }
-
-    std::vector<flatbuffers::Offset<DB::Spritesheet>> sheets;
-    sheets.push_back(DB::CreateSpritesheetDirect(fbb, "cards", "texture/cards.bmp", 10, 100, 150, &anims));
-
-    auto db = DB::CreateResourceDBDirect(fbb, "resourcedb", &sheets);
-    DB::FinishResourceDBBuffer(fbb, db);
-
-    SDL_RWops *pak = SDL_RWFromFile(filename, "w");
-    if (!pak) {
-        return E_IO_ERROR;
-    }
-
-    size_t bytesWritten = SDL_RWwrite(pak, fbb.GetBufferPointer(), 1, fbb.GetSize());
-    if (bytesWritten < fbb.GetSize()) {
-        return E_IO_ERROR;
-    }
-
-    SDL_RWclose(pak);
-    return E_SUCCESS;
-}
-
 Error load_resource_db(Depot &depot, const char *filename)
 {
     size_t size{};
     void *data = SDL_LoadFile(filename, &size);
     if (!data) {
-        make_default_resourcedb(filename);
-        data = SDL_LoadFile(filename, &size);
-        if (!data) {
-            return E_IO_ERROR;
-        }
+        return E_IO_ERROR;
     }
 
     const DB::ResourceDB *db = DB::GetResourceDB(data);
@@ -137,13 +102,17 @@ Error load_resource_db(Depot &depot, const char *filename)
 
             sheet->animations.push_back({
                 dbAnim->name()->c_str(),
+                dbAnim->desc()->c_str(),
                 dbAnim->frame_start(),
                 dbAnim->frame_count()
             });
             sheet->animations_by_name[dbAnim->name()->c_str()] = sheet->animations.size() - 1;
         }
     }
-    SDL_free(data);
+
+    // TODO: Cleanup resourceDB somewhere, or make copies of strings into
+    // resourceArena, etc.
+    //SDL_free(data);
 
     // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
     // return values in functions meant to return things, all sorts of nonsensical
@@ -184,7 +153,7 @@ UID create_narrator(Depot &depot, UID subject)
     text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
     text->str = "15 Days";
 #endif
-#if 0
+#if 1
     position->pos.x = 10.0f;
     position->pos.y = 4.0f;
     text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
@@ -197,11 +166,11 @@ UID create_narrator(Depot &depot, UID subject)
         C_YELLOW  " Yellow"
         C_WHITE   " White";
 #endif
-#if 1
+#if 0
     text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 20);
-    text->str = "The" C_GREEN " camp" C_WHITE " is your home.\n"
+    text->str = "The`g camp`w is your home.\n"
         "Your adventure starts here.\n"
-        C_RED "+10 health" C_WHITE " while in camp.";
+        "`r+10 health`w while in camp.";
 #endif
 
     text->align = TextAlign_VBottom_HCenter;

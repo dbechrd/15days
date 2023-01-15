@@ -109,23 +109,18 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
             // `` = literal backtick, don't do this color stuffs
             if (*c == '`' && cNext != '`') {
                 c++;
-                if (!*c || !isdigit(*c)) {
-                    break;
-                }
                 DLB_ASSERT(*c);
-                DLB_ASSERT(isdigit(*c));
                 switch (*c) {
-                    case '0': color = {   0,   0,   0, 255 }; break;
-                    case '1': color = {  43,  75, 255, 255 }; break;
-                    case '2': color = {  49, 165,   0, 255 }; break;
-                    case '3': color = {   0, 196, 196, 255 }; break;
-                    case '4': color = { 165,   0,   0, 255 }; break;
-                    case '5': color = { 198,  79, 198, 255 }; break;
-                    case '6': color = { 234, 199,   0, 255 }; break;
-                    case '7': color = { 255, 255, 255, 255 }; break;
+                    case C_WHITE[1]:   color = { 255, 255, 255, 255 }; c++; break;
+                    case C_RED[1]:     color = { 165,   0,   0, 255 }; c++; break;
+                    case C_GREEN[1]:   color = {  49, 165,   0, 255 }; c++; break;
+                    case C_BLUE[1]:    color = {  43,  75, 255, 255 }; c++; break;
+                    case C_CYAN[1]:    color = {   0, 196, 196, 255 }; c++; break;
+                    case C_MAGENTA[1]: color = { 198,  79, 198, 255 }; c++; break;
+                    case C_YELLOW[1]:  color = { 234, 199,   0, 255 }; c++; break;
+                    case C_BLACK[1]:   color = {   0,   0,   0, 255 }; c++; break;
                     default: printf("WARN: Dats a weird color value, mang\n"); break;
                 }
-                c++;
                 continue;
             }
 

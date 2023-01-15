@@ -10,10 +10,12 @@
       animations: [
         {
           name: "unlit",
+          desc: "",
           frame_count: 1
         },
         {
           name: "burning",
+          desc: "",
           frame_start: 1,
           frame_count: 8
         }
@@ -28,50 +30,60 @@
       animations: [
         {
           name: "card_lighter",
+          desc: "Dis is a `rlighter`w.",
           frame_count: 1
         },
         {
           name: "card_bucket",
+          desc: "Dis is a `bbucket`w",
           frame_start: 1,
           frame_count: 1
         },
         {
           name: "card_backface",
+          desc: "",
           frame_start: 2,
           frame_count: 1
         },
         {
           name: "card_bomb",
+          desc: "Dis is a `kbomb`w.",
           frame_start: 3,
           frame_count: 1
         },
         {
           name: "card_camp",
+          desc: "The `gcamp`w is your home.\nYour adventure starts here.\n`r+10 health`w while in camp.",
           frame_start: 4,
           frame_count: 1
         },
         {
           name: "card_5",
+          desc: "",
           frame_start: 5,
           frame_count: 1
         },
         {
           name: "card_6",
+          desc: "",
           frame_start: 6,
           frame_count: 1
         },
         {
           name: "card_7",
+          desc: "",
           frame_start: 7,
           frame_count: 1
         },
         {
           name: "card_8",
+          desc: "",
           frame_start: 8,
           frame_count: 1
         },
         {
           name: "card_9",
+          desc: "",
           frame_start: 9,
           frame_count: 1
         }
@@ -86,6 +98,7 @@
       animations: [
         {
           name: "player",
+          desc: "",
           frame_count: 1
         }
       ]

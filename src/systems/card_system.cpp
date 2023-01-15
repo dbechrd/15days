@@ -58,11 +58,11 @@ UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *a
     float mass = 1.0f;
     body->invMass = 1.0f / mass;
 
-    Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
-    debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
-    debugText->str = 0;
-    debugText->align = TextAlign_VBottom_HCenter;
-    debugText->color = C255(COLOR_WHITE);
+    //Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
+    //debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
+    //debugText->str = 0;
+    //debugText->align = TextAlign_VBottom_HCenter;
+    //debugText->color = C255(COLOR_WHITE);
 
     depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidDeck, CardDragSounds(depot));
 
@@ -102,6 +102,7 @@ UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float i
     } else {
         DLB_ASSERT(!"no sheet");
         printf("Failed to find sheet for card\n");
+        return 0;
     }
 
     Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
@@ -116,12 +117,20 @@ UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float i
     float mass = 1.0f;
     body->invMass = 1.0f / mass;
 
-    //Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
-    //debugText->font = load_font(depot, "font/OpenSans-Bold.ttf", 16);
+    Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
+    debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
+    // TODO: Use card prototype desc instead once that's in DB file
     //debugText->str = depot.nameByUid[uidCardProto].c_str();
-    //debugText->align = TextAlign_VBottom_HCenter;
-    //debugText->color = C255(COLOR_WHITE);
-    //debugText->offset.x += 8;
+    if (cardProto->animation) {
+        const auto &animResult = sheet->animations_by_name.find(cardProto->animation);
+        if (animResult != sheet->animations_by_name.end()) {
+            debugText->str = sheet->animations[animResult->second].desc;
+        }
+    }
+    debugText->align = TextAlign_VBottom_HCenter;
+    debugText->color = C255(COLOR_WHITE);
+    debugText->offset.x += 100;
+    debugText->offset.y = 0;
 
     depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
 
