@@ -1,35 +1,26 @@
 #include "sprite.h"
 #include "depot.h"
 
-void Sprite::SetSpritesheet(Depot &depot, UID uidSpritesheet)
-{
-    spritesheet = uidSpritesheet;
-    UpdateRect(depot);
-}
-
-void Sprite::SetAnimIndex(Depot &depot, int animIdx) {
-    // TODO: Bounds check animation index by looking at spritesheet??
-    animation = animIdx;
-    UpdateRect(depot);
-}
-
-void Sprite::SetAnimFrame(Depot &depot, int animFrame) {
-    // TODO: Bounds check animation index by looking at spritesheet??
-    frame = animFrame;
-    UpdateRect(depot);
-}
-
 void Sprite::UpdateRect(Depot &depot)
 {
+    if (!spritesheet) {
+        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
+        return;
+    }
+    if (!animation) {
+        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no animation");
+        return;
+    }
+
     Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
     if (!position) {
-        printf("WARN: Can't update sprite rect when sprite has no position");
+        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no position");
         return;
     }
 
     Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
     if (!sheet) {
-        printf("WARN: Can't update sprite rect when sprite has no spritesheet");
+        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
         return;
     }
 
@@ -47,8 +38,20 @@ void Sprite::UpdateRect(Depot &depot)
 
     cached_sdl_texture = texture->sdl_texture;
 
-    Animation &animation = sheet->animations[GetAnimIndex()];
-    int cell = animation.start + GetAnimFrame();
+
+    int cell = -1;
+    if (animation) {
+        const auto &result = sheet->animations_by_name.find(animation);
+        if (result != sheet->animations_by_name.end()) {
+            Animation &anim = sheet->animations[result->second];
+            cell = anim.start + frame;
+        }
+    }
+
+    if (cell < 0) {
+        SDL_LogError(0, "Can't update sprite rect for invalid animation name '%s'\n", animation);
+        return;
+    }
 
     int sheetWidth = 0;
     int sheetHeight = 0;

@@ -4,10 +4,10 @@
 #include "material.h"
 
 struct CardProto : public Facet {
-    UID effectList    {};
-    UID materialProto {};
-    UID spritesheet   {};
-    int animation     {};
+    UID          effectList    {};
+    UID          materialProto {};
+    UID          spritesheet   {};
+    const char * animation     {};
 };
 
 struct Card : public Facet {

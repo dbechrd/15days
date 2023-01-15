@@ -59,215 +59,6 @@ enum Error {
     E_VERIFY_FAILED,   // for flatbuffers
 };
 
-struct Parser {
-    Slice  buffer {};  // i like pizza
-    size_t cursor {};  // offset of next byte to read
-
-    // DEBUG INFO
-    const char *filename {};
-    size_t      line     {};
-    size_t      column   {};
-
-    Parser(const char *filename) : filename(filename) {};
-
-    void PrintError(const char *fmt, ...)
-    {
-        printf("[%s:%zu:%zu] ", filename, line, column);
-
-        va_list args{};
-        va_start(args, fmt);
-        vfprintf(stdout, fmt, args);
-        va_end(args);
-    }
-
-    bool Eof(void)
-    {
-        return cursor == buffer.length;
-    }
-
-    Error Peek(char &c)
-    {
-        if (Eof()) return E_EOF;
-
-        c = buffer.data[cursor];
-        return E_SUCCESS;
-    }
-
-    Error IgnoreComment(void)
-    {
-        char c{};
-        Error err = ExpectChar('#');
-        if (err) return err;
-
-        err = Peek(c);
-        while (!err && c != '\n') {
-            ReadChar(c);
-            err = Peek(c);
-        }
-
-        return err;
-    }
-
-    Error IgnoreWhitespace(bool andNewlines = false)
-    {
-        char c{};
-        Error err = Peek(c);
-        bool done = false;
-        while (!err && !done) {
-            switch (c) {
-                case ' ': {
-                    ReadChar(c);
-                    break;
-                }
-                case '#': {
-                    IgnoreComment();
-                    break;
-                }
-                case '\r': {
-                    ReadChar(c);
-                    break;
-                }
-                case '\n': {
-                    if (andNewlines) {
-                        ReadChar(c);
-                    } else {
-                        done = true;
-                    }
-                    break;
-                }
-                default: {
-                    done = true;
-                    break;
-                }
-            }
-            err = Peek(c);
-        }
-
-        return E_SUCCESS;
-    }
-
-    Error ReadChar(char &c)
-    {
-        if (Eof()) return E_EOF;
-
-        c = buffer.data[cursor];
-        column++;
-        if (c == '\n') {
-            line++;
-            column = 0;
-        }
-
-        cursor++;
-        return E_SUCCESS;
-    }
-
-    Error ExpectChar(char c)
-    {
-        char found{};
-        Error err = Peek(found);
-        if (err) return err;
-
-        if (found != c) {
-            if (SDL_isprint(found)) {
-                PrintError("Expected '%c' found '%c' instead.\n", c, found);
-            } else {
-                PrintError("Expected '%c' found '%02x' instead.\n", c, found);
-            }
-            return E_UNEXPECTED_CHAR;
-        }
-
-        return E_SUCCESS;
-    }
-
-    Error ExpectString(const char *str, size_t length)
-    {
-        Error err{};
-
-        size_t offset = 0;
-        while (offset < length) {
-            char c{};
-            err = ReadChar(c);
-            if (err || c != str[offset]) {
-                break;
-            }
-            offset++;
-        }
-
-        if (offset < length) {
-            // If fails really early, get some more context if available
-            size_t contextLen = MAX(10, offset);
-            if (cursor + contextLen > buffer.length) {
-                contextLen = buffer.length - cursor;
-            }
-
-            // Don't print non-printable characters in context
-            for (int i = 0; i < contextLen; i++) {
-                if (!SDL_isprint(buffer.data[cursor + i])) {
-                    contextLen = i;
-                    break;
-                }
-            }
-
-            PrintError("Expected '%.*s' found '%.*s' instead.\n",
-                (int)length, str,
-                (int)contextLen, buffer.data + cursor
-            );
-            return E_UNEXPECTED_CHAR;
-        }
-
-        err = IgnoreWhitespace();
-        return err;
-    }
-
-    Error ParseString(Slice &slice)
-    {
-        slice.data = buffer.data + cursor;
-        char c{};
-        while (Peek(c) == E_SUCCESS) {
-            if (!SDL_isgraph(buffer.data[cursor])) {
-                if (!SDL_isspace(buffer.data[cursor])) {
-                    PrintError("Expected printable character, found '%02x' instead.\n", c);
-                }
-                break;
-            }
-
-            ReadChar(c);
-            slice.length++;
-        }
-
-        if (!slice.length) {
-            slice.data = 0;
-            return E_UNEXPECTED_CHAR;
-        }
-
-        return IgnoreWhitespace();
-    }
-
-    Error ParsePositiveInteger(Slice &slice)
-    {
-        slice.data = buffer.data + cursor;
-        char c{};
-        while (Peek(c) == E_SUCCESS) {
-            if (!SDL_isdigit(buffer.data[cursor])) {
-                if (!SDL_isspace(buffer.data[cursor])) {
-                    PrintError("Expected printable character, found '%02x' instead.\n", c);
-                }
-                break;
-            }
-
-            ReadChar(c);
-            slice.length++;
-        }
-
-        if (!slice.length) {
-            slice.data = 0;
-            return E_UNEXPECTED_CHAR;
-        }
-
-        return IgnoreWhitespace();
-    }
-};
-
 Error make_default_resourcedb(const char *filename)
 {
     flatbuffers::FlatBufferBuilder fbb;
@@ -285,7 +76,7 @@ Error make_default_resourcedb(const char *filename)
     auto db = DB::CreateResourceDBDirect(fbb, "resourcedb", &sheets);
     DB::FinishResourceDBBuffer(fbb, db);
 
-    SDL_RWops *pak = SDL_RWFromFile("db/resourcedb.fbb", "w");
+    SDL_RWops *pak = SDL_RWFromFile(filename, "w");
     if (!pak) {
         return E_IO_ERROR;
     }
@@ -299,100 +90,60 @@ Error make_default_resourcedb(const char *filename)
     return E_SUCCESS;
 }
 
-Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResult)
+Error load_resource_db(Depot &depot, const char *filename)
 {
-    {
-        const char *fbbFilename = "db/resourcedb.fbb";
-        size_t size{};
-        void *data = SDL_LoadFile(fbbFilename, &size);
+    size_t size{};
+    void *data = SDL_LoadFile(filename, &size);
+    if (!data) {
+        make_default_resourcedb(filename);
+        data = SDL_LoadFile(filename, &size);
         if (!data) {
-            make_default_resourcedb(fbbFilename);
-            data = SDL_LoadFile(fbbFilename, &size);
-            if (!data) {
-                return E_IO_ERROR;
-            }
+            return E_IO_ERROR;
         }
+    }
 
-        const DB::ResourceDB *resourceDb = DB::GetResourceDB(data);
-        flatbuffers::Verifier fbv((const u8 *)data, size);
-        if (!DB::VerifyResourceDBBuffer(fbv)) {
-            return E_VERIFY_FAILED;
-        }
+    const DB::ResourceDB *db = DB::GetResourceDB(data);
+    flatbuffers::Verifier fbv((const u8 *)data, size);
+    if (!DB::VerifyResourceDBBuffer(fbv)) {
+        return E_VERIFY_FAILED;
+    }
 
-        printf("resdb %s\n", resourceDb->name()->c_str());
-        for (const auto &sheet : *resourceDb->spritesheets()) {
-            printf("  sheet %s has %d %dx%d cells \n",
-                sheet->name()->c_str(),
-                sheet->cell_count(),
-                sheet->cell_width(),
-                sheet->cell_height()
+    printf("resdb %s\n", db->name()->c_str());
+    for (const auto &dbSheet : *db->spritesheets()) {
+        printf("  sheet %s has %d %dx%d cells \n",
+            dbSheet->name()->c_str(),
+            dbSheet->cell_count(),
+            dbSheet->cell_width(),
+            dbSheet->cell_height()
+        );
+
+        UID uidSheet = depot.Alloc(dbSheet->name()->c_str());
+        Spritesheet *sheet = (Spritesheet *)depot.AddFacet(uidSheet,
+            Facet_Spritesheet);
+
+        sheet->texture = depot.renderSystem.LoadTexture_BMP(depot,
+            dbSheet->texture_path()->c_str());
+
+        sheet->cells = dbSheet->cell_count();
+        sheet->cellSize.x = dbSheet->cell_width();
+        sheet->cellSize.y = dbSheet->cell_height();
+
+        for (const auto &dbAnim : *dbSheet->animations()) {
+            printf("    anim %s start %d count %d\n",
+                dbAnim->name()->c_str(),
+                dbAnim->frame_start(),
+                dbAnim->frame_count()
             );
-            for (const auto &anim : *sheet->animations()) {
-                printf("    anim %s start %d count %d\n",
-                    anim->name()->c_str(),
-                    anim->frame_start(),
-                    anim->frame_count()
-                );
-            }
+
+            sheet->animations.push_back({
+                dbAnim->name()->c_str(),
+                dbAnim->frame_start(),
+                dbAnim->frame_count()
+            });
+            sheet->animations_by_name[dbAnim->name()->c_str()] = sheet->animations.size() - 1;
         }
-        SDL_free(data);
     }
-
-    Parser parser{ filename };
-    parser.buffer.data = (const char *)SDL_LoadFile(filename, &parser.buffer.length);
-
-    Error err{};
-    err = parser.IgnoreWhitespace(true);                if (err) return err;
-
-    err = parser.ExpectString(CSTR("15dy"));            if (err) return err;
-    err = parser.ExpectChar('\n');                      if (err) return err;
-    err = parser.IgnoreWhitespace(true);                if (err) return err;
-
-    err = parser.ExpectString(CSTR("type"));            if (err) return err;
-    err = parser.ExpectString(CSTR("spritesheet"));     if (err) return err;
-    err = parser.ExpectChar('\n');                      if (err) return err;
-    err = parser.IgnoreWhitespace(true);                if (err) return err;
-
-    uidResult = depot.Alloc(filename);
-    Spritesheet *sheet = (Spritesheet *)depot.AddFacet(uidResult, Facet_Spritesheet);
-
-    err = parser.ExpectString(CSTR("image"));           if (err) return err;
-    Slice strImagePath{};
-    err = parser.ParseString(strImagePath);             if (err) return err;
-    err = parser.ExpectChar('\n');                      if (err) return err;
-    err = parser.IgnoreWhitespace(true);                if (err) return err;
-
-    // HACK: Garbage std::string stuff.. be smarter here later
-    sheet->texture = depot.renderSystem.LoadTexture_BMP(depot,
-        std::string(strImagePath.data, strImagePath.length).c_str());
-
-    err = parser.ExpectString(CSTR("cells"));           if (err) return err;
-    Slice strCellCount{};
-    err = parser.ParsePositiveInteger(strCellCount);    if (err) return err;
-    Slice strCellWidth{};
-    err = parser.ParsePositiveInteger(strCellWidth);    if (err) return err;
-    Slice strCellHeight{};
-    err = parser.ParsePositiveInteger(strCellHeight);   if (err) return err;
-    err = parser.ExpectChar('\n');                      if (err) return err;
-    err = parser.IgnoreWhitespace(true);                if (err) return err;
-
-    // TODO: Validation, remove std::string hax, etc.
-    sheet->cells = (int)atol(std::string(strCellCount.data, strCellCount.length).c_str());
-    sheet->cellSize.x = (int)atol(std::string(strCellWidth.data, strCellWidth.length).c_str());
-    sheet->cellSize.y = (int)atol(std::string(strCellHeight.data, strCellHeight.length).c_str());
-
-    //sheet->cells = 10;
-    //sheet->cellSize = { 100, 150 };
-
-    for (int i = 0; i < sheet->cells; i++) {
-#if 0
-        // TODO: Read anim lines here
-#else
-        sheet->animations.push_back({ i, 1 });
-#endif
-    }
-
-    SDL_free((void *)parser.buffer.data);
+    SDL_free(data);
 
     // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
     // return values in functions meant to return things, all sorts of nonsensical
@@ -400,42 +151,16 @@ Error parse_spritesheet(Depot &depot, const char *filename, UID &uidResult)
     return E_SUCCESS;
 }
 
-UID load_spritesheet(Depot &depot, const char *filename)
+UID find_spritesheet(Depot &depot, const char *name)
 {
     // Check if already loaded
-    Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(filename, Facet_Spritesheet);
+    Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(name, Facet_Spritesheet);
     if (existingSheet) {
         return existingSheet->uid;
     }
 
-    UID uidSpritesheet{};
-    Error err = parse_spritesheet(depot, filename, uidSpritesheet);
-    if (err) {
-        printf("Failed to load spritesheet '%s' :(\n", filename);
-        uidSpritesheet = 0;
-    }
-    return uidSpritesheet;
-}
-
-UID campfire_spritesheet(Depot &depot)
-{
-    const char *filename = "texture/campfire_small.bmp";
-    // Check if already loaded
-    Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(filename, Facet_Spritesheet);
-    if (existingSheet) {
-        return existingSheet->uid;
-    }
-
-    UID uidSheetCampfire = depot.Alloc(filename, false);
-    Spritesheet *sheetCampfire = (Spritesheet *)depot.AddFacet(uidSheetCampfire, Facet_Spritesheet);
-    sheetCampfire->cells = 9;
-    sheetCampfire->cellSize = { 100, 150 };
-    sheetCampfire->animations.push_back({ 0, 1 });
-    sheetCampfire->animations.push_back({ 1, 8 });
-
-    sheetCampfire->texture = depot.renderSystem.LoadTexture_BMP(depot, filename);
-
-    return uidSheetCampfire;
+    // TODO: Load on-demand? Would need to pass in db_name + spritesheet_name
+    return 0;
 }
 
 UID create_narrator(Depot &depot, UID subject)
@@ -583,21 +308,13 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
 
 UID create_player(Depot &depot)
 {
-    const char *spritesheetFilename = "texture/player.bmp";
-    UID uidSpritesheet = depot.Alloc(spritesheetFilename, false);
-    Spritesheet *spritesheet = (Spritesheet *)depot.AddFacet(uidSpritesheet, Facet_Spritesheet);
-    spritesheet->cells = 1;
-    spritesheet->cellSize = { 70, 140 };
-    Animation animation{};
-    animation.start = 0;
-    animation.count = 1;
-    spritesheet->animations.push_back(animation);
-    spritesheet->texture = depot.renderSystem.LoadTexture_BMP(depot, "texture/player.bmp");
+    UID uidSheet = find_spritesheet(depot, "sheet_player");
+    Spritesheet *sheet = (Spritesheet * )depot.GetFacet(uidSheet, Facet_Spritesheet);
 
     UID uidPlayer = depot.Alloc("player");
 
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
-    position->size = spritesheet->cellSize;
+    position->size = sheet->cellSize;
     position->pos = {
         SCREEN_W / 2.0f - position->size.x / 2.0f,
         SCREEN_H / 2.0f - position->size.y / 2.0f,
@@ -605,7 +322,7 @@ UID create_player(Depot &depot)
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
-    depot.spriteSystem.InitSprite(depot, *sprite, C255(COLOR_WHEAT), uidSpritesheet);
+    depot.spriteSystem.InitSprite(depot, *sprite, C255(COLOR_WHEAT), uidSheet, "player");
 
     Body *body = (Body *)depot.AddFacet(uidPlayer, Facet_Body);
     body->gravity = -50.0f;
@@ -806,8 +523,8 @@ void add_flag_to_material_proto(Depot &depot, UID uidMaterialProto, MaterialFlag
 
 void create_cards(Depot &depot)
 {
-    UID uidCardSheet = load_spritesheet(depot, "spritesheet/cards.txt");
-    UID uidCampfireSheet = campfire_spritesheet(depot);
+    UID uidCardSheet = find_spritesheet(depot, "sheet_cards");
+    UID uidCampfireSheet = find_spritesheet(depot, "sheet_campfire");
 
     // Effects
     Effect fxIgnite{ .type = Effect_IgniteFlammable };
@@ -825,18 +542,18 @@ void create_cards(Depot &depot)
     add_flag_to_material_proto(depot, uidFlammableMaterialProto, MaterialFlag_Flammable);
 
     // Card prototypes
-    UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, 0);
-    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, 1);
-    UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, 3);
-    UID uidCampProto = depot.cardSystem.PrototypeCard(depot, "Camp", 0, 0, uidCardSheet, 4);
+    UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, "card_lighter");
+    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, "card_bucket");
+    UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, "card_bomb");
+    UID uidCampProto = depot.cardSystem.PrototypeCard(depot, "Camp", 0, 0, uidCardSheet, "card_camp");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
     depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
     depot.triggerSystem.Trigger_Render_Screenshake(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
-    UID uidCampfireProto = depot.cardSystem.PrototypeCard(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, 0);
+    UID uidCampfireProto = depot.cardSystem.PrototypeCard(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, "unlit");
 
     // Decks
-    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, uidCardSheet, 2);
+    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, uidCardSheet, "card_backface");
 
     // Cards
     UNUSED(uidLighterProto);
@@ -858,8 +575,8 @@ void create_cards(Depot &depot)
     // ignite    , flammable    ,              , on_fire = true
 
     UID uidCampfire = depot.cardSystem.SpawnCard(depot, uidCampfireProto, { 200, 500, 0 });
-    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, 1);
-    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, 0);
+    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
+    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
     // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
     depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_extinguish.wav");
@@ -935,6 +652,8 @@ int main(int argc, char *argv[])
     }
 
     dlb_rand32_seed(SDL_GetTicks64());
+
+    load_resource_db(depot, "db/resourcedb.fbb");
 
     create_global_keymap(depot);
     create_cursor(depot);

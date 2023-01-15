@@ -17,7 +17,7 @@ UID CardSystem::CardDragSounds(Depot &depot)
 }
 
 UID CardSystem::PrototypeCard(Depot &depot, const char *name, UID uidMaterialProto,
-    UID uidEffectList, UID spritesheet, int animation)
+    UID uidEffectList, UID spritesheet, const char *animation)
 {
     DLB_ASSERT(spritesheet);
 
@@ -33,7 +33,7 @@ UID CardSystem::PrototypeCard(Depot &depot, const char *name, UID uidMaterialPro
     return uidCardProto;
 }
 
-UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, int animation)
+UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *animation)
 {
     UID uidDeck = depot.Alloc("deck", false);
 
@@ -44,9 +44,7 @@ UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, int animation
     deck->count = 100;
 
     Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
-    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheet);
-    sprite->SetSpritesheet(depot, spritesheet);
-    sprite->SetAnimIndex(depot, animation);
+    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheet, animation);
 
     Body *body = (Body *)depot.AddFacet(uidDeck, Facet_Body);
     body->gravity = -50.0f;
@@ -99,9 +97,8 @@ UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float i
     Spritesheet *sheet = (Spritesheet *)depot.GetFacet(cardProto->spritesheet, Facet_Spritesheet);
     if (sheet) {
         Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
-        SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), cardProto->spritesheet);
-        sprite->SetSpritesheet(depot, cardProto->spritesheet);
-        sprite->SetAnimIndex(depot, cardProto->animation);
+        SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE),
+            cardProto->spritesheet, cardProto->animation);
     } else {
         DLB_ASSERT(!"no sheet");
         printf("Failed to find sheet for card\n");
@@ -221,7 +218,7 @@ void CardSystem::UpdateCards(Depot &depot)
             Message msgUpdateAnim{};
             msgUpdateAnim.uid = card.uid;
             msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.animation = 2;
+            msgUpdateAnim.data.sprite_updateanimation.anim_name = "card_backface";
             depot.msgQueue.push_back(msgUpdateAnim);
         } else if (card.noClickUntil) {
             card.noClickUntil = 0;
@@ -235,7 +232,7 @@ void CardSystem::UpdateCards(Depot &depot)
             Message msgUpdateAnim{};
             msgUpdateAnim.uid = card.uid;
             msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.animation = cardProto->animation;
+            msgUpdateAnim.data.sprite_updateanimation.anim_name = cardProto->animation;
             depot.msgQueue.push_back(msgUpdateAnim);
 
             Message msgTryStack{};

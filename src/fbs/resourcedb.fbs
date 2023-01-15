@@ -1,13 +1,13 @@
 namespace DB;
 
 table Animation {
-    name:string (key);
+    name:string;
     frame_start:int;
     frame_count:int;
 }
 
 table Spritesheet {
-    name:string (key);
+    name:string;
     texture_path:string;
     cell_count:int;
     cell_width:int;
@@ -16,7 +16,7 @@ table Spritesheet {
 }
 
 table ResourceDB {
-    name:string (key);
+    name:string;
     spritesheets:[Spritesheet];
 }
 

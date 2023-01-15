@@ -57,7 +57,7 @@ void TriggerSystem::Trigger_Text_UpdateText(Depot &depot, UID src, MsgType msgTy
 }
 
 void TriggerSystem::Trigger_Sprite_UpdateAnimation(Depot &depot, UID src, MsgType msgType, UID dst,
-    int animation, TriggerCallback callback, void *userData)
+    const char *anim_name, TriggerCallback callback, void *userData)
 {
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
 
@@ -65,7 +65,7 @@ void TriggerSystem::Trigger_Sprite_UpdateAnimation(Depot &depot, UID src, MsgTyp
     trigger.trigger = msgType;
     trigger.message.uid = dst;
     trigger.message.type = MsgType_Sprite_UpdateAnimation;
-    trigger.message.data.sprite_updateanimation.animation = animation;
+    trigger.message.data.sprite_updateanimation.anim_name = anim_name;
     trigger.callback = callback;
     trigger.userData = userData;
     triggerList->triggers.push_back(trigger);
