@@ -185,6 +185,11 @@ static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
 
 void Depot::Run(void)
 {
+    DrawQueue cardQueue{};
+    DrawQueue histogramQueue{};
+    DrawQueue textQueue{};
+    DrawQueue dbgAtlasQueue{};
+
     while (renderSystem.Running()) {
         frame++;
 
@@ -266,10 +271,10 @@ void Depot::Run(void)
         renderSystem.UpdateCachedTextures(*this);
 
         // Populate draw queue(s)
-        DrawQueue cardQueue{};
-        DrawQueue histogramQueue{};
-        DrawQueue textQueue{};
-        DrawQueue dbgAtlasQueue{};
+        cardQueue.clear();
+        histogramQueue.clear();
+        textQueue.clear();
+        dbgAtlasQueue.clear();
         cardSystem.Display(*this, cardQueue);
         combatSystem.Display(*this, cardQueue);
         histogramSystem.Display(*this, histogramQueue);

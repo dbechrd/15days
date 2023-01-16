@@ -101,6 +101,7 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     float mass = 1.0f;
     body->invMass = 1.0f / mass;
 
+#if 0
     Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
     debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
     // TODO: Use card prototype desc instead once that's in DB file
@@ -116,6 +117,7 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     debugText->color = C255(COLOR_WHITE);
     debugText->offset.x += 100;
     debugText->offset.y = 0;
+#endif
 
     // TODO: Fix me..
     //depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
