@@ -7,8 +7,8 @@ void RenderSystem::InitTexture(Texture &texture, const char *filename)
     if (!surface) {
         static SDL_Surface *pinkSquare{};
         if (!pinkSquare) {
-            pinkSquare = SDL_CreateRGBSurface(0, 16, 16, 32, 0, 0, 0, 0);
-            SDL_FillRect(pinkSquare, 0, 0xFFFF00FF);
+            pinkSquare = SDL_CreateSurface(16, 16, SDL_PIXELFORMAT_RGBA8888);
+            SDL_FillSurfaceRect(pinkSquare, 0, 0xFF00FFFF);
         }
         surface = pinkSquare;
         filename = "FILE_FAILED_TO_LOAD_PINK_SQUARE";
@@ -18,7 +18,7 @@ void RenderSystem::InitTexture(Texture &texture, const char *filename)
     texture.filename = filename;
     texture.size = { (float)surface->w, (float)surface->h };
     texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
+    SDL_DestroySurface(surface);
 }
 
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
@@ -26,7 +26,13 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
 #if FDOV_VSYNC
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "true");
 #endif
+    // "direct3d"
+    // "direct3d11"
+    // "opengl"
+    // "opengles2"
+    // "software"
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    SDL_SetHint(SDL_HINT_RENDER_BATCHING, "true");
 
     int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
     if (sdl_init_err < 0) {
@@ -76,11 +82,20 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     }
 #endif
 
-    renderer = SDL_CreateRenderer(window, -1, 0); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    renderer = SDL_CreateRenderer(window, 0, 0); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
         return FDOV_INIT_FAILED;
     }
+
+    SDL_RendererInfo rendererInfo{};
+    if (!SDL_GetRendererInfo(renderer, &rendererInfo)) {
+        printf("Renderer: %s (batching = %s)\n",
+            rendererInfo.name,
+            SDL_GetHint(SDL_HINT_RENDER_BATCHING)
+        );
+    }
+
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
@@ -93,7 +108,7 @@ void RenderSystem::DestroyDepot(Depot &depot)
 {
     for (Font &font : depot.font) {
         GlyphCache *gc = &font.glyphCache;
-        SDL_FreeSurface(gc->atlasSurface);
+        SDL_DestroySurface(gc->atlasSurface);
         gc->atlasSurface = 0;
         SDL_DestroyTexture(gc->atlasTexture);
         gc->atlasTexture = 0;
@@ -171,7 +186,7 @@ void RenderSystem::React(Depot &depot)
             case MsgType_Render_ToggleVsync:
             {
                 vsync = !vsync;
-                SDL_RenderSetVSync(renderer, vsync);
+                SDL_SetRenderVSync(renderer, vsync);
                 break;
             }
             case MsgType_Render_DbgSetFontNext:
@@ -276,11 +291,9 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
                         if (!gc->atlasSurface) {
                             // Create new surface
-                            gc->atlasSurface = SDL_CreateRGBSurfaceWithFormat(
-                                0,
+                            gc->atlasSurface = SDL_CreateSurface(
                                 MAX((int)gc->minSize.w, neededWidth),
                                 MAX((int)gc->minSize.h, neededHeight),
-                                32,
                                 SDL_PIXELFORMAT_BGRA32
                             );
                             SDL_SetSurfaceBlendMode(gc->atlasSurface, SDL_BLENDMODE_NONE);
@@ -299,10 +312,8 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                             float newWidth  = MAX(gc->atlasSurface->w, neededWidth);
                             float newHeight = MAX(gc->atlasSurface->h * gc->growthFactor, neededHeight);
 
-                            SDL_Surface *newSurface = SDL_CreateRGBSurfaceWithFormat(
-                                0,
+                            SDL_Surface *newSurface = SDL_CreateSurface(
                                 newWidth, newHeight,
-                                32,
                                 SDL_PIXELFORMAT_BGRA32
                             );
                             SDL_SetSurfaceBlendMode(newSurface, SDL_BLENDMODE_NONE);
@@ -315,7 +326,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                                 newSurface,
                                 &fuckSDLsrc
                             );
-                            SDL_FreeSurface(gc->atlasSurface);
+                            SDL_DestroySurface(gc->atlasSurface);
                             gc->atlasSurface = newSurface;
                             //SDL_SetSurfaceBlendMode(gc->atlasSurface, SDL_BLENDMODE_BLEND);
                         }
@@ -343,8 +354,8 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
 
                         gc->rects[*c] = glyphRect;
 
-                        SDL_FreeSurface(glyphOutline);
-                        SDL_FreeSurface(glyphBody);
+                        SDL_DestroySurface(glyphOutline);
+                        SDL_DestroySurface(glyphBody);
                         glyphOutline = 0;
                         glyphBody = 0;
 #if 0
@@ -411,13 +422,13 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             }
             // TODO: Can this be shortened? Does SDL handle zero-width same as NULL?
             if (cmd.srcRect.w && cmd.srcRect.h) {
-                SDL_RenderCopyF(renderer, cmd.texture, &srcRect, &dstRect);
+                SDL_RenderTexture(renderer, cmd.texture, &srcRect, &dstRect);
             } else {
-                SDL_RenderCopyF(renderer, cmd.texture, NULL, &dstRect);
+                SDL_RenderTexture(renderer, cmd.texture, NULL, &dstRect);
             }
         } else {
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
-            SDL_RenderFillRectF(renderer, &dstRect);
+            SDL_RenderFillRect(renderer, &dstRect);
         }
 #if 0
         vec2 verts[] = {

@@ -5,8 +5,8 @@
 #include "dlb/dlb_rand.h"
 #include "dlb/dlb_hash.h"
 
-#include "SDL/SDL.h"
-#include "SDL/SDL_ttf.h"
+#include "SDL3/SDL.h"
+#include "SDL3/SDL_ttf.h"
 
 #include "soloud.h"
 #include "soloud_wav.h"
@@ -26,6 +26,7 @@
 
 #define FDOV_VSYNC             1
 #define FDOV_FULLSCREEN        0
+#define FDOV_SHOW_TODO_LIST    1
 #define FDOV_DRAG_BBOX         0
 #define FDOV_DEBUG_BBOX        0
 #define FDOV_DEBUG_BODY        0

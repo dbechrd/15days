@@ -32,10 +32,10 @@ UID create_cursor(Depot &depot)
     cursor->quickClickMaxDt = 0.1;
 
     Position *position = (Position *)depot.AddFacet(uidCursor, Facet_Position);
-    int x = 0;
-    int y = 0;
+    float x = 0;
+    float y = 0;
     SDL_GetMouseState(&x, &y);
-    position->pos = { (float)x, (float)y };
+    position->pos = { x, y };
     position->size = { 1, 1 };
 
     Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
@@ -360,7 +360,7 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
     if (fpsCounterBuf) {
         snprintf(fpsCounterBuf, fpsCounterMaxLen,
             "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
-#if 1
+#if FDOV_SHOW_TODO_LIST
             "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
             "DefaultSaveFile.fbb (for new games)\n"
             "make deck disappear when empty\n"
@@ -536,7 +536,8 @@ int main(int argc, char *argv[])
     //    fdov_free_func
     //);
 
-    Depot depot {};
+    Depot *depotPtr = new Depot();
+    Depot &depot = *depotPtr;
     depot.Init(GameState_Play);
 
     err = depot.renderSystem.Init("15days", SCREEN_W, SCREEN_H);
@@ -552,7 +553,7 @@ int main(int argc, char *argv[])
         SDL_Log("Failed to initalize audio subsystem\n");
     }
 
-    dlb_rand32_seed(SDL_GetTicks64());
+    dlb_rand32_seed(SDL_GetTicks());
 
     // TODO: Move this into depot init?
     void *bufToDelete = 0;
@@ -572,6 +573,7 @@ int main(int argc, char *argv[])
     }
 
     depot.Destroy();
+    delete depotPtr;
 
     TTF_Quit();
 

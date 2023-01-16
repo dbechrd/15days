@@ -99,7 +99,7 @@ namespace SoLoud
 
 		aSoloud->mBackendCleanupFunc = soloud_sdl2static_deinit;
 
-		SDL_PauseAudioDevice(gAudioDeviceID, 0);
+		SDL_PauseAudioDevice(gAudioDeviceID);
 		aSoloud->mBackendString = "SDL2 (static)";
 		return 0;
 	}

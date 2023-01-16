@@ -37,13 +37,15 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/include/SDL
+    #${CMAKE_SOURCE_DIR}/include/SDL
+    ${CMAKE_SOURCE_DIR}/include/SDL3
 )
 target_link_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/lib
 )
 target_link_libraries(${PROJECT_NAME}
-    SDL2main.lib
-    SDL2.lib
-    SDL2_ttf.lib
+    #SDL2main.lib
+    #SDL2.lib
+    SDL3.lib
+    SDL3_ttf.lib
 )

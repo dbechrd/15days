@@ -11,11 +11,11 @@ void CursorSystem::UpdateCursors(Depot &depot)
             continue;
         }
 
-        int x = 0;
-        int y = 0;
+        float x = 0;
+        float y = 0;
         uint32_t buttonMask = SDL_GetMouseState(&x, &y);
-        cursorPos->pos.x = (float)x;
-        cursorPos->pos.y = (float)y;
+        cursorPos->pos.x = x;
+        cursorPos->pos.y = y;
 
         cursor.leftButtonQuickClick = false;
         cursor.rightButtonQuickClick = false;

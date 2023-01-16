@@ -1,5 +1,5 @@
 #pragma once
-#include "SDL/SDL.h"
+#include "basic.h"
 
 inline double clock_now(void)
 {

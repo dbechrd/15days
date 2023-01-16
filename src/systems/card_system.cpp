@@ -134,7 +134,7 @@ void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
 
 #if 1
     int i = 0;
-    while (deck->count && i++ < 1) {
+    while (deck->count && i++ < 5) {
 #else
     if (deck->count) {
 #endif
@@ -375,6 +375,8 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         drawQueue.push_back(drawSprite);
     }
 
+    const Cursor &cursor = depot.cursor.front();
+
     for (Card &card : depot.card) {
         vec3 pos{};
         vec2 size{};
@@ -398,16 +400,14 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         dstRect.h = srcRect.h;
 
         float depth = pos.y - pos.z + size.y;
-        for (Cursor &cursor : depot.cursor) {
-            Card *c = &card;
-            float stackDepth = 0;
-            while (c) {
-                if (cursor.uidDragSubject == c->uid) {
-                    depth = SCREEN_H * 2.0f + stackDepth;
-                }
-                stackDepth++;
-                c = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
+        float stackDepth = 0;
+        Card *c = &card;
+        while (c) {
+            if (cursor.uidDragSubject == c->uid) {
+                depth = SCREEN_H * 2.0f + stackDepth;
             }
+            stackDepth++;
+            c = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
         }
 
         DrawCommand drawSprite{};
