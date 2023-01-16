@@ -4,9 +4,8 @@
 #include "../common/draw_list.h"
 
 struct CardSystem {
-    UID PrototypeCard(Depot &depot, const char *name, UID uidMaterialProto, UID uidEffectList, UID spritesheet, const char *animation);
-    UID SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *animation);
-    UID SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float invulnFor = 0);
+    UID SpawnDeck(Depot &depot, vec3 pos, const char *spritesheetKey, const char *animationKey);
+    UID SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, float invulnFor = 0);
 
     void React(Depot &depot);
     void UpdateCards(Depot &depot);

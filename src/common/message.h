@@ -100,7 +100,7 @@ struct Msg_Render_Screenshake {
 };
 
 struct Msg_Sprite_UpdateAnimation {
-    const char *anim_name {};
+    const char *animKey {};
 };
 
 struct Msg_FpsCounter_Notify_Update {

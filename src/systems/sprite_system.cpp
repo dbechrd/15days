@@ -2,11 +2,11 @@
 #include "../facets/depot.h"
 
 void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color,
-    UID uidSpritesheet, const char *animation)
+    const char *spritesheetKey, const char *animationKey)
 {
     sprite.color = color;
-    sprite.spritesheet = uidSpritesheet;
-    sprite.animation = animation;
+    sprite.spritesheetKey = spritesheetKey;
+    sprite.animationKey = animationKey;
     sprite.UpdateRect(depot);
 }
 
@@ -23,14 +23,11 @@ void SpriteSystem::React(Depot &depot)
         switch (msg.type) {
             case MsgType_Sprite_UpdateAnimation:
             {
-                Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite->spritesheet, Facet_Spritesheet);
+                const ResourceDB::Spritesheet *sheet =
+                    depot.resources->spritesheets()->LookupByKey(sprite->spritesheetKey);
                 if (sheet) {
-                    const char *animName = msg.data.sprite_updateanimation.anim_name;
-                    const auto &result = sheet->animations_by_name.find(animName);
-                    if (result != sheet->animations_by_name.end()) {
-                        sprite->animation = result->first.c_str();
-                        sprite->UpdateRect(depot);
-                    }
+                    sprite->animationKey = msg.data.sprite_updateanimation.animKey;
+                    sprite->UpdateRect(depot);
                 }
                 break;
             }
@@ -44,13 +41,15 @@ void SpriteSystem::Update(Depot &depot)
     // Update animated sprites
     if (depot.Now() - lastAnimAt >= fixedAnimDt) {
         for (Sprite &sprite : depot.sprite) {
-            Spritesheet *sheet = (Spritesheet *)depot.GetFacet(sprite.spritesheet, Facet_Spritesheet);
+            const ResourceDB::Spritesheet *sheet =
+                depot.resources->spritesheets()->LookupByKey(sprite.spritesheetKey);
             if (sheet) {
-                if (sprite.animation) {
-                    const auto &result = sheet->animations_by_name.find(sprite.animation);
-                    if (result != sheet->animations_by_name.end()) {
-                        Animation &anim = sheet->animations[result->second];
-                        sprite.frame = (sprite.frame + 1) % anim.count;
+                if (sprite.animationKey) {
+                    const ResourceDB::Animation *anim =
+                        sheet->animations()->LookupByKey(sprite.animationKey);
+                    const int frameCount = anim->frame_count();
+                    if (anim && frameCount) {
+                        sprite.frame = (sprite.frame + 1) % frameCount;
                         sprite.UpdateRect(depot);
                     }
                 }

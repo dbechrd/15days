@@ -57,22 +57,22 @@ inline const char *EnumNameMaterialAttribs(MaterialAttribs e) {
   return EnumNamesMaterialAttribs()[index];
 }
 
-enum EffectType : uint32_t {
-  EffectType_IgniteFlammable = 0,
-  EffectType_ExtinguishFlammable = 1,
-  EffectType_MIN = EffectType_IgniteFlammable,
-  EffectType_MAX = EffectType_ExtinguishFlammable
+enum EffectTypes : uint32_t {
+  EffectTypes_IgniteFlammable = 1,
+  EffectTypes_ExtinguishFlammable = 2,
+  EffectTypes_NONE = 0,
+  EffectTypes_ANY = 3
 };
 
-inline const EffectType (&EnumValuesEffectType())[2] {
-  static const EffectType values[] = {
-    EffectType_IgniteFlammable,
-    EffectType_ExtinguishFlammable
+inline const EffectTypes (&EnumValuesEffectTypes())[2] {
+  static const EffectTypes values[] = {
+    EffectTypes_IgniteFlammable,
+    EffectTypes_ExtinguishFlammable
   };
   return values;
 }
 
-inline const char * const *EnumNamesEffectType() {
+inline const char * const *EnumNamesEffectTypes() {
   static const char * const names[3] = {
     "IgniteFlammable",
     "ExtinguishFlammable",
@@ -81,10 +81,10 @@ inline const char * const *EnumNamesEffectType() {
   return names;
 }
 
-inline const char *EnumNameEffectType(EffectType e) {
-  if (flatbuffers::IsOutRange(e, EffectType_IgniteFlammable, EffectType_ExtinguishFlammable)) return "";
-  const size_t index = static_cast<size_t>(e);
-  return EnumNamesEffectType()[index];
+inline const char *EnumNameEffectTypes(EffectTypes e) {
+  if (flatbuffers::IsOutRange(e, EffectTypes_IgniteFlammable, EffectTypes_ExtinguishFlammable)) return "";
+  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(EffectTypes_IgniteFlammable);
+  return EnumNamesEffectTypes()[index];
 }
 
 struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -101,6 +101,12 @@ struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
+  bool KeyCompareLessThan(const Animation *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
   const flatbuffers::String *desc() const {
     return GetPointer<const flatbuffers::String *>(VT_DESC);
   }
@@ -112,7 +118,7 @@ struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyOffset(verifier, VT_DESC) &&
            verifier.VerifyString(desc()) &&
@@ -145,6 +151,7 @@ struct AnimationBuilder {
   flatbuffers::Offset<Animation> Finish() {
     const auto end = fbb_.EndTable(start_);
     auto o = flatbuffers::Offset<Animation>(end);
+    fbb_.Required(o, Animation::VT_NAME);
     return o;
   }
 };
@@ -291,10 +298,10 @@ inline flatbuffers::Offset<Spritesheet> CreateSpritesheetDirect(
     int32_t cell_count = 0,
     int32_t cell_width = 0,
     int32_t cell_height = 0,
-    const std::vector<flatbuffers::Offset<ResourceDB::Animation>> *animations = nullptr) {
+    std::vector<flatbuffers::Offset<ResourceDB::Animation>> *animations = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
-  auto animations__ = animations ? _fbb.CreateVector<flatbuffers::Offset<ResourceDB::Animation>>(*animations) : 0;
+  auto animations__ = animations ? _fbb.CreateVectorOfSortedTables<ResourceDB::Animation>(animations) : 0;
   return ResourceDB::CreateSpritesheet(
       _fbb,
       name__,
@@ -408,8 +415,8 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *material_proto() const {
     return GetPointer<const flatbuffers::String *>(VT_MATERIAL_PROTO);
   }
-  const flatbuffers::Vector<uint32_t> *effects() const {
-    return GetPointer<const flatbuffers::Vector<uint32_t> *>(VT_EFFECTS);
+  ResourceDB::EffectTypes effects() const {
+    return static_cast<ResourceDB::EffectTypes>(GetField<uint32_t>(VT_EFFECTS, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -421,8 +428,7 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(default_animation()) &&
            VerifyOffset(verifier, VT_MATERIAL_PROTO) &&
            verifier.VerifyString(material_proto()) &&
-           VerifyOffset(verifier, VT_EFFECTS) &&
-           verifier.VerifyVector(effects()) &&
+           VerifyField<uint32_t>(verifier, VT_EFFECTS, 4) &&
            verifier.EndTable();
   }
 };
@@ -443,8 +449,8 @@ struct CardProtoBuilder {
   void add_material_proto(flatbuffers::Offset<flatbuffers::String> material_proto) {
     fbb_.AddOffset(CardProto::VT_MATERIAL_PROTO, material_proto);
   }
-  void add_effects(flatbuffers::Offset<flatbuffers::Vector<uint32_t>> effects) {
-    fbb_.AddOffset(CardProto::VT_EFFECTS, effects);
+  void add_effects(ResourceDB::EffectTypes effects) {
+    fbb_.AddElement<uint32_t>(CardProto::VT_EFFECTS, static_cast<uint32_t>(effects), 0);
   }
   explicit CardProtoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -464,7 +470,7 @@ inline flatbuffers::Offset<CardProto> CreateCardProto(
     flatbuffers::Offset<flatbuffers::String> spritesheet = 0,
     flatbuffers::Offset<flatbuffers::String> default_animation = 0,
     flatbuffers::Offset<flatbuffers::String> material_proto = 0,
-    flatbuffers::Offset<flatbuffers::Vector<uint32_t>> effects = 0) {
+    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0)) {
   CardProtoBuilder builder_(_fbb);
   builder_.add_effects(effects);
   builder_.add_material_proto(material_proto);
@@ -480,19 +486,18 @@ inline flatbuffers::Offset<CardProto> CreateCardProtoDirect(
     const char *spritesheet = nullptr,
     const char *default_animation = nullptr,
     const char *material_proto = nullptr,
-    const std::vector<uint32_t> *effects = nullptr) {
+    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0)) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto spritesheet__ = spritesheet ? _fbb.CreateString(spritesheet) : 0;
   auto default_animation__ = default_animation ? _fbb.CreateString(default_animation) : 0;
   auto material_proto__ = material_proto ? _fbb.CreateString(material_proto) : 0;
-  auto effects__ = effects ? _fbb.CreateVector<uint32_t>(*effects) : 0;
   return ResourceDB::CreateCardProto(
       _fbb,
       name__,
       spritesheet__,
       default_animation__,
       material_proto__,
-      effects__);
+      effects);
 }
 
 struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

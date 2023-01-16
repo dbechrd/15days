@@ -1,4 +1,7 @@
 #pragma once
+#include "fbg/ResourceDB_generated.h"
+#include "fbg/SaveFile_generated.h"
+
 #include "../common/arena.h"
 #include "../common/basic.h"
 #include "../common/game_state.h"
@@ -25,7 +28,6 @@
 #include "combat.h"
 #include "cursor.h"
 #include "deck.h"
-#include "effect.h"
 #include "font.h"
 #include "fps_counter.h"
 #include "histogram.h"
@@ -39,6 +41,8 @@
 #include "trigger.h"
 
 struct Depot {
+    const ResourceDB::Root *resources{};
+
     // Map of pool indices for each active facet; by UID, per type
     std::unordered_map<std::string, UID>      uidByName   {};
     std::unordered_map<UID, std::string>      nameByUid   {};
@@ -53,21 +57,17 @@ struct Depot {
     std::vector<Attach>        attach        {};
     std::vector<Body>          body          {};
     std::vector<Card>          card          {};
-    std::vector<CardProto>     cardProto     {};
     std::vector<Combat>        combat        {};
     std::vector<Cursor>        cursor        {};
     std::vector<Deck>          deck          {};
-    std::vector<EffectList>    effectList    {};
     std::vector<Font>          font          {};
     std::vector<FpsCounter>    fpsCounter    {};
     std::vector<Histogram>     histogram     {};
     std::vector<Keymap>        keymap        {};
     std::vector<Material>      material      {};
-    std::vector<MaterialProto> materialProto {};
     std::vector<Position>      position      {};
     std::vector<Sound>         sound         {};
     std::vector<Sprite>        sprite        {};
-    std::vector<Spritesheet>   spritesheet   {};
     std::vector<Text>          text          {};
     std::vector<Texture>       texture       {};
     std::vector<TriggerList>   triggerList   {};

@@ -1,8 +1,6 @@
 #include "common/basic.h"
 #include "common/message.h"
 #include "facets/depot.h"
-#include "fbg/ResourceDB_generated.h"
-#include "fbg/SaveFile_generated.h"
 
 DLB_ASSERT_HANDLER(dlb_assert_callback) {
     printf("[%s:%u] %s\n", filename, line, expr);
@@ -60,7 +58,7 @@ enum Error {
     E_VERIFY_FAILED,   // for flatbuffers
 };
 
-Error load_resource_db(Depot &depot, const char *filename)
+Error load_resource_db(Depot &depot, const char *filename, const ResourceDB::Root **result, void **bufToDelete)
 {
     size_t size{};
     void *data = SDL_LoadFile(filename, &size);
@@ -76,63 +74,37 @@ Error load_resource_db(Depot &depot, const char *filename)
         return E_VERIFY_FAILED;
     }
 
+    // Preload spritesheet textures (to prevent lazy-loading later)
+    for (const auto &sheet : *db->spritesheets()) {
+        depot.renderSystem.LoadTexture_BMP(depot, sheet->texture_path()->c_str());
+    }
+
+#if 1
+    // DEBUG: Print spritesheet info
     printf("resdb %s\n", db->name()->c_str());
-    for (const auto &dbSheet : *db->spritesheets()) {
+    for (const auto &sheet : *db->spritesheets()) {
         printf("  sheet %s has %d %dx%d cells \n",
-            dbSheet->name()->c_str(),
-            dbSheet->cell_count(),
-            dbSheet->cell_width(),
-            dbSheet->cell_height()
+            sheet->name()->c_str(),
+            sheet->cell_count(),
+            sheet->cell_width(),
+            sheet->cell_height()
         );
 
-        UID uidSheet = depot.Alloc(dbSheet->name()->c_str());
-        Spritesheet *sheet = (Spritesheet *)depot.AddFacet(uidSheet,
-            Facet_Spritesheet);
-
-        sheet->texture = depot.renderSystem.LoadTexture_BMP(depot,
-            dbSheet->texture_path()->c_str());
-
-        sheet->cells = dbSheet->cell_count();
-        sheet->cellSize.x = dbSheet->cell_width();
-        sheet->cellSize.y = dbSheet->cell_height();
-
-        for (const auto &dbAnim : *dbSheet->animations()) {
+        for (const auto &dbAnim : *sheet->animations()) {
             printf("    anim %s start %d count %d\n",
                 dbAnim->name()->c_str(),
                 dbAnim->frame_start(),
                 dbAnim->frame_count()
             );
-
-            sheet->animations.push_back({
-                dbAnim->name()->c_str(),
-                dbAnim->desc()->c_str(),
-                dbAnim->frame_start(),
-                dbAnim->frame_count()
-            });
-            sheet->animations_by_name[dbAnim->name()->c_str()] = sheet->animations.size() - 1;
         }
     }
-
-    // TODO: Cleanup resourceDB somewhere, or make copies of strings into
-    // resourceArena, etc.
-    //SDL_free(data);
+#endif
 
     // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
     // return values in functions meant to return things, all sorts of nonsensical
     // bullshit occurs.
+    if (result) *result = db;
     return E_SUCCESS;
-}
-
-UID find_spritesheet(Depot &depot, const char *name)
-{
-    // Check if already loaded
-    Spritesheet *existingSheet = (Spritesheet *)depot.GetFacetByName(name, Facet_Spritesheet);
-    if (existingSheet) {
-        return existingSheet->uid;
-    }
-
-    // TODO: Load on-demand? Would need to pass in db_name + spritesheet_name
-    return 0;
 }
 
 UID create_narrator(Depot &depot, UID subject)
@@ -280,13 +252,21 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
 
 UID create_player(Depot &depot)
 {
-    UID uidSheet = find_spritesheet(depot, "sheet_player");
-    Spritesheet *sheet = (Spritesheet * )depot.GetFacet(uidSheet, Facet_Spritesheet);
+    // TODO: Make a "save_file_default" that is loaded when the player first
+    // begins a new game, which creates entities like the player, default cards,
+    // or whatever.
+    const char *sheetKey = "sheet_player";
+    const ResourceDB::Spritesheet *sheet = depot.resources->spritesheets()->LookupByKey(sheetKey);
+    if (!sheet) {
+        SDL_LogError(0, "Couldn't find spritesheet for player %s\n", sheetKey);
+        return 0;
+    }
 
     UID uidPlayer = depot.Alloc("player");
 
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
-    position->size = sheet->cellSize;
+    position->size.x = sheet->cell_width();
+    position->size.y = sheet->cell_height();
     position->pos = {
         SCREEN_W / 2.0f - position->size.x / 2.0f,
         SCREEN_H / 2.0f - position->size.y / 2.0f,
@@ -294,7 +274,7 @@ UID create_player(Depot &depot)
 
     depot.AddFacet(uidPlayer, Facet_Combat);
     Sprite *sprite = (Sprite *)depot.AddFacet(uidPlayer, Facet_Sprite);
-    depot.spriteSystem.InitSprite(depot, *sprite, C255(COLOR_WHEAT), uidSheet, "player");
+    depot.spriteSystem.InitSprite(depot, *sprite, C255(COLOR_WHEAT), sheetKey, "anim_player");
 
     Body *body = (Body *)depot.AddFacet(uidPlayer, Facet_Body);
     body->gravity = -50.0f;
@@ -381,6 +361,8 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
         snprintf(fpsCounterBuf, fpsCounterMaxLen,
             "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
 #if 1
+            "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
+            "DefaultSaveFile.fbb (for new games)\n"
             "make deck disappear when empty\n"
             //"font atlas / glyph cache\n"
             //"text drop shadow\n"
@@ -467,86 +449,33 @@ UID create_fps_counter(Depot &depot)
     return uidFpsCounter;
 }
 
-UID create_effect_list(Depot &depot, const char *name)
-{
-    UID uidEffectList = depot.Alloc(name);
-    depot.AddFacet(uidEffectList, Facet_EffectList);
-    return uidEffectList;
-}
-
-void add_effect_to_effect_list(Depot &depot, UID uidFxList, Effect &effect)
-{
-    EffectList *effectList = (EffectList *)depot.GetFacet(uidFxList, Facet_EffectList);
-    effectList->effects.push_back(effect);
-}
-
-UID create_material_proto(Depot &depot, const char *name)
-{
-    UID uidMaterialProto = depot.Alloc(name);
-    depot.AddFacet(uidMaterialProto, Facet_MaterialProto);
-    return uidMaterialProto;
-}
-
-void add_flag_to_material_proto(Depot &depot, UID uidMaterialProto, MaterialFlags flag)
-{
-    MaterialProto *materialProto = (MaterialProto *)depot.GetFacet(uidMaterialProto, Facet_MaterialProto);
-    materialProto->flags.set(flag);
-}
-
 void create_cards(Depot &depot)
 {
-    UID uidCardSheet = find_spritesheet(depot, "sheet_cards");
-    UID uidCampfireSheet = find_spritesheet(depot, "sheet_campfire");
-
-    // Effects
-    Effect fxIgnite{ .type = Effect_IgniteFlammable };
-    Effect fxExtinguish{ .type = Effect_ExtinguishFlammable };
-
-    // Effect lists
-    UID uidFireFxList = create_effect_list(depot, "fire_fx");
-    add_effect_to_effect_list(depot, uidFireFxList, fxIgnite);
-
-    UID uidWaterFxList = create_effect_list(depot, "water_fx");
-    add_effect_to_effect_list(depot, uidWaterFxList, fxExtinguish);
-
-    // Materials
-    UID uidFlammableMaterialProto = create_material_proto(depot, "flammable_material");
-    add_flag_to_material_proto(depot, uidFlammableMaterialProto, MaterialFlag_Flammable);
-
-    // Card prototypes
-    UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, "card_lighter");
-    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, "card_water_bucket");
-    UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, "card_bomb");
-    UID uidCampProto = depot.cardSystem.PrototypeCard(depot, "Camp", 0, 0, uidCardSheet, "card_camp");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
-    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
-    depot.triggerSystem.Trigger_Render_Screenshake(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
-    UID uidCampfireProto = depot.cardSystem.PrototypeCard(depot, "Campfire", uidFlammableMaterialProto, 0, uidCampfireSheet, "unlit");
+    // TODO: Make a "save_file_default" that is loaded when the player first
+    // begins a new game, which creates entities like the player, default cards,
+    // or whatever.
 
     // Decks
-    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, uidCardSheet, "card_backface");
+    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, "sheet_cards", "card_backface");
 
     // Cards
-    UNUSED(uidLighterProto);
-    UNUSED(uidBucketProto);
-    UNUSED(uidBombProto);
-    UNUSED(uidCampProto);
-    //depot.cardSystem.SpawnCard(depot, uidLighterProto, { 700, 300, 0 });
-    //depot.cardSystem.SpawnCard(depot, uidBucketProto, { 800, 300, 0 });
-    //depot.cardSystem.SpawnCard(depot, uidBombProto, { 900, 300, 0 });
-    depot.cardSystem.SpawnCard(depot, uidCampProto, { 900, 300, 0 });
+    //depot.cardSystem.SpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });
+    //depot.cardSystem.SpawnCard(depot, "card_proto_water_bucket", { 800, 300, 0 });
+    //depot.cardSystem.SpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
+    depot.cardSystem.SpawnCard(depot, "card_proto_camp", { 900, 300, 0 });
 
-    // TODO:
-    // type_a  ,  type_b      , action
-    // campfire,  water_bucket, extinguish
-    // campfire,  lighter     , ignite
+    UID uidCampfire = depot.cardSystem.SpawnCard(depot, "card_proto_campfire", { 200, 500, 0 });
 
-    // action    , require_flags, exclude_flags, state
-    // extinguish, flammable    ,              , on_fire = false
-    // ignite    , flammable    ,              , on_fire = true
+    // TODO: Card protos need to relay messages to CardDragSounds or something man...
+    //depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCardProto, CardDragSounds(depot));
 
-    UID uidCampfire = depot.cardSystem.SpawnCard(depot, uidCampfireProto, { 200, 500, 0 });
+    // TODO: Make triggers for card protos somehow.. or all cards.. or global.. or something
+    //depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
+    //depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
+    //depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
+    //depot.triggerSystem.Trigger_Render_Screenshake(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
+
+    // TODO: This should go on the campfire proto somehow, similar to bomb events above
     depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
     depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
@@ -625,20 +554,29 @@ int main(int argc, char *argv[])
 
     dlb_rand32_seed(SDL_GetTicks64());
 
-    load_resource_db(depot, "db/ResourceDB.fbb");
+    // TODO: Move this into depot init?
+    void *bufToDelete = 0;
+    Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &depot.resources, &bufToDelete);
+    if (!resourceDbErr) {
+        create_global_keymap(depot);
+        create_cursor(depot);
+        create_fps_counter(depot);
+        create_cards(depot);
+        create_player(depot);
 
-    create_global_keymap(depot);
-    create_cursor(depot);
-    create_fps_counter(depot);
-    create_cards(depot);
-    create_player(depot);
+        // Run the game
+        depot.TransitionTo(GameState_Play);
+        depot.Run();
+    } else {
+        DLB_ASSERT(!"Uh oh, resdb failed to load");
+    }
 
-    // Run the game
-    depot.TransitionTo(GameState_Play);
-    depot.Run();
     depot.Destroy();
 
     TTF_Quit();
+
+    // TODO: Move this into depot destroy?
+    SDL_free(bufToDelete);
 
     // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to
     // try to find it yet.

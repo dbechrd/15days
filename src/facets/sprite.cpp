@@ -3,11 +3,11 @@
 
 void Sprite::UpdateRect(Depot &depot)
 {
-    if (!spritesheet) {
+    if (!spritesheetKey) {
         SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
         return;
     }
-    if (!animation) {
+    if (!animationKey) {
         SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no animation");
         return;
     }
@@ -18,7 +18,7 @@ void Sprite::UpdateRect(Depot &depot)
         return;
     }
 
-    Spritesheet *sheet = (Spritesheet *)depot.GetFacet(spritesheet, Facet_Spritesheet);
+    const ResourceDB::Spritesheet *sheet = depot.resources->spritesheets()->LookupByKey(spritesheetKey);
     if (!sheet) {
         SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
         return;
@@ -26,11 +26,14 @@ void Sprite::UpdateRect(Depot &depot)
 
     // NOTE: If you ever change this, you probably also need to make SetAnim*
     // functions call UpdateBbox again (e.g. if frames can be diff sizes)
-    position->size = sheet->cellSize;
+    position->size.x = sheet->cell_width();
+    position->size.y = sheet->cell_height();
 
     ///////////////////////////////////////////////////////////////////////////
 
-    Texture *texture = (Texture *)depot.GetFacet(sheet->texture, Facet_Texture);
+    // TODO: Rename this to FindOrCreate or something..
+    UID texUid = depot.renderSystem.LoadTexture_BMP(depot, sheet->texture_path()->c_str());
+    Texture *texture = (Texture *)depot.GetFacet(texUid, Facet_Texture);
     if (!texture) {
         SDL_LogError(0, "Can't update sprite rect when spritesheet has no texture");
         return;
@@ -38,18 +41,16 @@ void Sprite::UpdateRect(Depot &depot)
 
     cached_sdl_texture = texture->sdl_texture;
 
-
     int cell = -1;
-    if (animation) {
-        const auto &result = sheet->animations_by_name.find(animation);
-        if (result != sheet->animations_by_name.end()) {
-            Animation &anim = sheet->animations[result->second];
-            cell = anim.start + frame;
+    if (animationKey) {
+        const ResourceDB::Animation *anim = sheet->animations()->LookupByKey(animationKey);
+        if (anim) {
+            cell = anim->frame_start() + frame;
         }
     }
 
     if (cell < 0) {
-        SDL_LogError(0, "Can't update sprite rect for invalid animation name '%s'\n", animation);
+        SDL_LogError(0, "Can't update sprite rect for invalid animation name '%s'\n", animationKey);
         return;
     }
 
@@ -57,8 +58,8 @@ void Sprite::UpdateRect(Depot &depot)
     int sheetHeight = 0;
     SDL_QueryTexture(texture->sdl_texture, 0, 0, &sheetWidth, &sheetHeight);
 
-    srcRect.x = (cell * (int)sheet->cellSize.x) % sheetWidth;
-    srcRect.y = (cell * (int)sheet->cellSize.x) / sheetWidth;
-    srcRect.w = (int)sheet->cellSize.x;
-    srcRect.h = (int)sheet->cellSize.y;
+    srcRect.x = (cell * (int)sheet->cell_width()) % sheetWidth;
+    srcRect.y = (cell * (int)sheet->cell_width()) / sheetWidth;
+    srcRect.w = (int)sheet->cell_width();
+    srcRect.h = (int)sheet->cell_height();
 }

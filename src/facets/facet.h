@@ -4,11 +4,8 @@
 enum FacetType {
     // Resources
     Facet_Animation,
-    Facet_CardProto,
     Facet_Font,
-    Facet_MaterialProto,
     Facet_Sound,
-    Facet_Spritesheet,
     Facet_Texture,
     // Components
     Facet_Attach,
@@ -17,7 +14,6 @@ enum FacetType {
     Facet_Combat,
     Facet_Cursor,
     Facet_Deck,
-    Facet_EffectList,
     Facet_FpsCounter,
     Facet_Histogram,
     Facet_Keymap,

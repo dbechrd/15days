@@ -1,7 +1,7 @@
 namespace ResourceDB;
 
 table Animation {
-    name:string;
+    name:string (key);
     desc:string;
     frame_start:int;
     frame_count:int;
@@ -26,7 +26,7 @@ table MaterialProto {
     attribs:MaterialAttribs;
 }
 
-enum EffectType:uint {
+enum EffectTypes:uint (bit_flags) {
     IgniteFlammable,
     ExtinguishFlammable
 }
@@ -36,7 +36,7 @@ table CardProto {
     spritesheet:string;
     default_animation:string;
     material_proto:string;
-    effects:[EffectType];
+    effects:EffectTypes;
 }
 
 table Root {

@@ -1,44 +1,40 @@
 #include "effect_system.h"
 #include "../facets/depot.h"
 
-void ApplyEffectToMaterial(Depot &depot, Material &material, Effect &effect)
+void ApplyEffectsToMaterial(Depot &depot, Material &material, ResourceDB::EffectTypes effectTypes)
 {
-    MaterialProto *materialProto = (MaterialProto *)depot.GetFacet(material.materialProto, Facet_MaterialProto);
+    const ResourceDB::MaterialProto *materialProto = depot.resources->material_protos()->LookupByKey(material.materialProtoKey);
     if (!materialProto) {
-        DLB_ASSERT(!"dafuq");
+        SDL_LogError(0, "Material has invalid material prototype %s\n", material.materialProtoKey);
         return;
     }
+    const ResourceDB::MaterialAttribs &matAttribs = materialProto->attribs();
 
-    switch (effect.type) {
-        case Effect_IgniteFlammable: {
-            if (materialProto->flags.test(MaterialFlag_Flammable) && !material.state.test(MaterialState_OnFire)) {
-                material.state.set(MaterialState_OnFire);
+    // Effect types
+    const bool fxIgniteFlammable = effectTypes & ResourceDB::EffectTypes_IgniteFlammable;
+    const bool fxExtinguishFlammable = effectTypes & ResourceDB::EffectTypes_ExtinguishFlammable;
 
-                Message onFireBegin{};
-                onFireBegin.type = MsgType_Effect_OnFireBegin;
-                onFireBegin.uid = material.uid;
-                depot.msgQueue.push_back(onFireBegin);
-            }
-            break;
-        }
-        case Effect_ExtinguishFlammable: {
-            if (materialProto->flags.test(MaterialFlag_Flammable) && material.state.test(MaterialState_OnFire)) {
-                material.state.reset(MaterialState_OnFire);
+    // Material attributes
+    const bool isFlammable = matAttribs & ResourceDB::MaterialAttribs_Flammable;
 
-                Message onFireEnd{};
-                onFireEnd.type = MsgType_Effect_OnFireEnd;
-                onFireEnd.uid = material.uid;
-                depot.msgQueue.push_back(onFireEnd);
-            }
-            break;
-        }
+    // Ignite flammable materials
+    if (fxIgniteFlammable && isFlammable && !material.state.test(MaterialState_OnFire)) {
+        material.state.set(MaterialState_OnFire);
+
+        Message onFireBegin{};
+        onFireBegin.type = MsgType_Effect_OnFireBegin;
+        onFireBegin.uid = material.uid;
+        depot.msgQueue.push_back(onFireBegin);
     }
-}
 
-void ApplyEffectsToMaterial(Depot &depot, Material &material, EffectList &effectList)
-{
-    for (Effect &effect : effectList.effects) {
-        ApplyEffectToMaterial(depot, material, effect);
+    // Extinguish flammable materials
+    if (fxExtinguishFlammable && isFlammable && material.state.test(MaterialState_OnFire)) {
+        material.state.reset(MaterialState_OnFire);
+
+        Message onFireEnd{};
+        onFireEnd.type = MsgType_Effect_OnFireEnd;
+        onFireEnd.uid = material.uid;
+        depot.msgQueue.push_back(onFireEnd);
     }
 }
 
@@ -66,16 +62,16 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
                         continue;
                     }
 
-                    CardProto *cardProto = (CardProto *)depot.GetFacet(card->cardProto, Facet_CardProto);
+                    const ResourceDB::CardProto *cardProto =
+                        depot.resources->card_protos()->LookupByKey(card->cardProto);
                     if (!cardProto) {
-                        DLB_ASSERT(!"Huh? Card without proto??");
+                        printf("WARN: Can't update a card with no card prototype");
                         continue;
                     }
 
-                    EffectList *effectList = (EffectList *)depot.GetFacet(cardProto->effectList, Facet_EffectList);
                     Material *material = (Material *)depot.GetFacet(recvFxUid, Facet_Material);
-                    if (material && effectList) {
-                        ApplyEffectsToMaterial(depot, *material, *effectList);
+                    if (material) {
+                        ApplyEffectsToMaterial(depot, *material, cardProto->effects());
                         break;
                     }
                 }
@@ -85,9 +81,9 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
         }
     }
 }
-
 void EffectSystem::ApplyFx_AnyToAny(Depot &depot, const CollisionList &collisionList)
 {
+#if 0
     for (const Collision &collision : collisionList) {
         Card *aCard = (Card *)depot.GetFacet(collision.uidA, Facet_Card);
         Card *bCard = (Card *)depot.GetFacet(collision.uidB, Facet_Card);
@@ -115,4 +111,7 @@ void EffectSystem::ApplyFx_AnyToAny(Depot &depot, const CollisionList &collision
             ApplyEffectsToMaterial(depot, *bMat, *aFx);
         }
     }
+#else
+    DLB_ASSERT(!"nope, old code");
+#endif
 }

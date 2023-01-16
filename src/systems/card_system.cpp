@@ -16,24 +16,7 @@ UID CardSystem::CardDragSounds(Depot &depot)
     return uidDraggableSounds;
 }
 
-UID CardSystem::PrototypeCard(Depot &depot, const char *name, UID uidMaterialProto,
-    UID uidEffectList, UID spritesheet, const char *animation)
-{
-    DLB_ASSERT(spritesheet);
-
-    UID uidCardProto = depot.Alloc(name);
-    CardProto *cardProto = (CardProto *)depot.AddFacet(uidCardProto, Facet_CardProto);
-    cardProto->materialProto = uidMaterialProto;
-    cardProto->effectList = uidEffectList;
-    cardProto->spritesheet = spritesheet;
-    cardProto->animation = animation;
-
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCardProto, CardDragSounds(depot));
-
-    return uidCardProto;
-}
-
-UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *animation)
+UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, const char *spritesheetKey, const char *animationKey)
 {
     UID uidDeck = depot.Alloc("deck", false);
 
@@ -44,7 +27,7 @@ UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *a
     deck->count = 100;
 
     Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
-    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheet, animation);
+    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheetKey, animationKey);
 
     Body *body = (Body *)depot.AddFacet(uidDeck, Facet_Body);
     body->gravity = -50.0f;
@@ -77,28 +60,29 @@ UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, UID spritesheet, const char *a
     return uidDeck;
 }
 
-UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float invulnFor)
+UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, float invulnFor)
 {
-    UID uidCard = depot.Alloc(depot.nameByUid[uidCardProto].c_str(), false);
+    UID uidCard = depot.Alloc(cardProtoKey, false);
 
     Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
     position->pos = spawnPos;
 
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
-    card->cardProto = uidCardProto;
+    card->cardProto = cardProtoKey;
     card->noClickUntil = depot.Now() + invulnFor;
 
-    CardProto *cardProto = (CardProto *)depot.GetFacet(uidCardProto, Facet_CardProto);
-    if (cardProto->materialProto) {
+    const ResourceDB::CardProto *cardProto = depot.resources->card_protos()->LookupByKey(cardProtoKey);
+    if (cardProto->material_proto()) {
         Material *material = (Material *)depot.AddFacet(uidCard, Facet_Material);
-        material->materialProto = cardProto->materialProto;
+        material->materialProtoKey = cardProto->material_proto()->c_str();
     }
 
-    Spritesheet *sheet = (Spritesheet *)depot.GetFacet(cardProto->spritesheet, Facet_Spritesheet);
+    const char *sheetKey = cardProto->spritesheet()->c_str();
+    const ResourceDB::Spritesheet *sheet = depot.resources->spritesheets()->LookupByKey(sheetKey);
     if (sheet) {
         Sprite *sprite = (Sprite *)depot.AddFacet(uidCard, Facet_Sprite);
         SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE),
-            cardProto->spritesheet, cardProto->animation);
+            cardProto->spritesheet()->c_str(), cardProto->default_animation()->c_str());
     } else {
         DLB_ASSERT(!"no sheet");
         printf("Failed to find sheet for card\n");
@@ -121,10 +105,11 @@ UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float i
     debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
     // TODO: Use card prototype desc instead once that's in DB file
     //debugText->str = depot.nameByUid[uidCardProto].c_str();
-    if (cardProto->animation) {
-        const auto &animResult = sheet->animations_by_name.find(cardProto->animation);
-        if (animResult != sheet->animations_by_name.end()) {
-            debugText->str = sheet->animations[animResult->second].desc;
+    if (cardProto->default_animation()) {
+        const char *defaultAnimKey = cardProto->default_animation()->c_str();
+        const ResourceDB::Animation *anim = sheet->animations()->LookupByKey(defaultAnimKey);
+        if (anim) {
+            debugText->str = anim->desc()->c_str();
         }
     }
     debugText->align = TextAlign_VBottom_HCenter;
@@ -132,7 +117,8 @@ UID CardSystem::SpawnCard(Depot &depot, UID uidCardProto, vec3 spawnPos, float i
     debugText->offset.x += 100;
     debugText->offset.y = 0;
 
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
+    // TODO: Fix me..
+    //depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
 
     return uidCard;
 }
@@ -159,16 +145,16 @@ void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
         Sprite *sprite = (Sprite *)depot.GetFacet(uidDeck, Facet_Sprite);
         if (sprite) {
             // TODO: Search by name or use enum or something smart
-            UID cardProto = 0;
+            const char *cardProtoKey = 0;
             float rng = dlb_rand32f_range(0, 1);
             if (rng < 0.5f) {
-                cardProto = depot.cardProto[0].uid; // fire
+                cardProtoKey = "card_proto_lighter";
             } else if (rng < 0.9f) {
-                cardProto = depot.cardProto[1].uid; // water
+                cardProtoKey = "card_proto_water_bucket";
             } else {
-                cardProto = depot.cardProto[2].uid; // bomb
+                cardProtoKey = "card_proto_bomb";
             }
-            UID card = SpawnCard(depot, cardProto, spawnPos, 0.5);
+            UID card = SpawnCard(depot, cardProtoKey, spawnPos, 0.5);
 
             Body *body = (Body *)depot.GetFacet(card, Facet_Body);
             body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
@@ -227,12 +213,12 @@ void CardSystem::UpdateCards(Depot &depot)
             Message msgUpdateAnim{};
             msgUpdateAnim.uid = card.uid;
             msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.anim_name = "card_backface";
+            msgUpdateAnim.data.sprite_updateanimation.animKey = "card_backface";
             depot.msgQueue.push_back(msgUpdateAnim);
         } else if (card.noClickUntil) {
             card.noClickUntil = 0;
 
-            CardProto *cardProto = (CardProto *)depot.GetFacet(card.cardProto, Facet_CardProto);
+            const ResourceDB::CardProto *cardProto = depot.resources->card_protos()->LookupByKey(card.cardProto);
             if (!cardProto) {
                 printf("WARN: Can't update a card with no card prototype");
                 continue;
@@ -241,7 +227,7 @@ void CardSystem::UpdateCards(Depot &depot)
             Message msgUpdateAnim{};
             msgUpdateAnim.uid = card.uid;
             msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.anim_name = cardProto->animation;
+            msgUpdateAnim.data.sprite_updateanimation.animKey = cardProto->default_animation()->c_str();
             depot.msgQueue.push_back(msgUpdateAnim);
 
             Message msgTryStack{};

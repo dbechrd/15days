@@ -3,16 +3,9 @@
 #include "facet.h"
 #include "material.h"
 
-struct CardProto : public Facet {
-    UID          effectList    {};
-    UID          materialProto {};
-    UID          spritesheet   {};
-    const char * animation     {};
-};
-
 struct Card : public Facet {
-    UID    stackParent  {};
-    UID    stackChild   {};
-    UID    cardProto    {};
-    double noClickUntil {};  // timestamp of when next click is allowed on card
+    UID          stackParent  {};
+    UID          stackChild   {};
+    const char * cardProto    {};
+    double       noClickUntil {};  // timestamp of when next click is allowed on card
 };

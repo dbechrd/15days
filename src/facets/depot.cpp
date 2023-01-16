@@ -57,21 +57,17 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
         EMPLACE(Facet_Attach,        attach);
         EMPLACE(Facet_Body,          body);
         EMPLACE(Facet_Card,          card);
-        EMPLACE(Facet_CardProto,     cardProto);
         EMPLACE(Facet_Combat,        combat);
         EMPLACE(Facet_Cursor,        cursor);
         EMPLACE(Facet_Deck,          deck);
-        EMPLACE(Facet_EffectList,    effectList);
         EMPLACE(Facet_Font,          font);
         EMPLACE(Facet_FpsCounter,    fpsCounter);
         EMPLACE(Facet_Histogram,     histogram);
         EMPLACE(Facet_Keymap,        keymap);
         EMPLACE(Facet_Material,      material);
-        EMPLACE(Facet_MaterialProto, materialProto);
         EMPLACE(Facet_Position,      position);
         EMPLACE(Facet_Sound,         sound);
         EMPLACE(Facet_Sprite,        sprite);
-        EMPLACE(Facet_Spritesheet,   spritesheet);
         EMPLACE(Facet_Text,          text);
         EMPLACE(Facet_Texture,       texture);
         EMPLACE(Facet_TriggerList,   triggerList);
@@ -123,20 +119,16 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Attach:        return &attach        [index];
         case Facet_Body:          return &body          [index];
         case Facet_Card:          return &card          [index];
-        case Facet_CardProto:     return &cardProto     [index];
         case Facet_Combat:        return &combat        [index];
         case Facet_Cursor:        return &cursor        [index];
         case Facet_Deck:          return &deck          [index];
-        case Facet_EffectList:    return &effectList    [index];
         case Facet_Font:          return &font          [index];
         case Facet_FpsCounter:    return &fpsCounter    [index];
         case Facet_Keymap:        return &keymap        [index];
         case Facet_Material:      return &material      [index];
-        case Facet_MaterialProto: return &materialProto [index];
         case Facet_Position:      return &position      [index];
         case Facet_Sound:         return &sound         [index];
         case Facet_Sprite:        return &sprite        [index];
-        case Facet_Spritesheet:   return &spritesheet   [index];
         case Facet_Text:          return &text          [index];
         case Facet_Texture:       return &texture       [index];
         case Facet_TriggerList:   return &triggerList   [index];
@@ -157,6 +149,7 @@ void *Depot::GetFacetByName(const char *name, FacetType type)
 
 static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
 {
+#if FDOV_DEBUG_GLYPH_ATLAS
     // Debug display for font atlases
     int atlasOffsetY = 10;
 
@@ -187,6 +180,7 @@ static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
 
         atlasOffsetY += rect.h + 10;
     }
+#endif
 }
 
 void Depot::Run(void)
@@ -281,9 +275,8 @@ void Depot::Run(void)
         histogramSystem.Display(*this, histogramQueue);
         textSystem.Display(*this, textQueue);
 
-#if FDOV_DEBUG_GLYPH_ATLAS
         DebugFontAtlas(*this, dbgAtlasQueue);
-#endif
+
 #if 0
         // Debug print for message queue
         if (inputQueue.size() || msgQueue.size()) {

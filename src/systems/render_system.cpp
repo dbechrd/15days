@@ -119,7 +119,7 @@ void RenderSystem::Destroy(void)
 UID RenderSystem::LoadTexture_BMP(Depot &depot, const char *filename)
 {
     // Check if already loaded
-    Sound *existingTexture = (Sound *)depot.GetFacetByName(filename, Facet_Texture);
+    Texture *existingTexture = (Texture *)depot.GetFacetByName(filename, Facet_Texture);
     if (existingTexture) {
         return existingTexture->uid;
     }
