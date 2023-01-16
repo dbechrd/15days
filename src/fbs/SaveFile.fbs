@@ -1,0 +1,20 @@
+namespace SaveFile;
+
+enum MaterialStates:uint (bit_flags) {
+    OnFire,
+}
+
+table Material {
+    material_proto:string;
+    states:MaterialStates;
+}
+
+table Root {
+    name:string (key);
+    materials:[Material];
+}
+
+root_type Root;
+
+file_identifier "15dy";
+file_extension "fbb";

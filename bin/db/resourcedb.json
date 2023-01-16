@@ -1,5 +1,45 @@
 {
-  name: "resourcedb",
+  name: "resourcedb_1",
+  card_protos: [
+    {
+      name: "card_proto_bomb",
+      spritesheet: "sheet_cards",
+      default_animation: "card_bomb"
+    },
+    {
+      name: "card_proto_camp",
+      spritesheet: "sheet_cards",
+      default_animation: "card_camp"
+    },
+    {
+      name: "card_proto_campfire",
+      spritesheet: "sheet_campfire",
+      default_animation: "unlit",
+      material_proto: "mat_flammable"
+    },
+    {
+      name: "card_proto_lighter",
+      spritesheet: "sheet_cards",
+      default_animation: "card_lighter",
+      effects: [
+        "IgniteFlammable"
+      ]
+    },
+    {
+      name: "card_proto_water_bucket",
+      spritesheet: "sheet_cards",
+      default_animation: "card_water_bucket",
+      effects: [
+        "ExtinguishFlammable"
+      ]
+    }
+  ],
+  material_protos: [
+    {
+      name: "mat_flammable",
+      attribs: "Flammable"
+    }
+  ],
   spritesheets: [
     {
       name: "sheet_campfire",
@@ -34,8 +74,8 @@
           frame_count: 1
         },
         {
-          name: "card_bucket",
-          desc: "Dis is a `bbucket`w",
+          name: "card_water_bucket",
+          desc: "Dis is a `bwater bucket`w",
           frame_start: 1,
           frame_count: 1
         },

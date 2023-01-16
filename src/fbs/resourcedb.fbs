@@ -1,4 +1,4 @@
-namespace DB;
+namespace ResourceDB;
 
 table Animation {
     name:string;
@@ -16,12 +16,37 @@ table Spritesheet {
     animations:[Animation];
 }
 
-table ResourceDB {
+// NOTE: Looks like "Flammable AnotherAttrib ThirdAttrib" in .json
+enum MaterialAttribs:uint (bit_flags) {
+    Flammable
+}
+
+table MaterialProto {
     name:string (key);
+    attribs:MaterialAttribs;
+}
+
+enum EffectType:uint {
+    IgniteFlammable,
+    ExtinguishFlammable
+}
+
+table CardProto {
+    name:string (key);
+    spritesheet:string;
+    default_animation:string;
+    material_proto:string;
+    effects:[EffectType];
+}
+
+table Root {
+    name:string;
+    card_protos:[CardProto];
+    material_protos:[MaterialProto];
     spritesheets:[Spritesheet];
 }
 
-root_type ResourceDB;
+root_type Root;
 
 file_identifier "15dy";
 file_extension "fbb";

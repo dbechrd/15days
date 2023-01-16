@@ -391,32 +391,10 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         vec3 pos{};
         vec2 size{};
 
-#if 1
         Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
         pos = position->pos;
         size = position->size;
-#else
-        int stackDepth = 0;
-        Card *c = &card;
-        while (c) {
-            if (c->stackParent) {
-                Card *parent = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
-                DLB_ASSERT(parent);
-                if (!parent) {
-                    SDL_LogError(0, "ERROR: Card has invalid stack parent");
-                    break;
-                }
-                c = parent;
-                stackDepth++;
-            } else {
-                Position *position = (Position *)depot.GetFacet(c->uid, Facet_Position);
-                pos = position->pos;
-                pos.y += stackDepth * 20.0f;
-                size = position->size;
-                break;
-            }
-        }
-#endif
+
         Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
         if (!sprite) {
             SDL_LogError(0, "ERROR: Can't draw a card with no sprite");

@@ -347,8 +347,10 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                         SDL_FreeSurface(glyphBody);
                         glyphOutline = 0;
                         glyphBody = 0;
-
+#if 0
+                        // DEBUG(cleanup): Print glyphs as they're cached
                         printf("%c ", *c);
+#endif
                     }
                 }
 

@@ -1,7 +1,8 @@
 #include "common/basic.h"
 #include "common/message.h"
 #include "facets/depot.h"
-#include "fbg/resourcedb_generated.h"
+#include "fbg/ResourceDB_generated.h"
+#include "fbg/SaveFile_generated.h"
 
 DLB_ASSERT_HANDLER(dlb_assert_callback) {
     printf("[%s:%u] %s\n", filename, line, expr);
@@ -64,12 +65,14 @@ Error load_resource_db(Depot &depot, const char *filename)
     size_t size{};
     void *data = SDL_LoadFile(filename, &size);
     if (!data) {
+        SDL_LogError(0, "Failed to load db: %s\n", filename);
         return E_IO_ERROR;
     }
 
-    const DB::ResourceDB *db = DB::GetResourceDB(data);
+    const ResourceDB::Root *db = ResourceDB::GetRoot(data);
     flatbuffers::Verifier fbv((const u8 *)data, size);
-    if (!DB::VerifyResourceDBBuffer(fbv)) {
+    if (!ResourceDB::VerifyRootBuffer(fbv)) {
+        SDL_LogError(0, "Verify failed: %s\n", filename);
         return E_VERIFY_FAILED;
     }
 
@@ -512,7 +515,7 @@ void create_cards(Depot &depot)
 
     // Card prototypes
     UID uidLighterProto = depot.cardSystem.PrototypeCard(depot, "Lighter", 0, uidFireFxList, uidCardSheet, "card_lighter");
-    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, "card_bucket");
+    UID uidBucketProto = depot.cardSystem.PrototypeCard(depot, "Water Bucket", 0, uidWaterFxList, uidCardSheet, "card_water_bucket");
     UID uidBombProto = depot.cardSystem.PrototypeCard(depot, "Bomb", 0, 0, uidCardSheet, "card_bomb");
     UID uidCampProto = depot.cardSystem.PrototypeCard(depot, "Camp", 0, 0, uidCardSheet, "card_camp");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
@@ -622,7 +625,7 @@ int main(int argc, char *argv[])
 
     dlb_rand32_seed(SDL_GetTicks64());
 
-    load_resource_db(depot, "db/resourcedb.fbb");
+    load_resource_db(depot, "db/ResourceDB.fbb");
 
     create_global_keymap(depot);
     create_cursor(depot);

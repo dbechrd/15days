@@ -2,14 +2,14 @@
 #include "facet.h"
 
 struct Body : public Facet {
-    float friction     {};
-    float drag         {};
-    float restitution  {};
-    float jumpImpulse  {};
-    float speed        {};
-    float runMult      {};
-    float gravity      {};
-    float invMass      {};
+    float friction      {};
+    float drag          {};
+    float restitution   {};
+    float jumpImpulse   {};
+    float speed         {};
+    float runMult       {};
+    float gravity       {};
+    float invMass       {};
     vec3  velocity      {};
 
     vec2  moveBuffer    {};
