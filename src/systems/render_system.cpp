@@ -41,9 +41,10 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     }
 
     int flags = SDL_WINDOW_OPENGL;
-#if FDOV_FULLSCREEN
-    flags |= SDL_WINDOW_FULLSCREEN;
-#endif
+    if (fullscreen) {
+        flags |= SDL_WINDOW_FULLSCREEN;
+    }
+
     window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         width, height,
@@ -187,6 +188,16 @@ void RenderSystem::React(Depot &depot)
             {
                 vsync = !vsync;
                 SDL_SetRenderVSync(renderer, vsync);
+                break;
+            }
+            case MsgType_Render_ToggleFullscreen:
+            {
+                fullscreen = !fullscreen;
+#if 0
+                SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
+#else
+                SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+#endif
                 break;
             }
             case MsgType_Render_DbgSetFontNext:

@@ -18,6 +18,7 @@ UID create_global_keymap(Depot &depot)
     keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_QUIT, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_ESCAPE, 0, 0, Hotkey_Press, MsgType_Render_Quit);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_V, 0, 0, Hotkey_Press, MsgType_Render_ToggleVsync);
+    keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_F11, 0, 0, Hotkey_Press, MsgType_Render_ToggleFullscreen);
     keymap->hotkeys.emplace_back(HotkeyMod_None, SDL_SCANCODE_F, 0, 0, Hotkey_Press, MsgType_Render_DbgSetFontNext);
     keymap->hotkeys.emplace_back(HotkeyMod_Shift, SDL_SCANCODE_F, 0, 0, Hotkey_Press, MsgType_Render_DbgSetFontPrev);
 

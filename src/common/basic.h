@@ -37,8 +37,8 @@
 #define SCREEN_W 1920
 #define SCREEN_H 1080
 #else
-#define SCREEN_W 1600
-#define SCREEN_H 900
+#define SCREEN_W 1728
+#define SCREEN_H 972
 #endif
 
 typedef uint32_t UID;

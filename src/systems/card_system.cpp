@@ -356,24 +356,50 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
             continue;
         }
 
+        float depth = position->pos.y - position->pos.z + position->size.y;
+        vec2 dragOffset{ 0.0f, 0.0f };
+
+        {
+            float stackDepth = 0;
+            Card *c = &card;
+            while (c) {
+                if (cursor.uidDragSubject == c->uid) {
+                    depth = SCREEN_H * 2.0f + stackDepth;
+                    dragOffset.x += 4.0f;
+                    dragOffset.y += 6.0f;
+                    break;
+                }
+                stackDepth++;
+                c = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
+            }
+        }
+
         rect srcRect = sprite->GetSrcRect();
 
-        rect dstRect{};
-        dstRect.x = position->pos.x;
-        dstRect.y = position->pos.y - position->pos.z;
-        dstRect.w = srcRect.w;
-        dstRect.h = srcRect.h;
+        if (!v2_iszero(&dragOffset)) {
+            const vec2 shadowOffset{ 0.0f, 2.0f };
+            rect dstRectShadow {
+                shadowOffset.x + position->pos.x,
+                shadowOffset.y + position->pos.y - position->pos.z,
+                srcRect.w,
+                srcRect.h
+            };
 
-        float depth = position->pos.y - position->pos.z + position->size.y;
-        float stackDepth = 0;
-        Card *c = &card;
-        while (c) {
-            if (cursor.uidDragSubject == c->uid) {
-                depth = SCREEN_H * 2.0f + stackDepth;
-            }
-            stackDepth++;
-            c = (Card *)depot.GetFacet(c->stackParent, Facet_Card);
+            DrawCommand drawShadow{};
+            drawShadow.uid = sprite->uid;
+            drawShadow.color = C255(((vec4){ 0.1f, 0.1f, 0.1f, 0.7f }));
+            drawShadow.srcRect = srcRect;
+            drawShadow.dstRect = dstRectShadow;
+            drawShadow.depth = depth - 0.01f;
+            drawQueue.push_back(drawShadow);
         }
+
+        rect dstRectCard{
+            position->pos.x + dragOffset.x,
+            position->pos.y - position->pos.z - dragOffset.y,
+            srcRect.w,
+            srcRect.h
+        };
 
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;
@@ -386,7 +412,7 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
             drawSprite.color = sprite->color;
         }
         drawSprite.srcRect = srcRect;
-        drawSprite.dstRect = dstRect;
+        drawSprite.dstRect = dstRectCard;
         drawSprite.texture = sprite->GetSDLTexture();
         drawSprite.depth = depth;
         drawQueue.push_back(drawSprite);

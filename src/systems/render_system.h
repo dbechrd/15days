@@ -28,9 +28,10 @@ struct RenderSystem {
     void Present(void);
 
 private:
-    bool          vsync          {FDOV_VSYNC};
-    bool          running        {false};
-    int           dbgFontIdx     {0};
+    bool          fullscreen     { FDOV_FULLSCREEN };
+    bool          vsync          { FDOV_VSYNC };
+    bool          running        { false };
+    int           dbgFontIdx     { 0 };
     SDL_Window   *window         {};
     SDL_Renderer *renderer       {};
     double        shakeStartedAt {};
