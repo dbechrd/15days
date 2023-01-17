@@ -119,6 +119,9 @@ void TriggerSystem::CheckTriggers(Depot &depot, TriggerList &triggerList, Messag
                 depot.msgQueue.push_back(relayMsg);
             }
         } else if (trigger.trigger == msg.type) {
+            if (msg.uid == 10) {
+                printf("");
+            }
             if (trigger.callback) {
                 trigger.callback(depot, msg, trigger, trigger.userData);
             } else {

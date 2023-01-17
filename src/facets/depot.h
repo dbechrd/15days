@@ -27,7 +27,6 @@
 #include "card.h"
 #include "combat.h"
 #include "cursor.h"
-#include "deck.h"
 #include "font.h"
 #include "fps_counter.h"
 #include "histogram.h"
@@ -59,7 +58,6 @@ struct Depot {
     std::vector<Card>          card          {};
     std::vector<Combat>        combat        {};
     std::vector<Cursor>        cursor        {};
-    std::vector<Deck>          deck          {};
     std::vector<Font>          font          {};
     std::vector<FpsCounter>    fpsCounter    {};
     std::vector<Histogram>     histogram     {};

@@ -9,10 +9,7 @@ enum MsgType {
     MsgType_Audio_PlaySound,
     MsgType_Audio_StopSound,
 
-    MsgType_Card_Notify_DragBegin,
-    MsgType_Card_Notify_DragUpdate,
-    MsgType_Card_Notify_DragEnd,
-    MsgType_Card_Notify_LeftClick,
+    MsgType_Card_DoAction,
     MsgType_Card_Spawn,
     MsgType_Card_TryToStack,
 
@@ -23,8 +20,11 @@ enum MsgType {
     MsgType_Combat_Notify_DefendBegin,
     MsgType_Combat_Notify_IdleBegin,
 
-    MsgType_Cursor_PrimaryPress,
-    MsgType_Cursor_PrimaryRelease,
+    MsgType_Cursor_Notify_DragBegin,
+    MsgType_Cursor_Notify_DragUpdate,
+    MsgType_Cursor_Notify_DragEnd,
+    //MsgType_Cursor_PrimaryPress,    // directly from events
+    //MsgType_Cursor_PrimaryRelease,  // directly from events
 
     MsgType_Effect_OnFireBegin,
     MsgType_Effect_OnFireEnd,
@@ -63,7 +63,7 @@ struct Msg_Audio_PlaySound {
     bool override {};
 };
 
-struct Msg_Card_Notify_DragEnd {
+struct Msg_Cursor_Notify_DragEnd {
     vec2 dragDelta {};  // delta pos of mouse compared to where drag was started
 };
 
@@ -124,7 +124,7 @@ struct Message {
     MsgType type {};
     union {
         Msg_Audio_PlaySound audio_playsound;
-        Msg_Card_Notify_DragEnd card_dragend;
+        Msg_Cursor_Notify_DragEnd cursor_dragend;
         Msg_Combat_Notify_AttackBegin combat_attackbegin;
         Msg_Combat_Notify_DefendBegin combat_defendbegin;
         Msg_FpsCounter_Notify_Update fpscounter_notify_update;

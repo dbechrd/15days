@@ -13,7 +13,6 @@ enum FacetType {
     Facet_Card,
     Facet_Combat,
     Facet_Cursor,
-    Facet_Deck,
     Facet_FpsCounter,
     Facet_Histogram,
     Facet_Keymap,

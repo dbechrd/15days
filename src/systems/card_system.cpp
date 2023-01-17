@@ -11,53 +11,86 @@ UID CardSystem::CardDragSounds(Depot &depot)
     }
 
     UID uidDraggableSounds = depot.Alloc(name);
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragBegin, "audio/drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragEnd, "audio/drag_end.wav");
     return uidDraggableSounds;
 }
 
-UID CardSystem::SpawnDeck(Depot &depot, vec3 pos, const char *spritesheetKey, const char *animationKey)
+void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
 {
-    UID uidDeck = depot.Alloc("deck", false);
+    Card *card = (Card *)depot.GetFacet(uidDeck, Facet_Card);
+    if (!card) {
+        return;
+    }
 
-    Position *position = (Position *)depot.AddFacet(uidDeck, Facet_Position);
-    position->pos = pos;
+    if (card->stackChild) {
+        return;
+    }
 
-    Deck *deck = (Deck *)depot.AddFacet(uidDeck, Facet_Deck);
-    deck->count = 100;
+#if 1
+    int cardsDrawn = 0;
+    while (card->deckCount && !card->stackChild && cardsDrawn < 5) {
+#else
+    if (card->deckCount) {
+#endif
+        vec3 spawnPos{};
+        Position *position = (Position *)depot.GetFacet(uidDeck, Facet_Position);
+        if (position) {
+            spawnPos = position->pos;
+            spawnPos.y += 50;  // TODO: Rand pop
+        }
+        Sprite *sprite = (Sprite *)depot.GetFacet(uidDeck, Facet_Sprite);
+        if (sprite) {
+            // TODO: Search by name or use enum or something smart
+            const char *cardProtoKey = 0;
+            float rng = dlb_rand32f_range(0, 1);
+            if (rng < 0.5f) {
+                cardProtoKey = "card_proto_lighter";
+            } else if (rng < 0.9f) {
+                cardProtoKey = "card_proto_water_bucket";
+            } else {
+                cardProtoKey = "card_proto_bomb";
+            }
+            UID uidNewCard = SpawnCard(depot, cardProtoKey, spawnPos, 0.5);
 
-    Sprite *sprite = (Sprite *)depot.AddFacet(uidDeck, Facet_Sprite);
-    SpriteSystem::InitSprite(depot, *sprite, C255(COLOR_WHITE), spritesheetKey, animationKey);
+            Body *body = (Body *)depot.GetFacet(uidNewCard, Facet_Body);
+            body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+            body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+            v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
+            body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
+            depot.renderSystem.Shake(depot, 3.0f, 100.0f, 0.1f);
+        } else {
+            SDL_Log("Cannot draw from deck with no spritesheet\n");
+        }
 
-    Body *body = (Body *)depot.AddFacet(uidDeck, Facet_Body);
-    body->gravity = -50.0f;
-    body->friction = 0.001f;
-    //body->drag = 0.001f;
-    body->drag = 0.05f;
-    body->restitution = 0.0f;
-    body->jumpImpulse = 800.0f;
-    body->speed = 20.0f;
-    body->runMult = 2.0f;
-    float mass = 1.0f;
-    body->invMass = 1.0f / mass;
+        card = (Card *)depot.GetFacet(uidDeck, Facet_Card);
+        card->deckCount--;
+        cardsDrawn++;
+    }
 
-    //Text *debugText = (Text *)depot.AddFacet(uidDeck, Facet_Text);
-    //debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
-    //debugText->str = 0;
-    //debugText->align = TextAlign_VBottom_HCenter;
-    //debugText->color = C255(COLOR_WHITE);
+    if (!card->deckCount) {
+        // TODO: Destroy the deck
+        // TODO: Remove "Trigger" as a Facet and go back to std::vector<Trigger> inside of TriggerList??
+    }
+}
 
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidDeck, CardDragSounds(depot));
+UID CardSystem::SpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount)
+{
+    UID uidCard = SpawnCard(depot, cardProtoKey, spawnPos);
 
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidDeck, Facet_TriggerList, false);
+    Card *card = (Card *)depot.GetFacet(uidCard, Facet_Card);
+    card->cardType = CardType_Deck;
+    card->deckCount = cardCount;
+
+    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCard, Facet_TriggerList, false);
 
     Trigger deckDrawTrigger{};
-    deckDrawTrigger.trigger = MsgType_Card_Notify_LeftClick;
-    deckDrawTrigger.message.uid = uidDeck;
+    deckDrawTrigger.trigger = MsgType_Card_DoAction;
+    deckDrawTrigger.message.uid = uidCard;
     deckDrawTrigger.message.type = MsgType_Card_Spawn;
     triggerList->triggers.push_back(deckDrawTrigger);
 
-    return uidDeck;
+    return uidCard;
 }
 
 UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, float invulnFor)
@@ -68,6 +101,7 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     position->pos = spawnPos;
 
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
+    card->cardType = CardType_Card;
     card->cardProto = cardProtoKey;
     card->noClickUntil = depot.Now() + invulnFor;
 
@@ -121,75 +155,9 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
 
     // TODO: Fix me..
     //depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, CardDragSounds(depot));
 
     return uidCard;
-}
-
-void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
-{
-    Deck *deck = (Deck *)depot.GetFacet(uidDeck, Facet_Deck);
-    if (!deck) {
-        return;
-    }
-
-#if 1
-    int i = 0;
-    while (deck->count && i++ < 5) {
-#else
-    if (deck->count) {
-#endif
-        vec3 spawnPos{};
-        Position *position = (Position *)depot.GetFacet(uidDeck, Facet_Position);
-        if (position) {
-            spawnPos = position->pos;
-            spawnPos.y += 50;  // TODO: Rand pop
-        }
-        Sprite *sprite = (Sprite *)depot.GetFacet(uidDeck, Facet_Sprite);
-        if (sprite) {
-            // TODO: Search by name or use enum or something smart
-            const char *cardProtoKey = 0;
-            float rng = dlb_rand32f_range(0, 1);
-            if (rng < 0.5f) {
-                cardProtoKey = "card_proto_lighter";
-            } else if (rng < 0.9f) {
-                cardProtoKey = "card_proto_water_bucket";
-            } else {
-                cardProtoKey = "card_proto_bomb";
-            }
-            UID card = SpawnCard(depot, cardProtoKey, spawnPos, 0.5);
-
-            Body *body = (Body *)depot.GetFacet(card, Facet_Body);
-            body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
-            body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
-            depot.renderSystem.Shake(depot, 3.0f, 100.0f, 0.1f);
-        } else {
-            SDL_Log("Cannot draw from deck with no spritesheet\n");
-        }
-        deck->count--;
-    }
-
-    if (!deck->count) {
-        // TODO: Destroy the deck
-        // TODO: Remove "Trigger" as a Facet and go back to std::vector<Trigger> inside of TriggerList??
-    }
-}
-
-void CardSystem::React(Depot &depot)
-{
-    for (int i = 0; i < depot.msgQueue.size(); i++) {
-        Message msg = depot.msgQueue[i];
-
-        switch (msg.type) {
-            case MsgType_Card_Spawn:
-            {
-                DrawCardFromDeck(depot, msg.uid);
-                break;
-            }
-            default: break;
-        }
-    }
 }
 
 void CardSystem::UpdateCards(Depot &depot)
@@ -249,7 +217,7 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
         Message msg = depot.msgQueue[i];
 
         switch (msg.type) {
-            case MsgType_Card_Notify_DragBegin: {
+            case MsgType_Cursor_Notify_DragBegin: {
                 UID draggedCard = msg.uid;
 
                 Card *card = (Card *)depot.GetFacet(draggedCard, Facet_Card);
@@ -304,7 +272,7 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
 
                     // Check if target is a card
                     Card *targetCard = (Card *)depot.GetFacet(targetUid, Facet_Card);
-                    if (targetCard) {
+                    if (targetCard && (targetCard->cardType == card->cardType)) {
                         // Check if target is a higher card
                         Position *targetPos = (Position *)depot.GetFacet(targetUid, Facet_Position);
                         DLB_ASSERT(targetPos);
@@ -334,19 +302,36 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
     }
 }
 
+void CardSystem::React(Depot &depot)
+{
+    for (int i = 0; i < depot.msgQueue.size(); i++) {
+        Message msg = depot.msgQueue[i];
+
+        switch (msg.type) {
+            case MsgType_Card_Spawn:
+            {
+                DrawCardFromDeck(depot, msg.uid);
+                break;
+            }
+            default: break;
+        }
+    }
+}
+
 void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
 {
-    for (Deck &deck : depot.deck) {
-        Position *position = (Position *)depot.GetFacet(deck.uid, Facet_Position);
-        DLB_ASSERT(position);
+    const Cursor &cursor = depot.cursor.front();
+
+    for (Card &card : depot.card) {
+        Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
         if (!position) {
-            SDL_LogError(0, "ERROR: Can't draw a deck with no position");
+            SDL_LogError(0, "Can't draw a card with no position");
             continue;
         }
 
-        Sprite *sprite = (Sprite *)depot.GetFacet(deck.uid, Facet_Sprite);
+        Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
         if (!sprite) {
-            SDL_LogError(0, "ERROR: Can't draw a deck with no sprite");
+            SDL_LogError(0, "Can't draw a card with no sprite");
             continue;
         }
 
@@ -359,47 +344,6 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         dstRect.h = srcRect.h;
 
         float depth = position->pos.y - position->pos.z + position->size.y;
-        for (Cursor &cursor : depot.cursor) {
-            if (cursor.uidDragSubject == sprite->uid) {
-                depth = SCREEN_H * 2.0f;
-            }
-        }
-
-        DrawCommand drawSprite{};
-        drawSprite.uid = sprite->uid;
-        drawSprite.color = sprite->color;
-        drawSprite.srcRect = srcRect;
-        drawSprite.dstRect = dstRect;
-        drawSprite.texture = sprite->GetSDLTexture();
-        drawSprite.depth = depth;
-        drawQueue.push_back(drawSprite);
-    }
-
-    const Cursor &cursor = depot.cursor.front();
-
-    for (Card &card : depot.card) {
-        vec3 pos{};
-        vec2 size{};
-
-        Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
-        pos = position->pos;
-        size = position->size;
-
-        Sprite *sprite = (Sprite *)depot.GetFacet(card.uid, Facet_Sprite);
-        if (!sprite) {
-            SDL_LogError(0, "ERROR: Can't draw a card with no sprite");
-            continue;
-        }
-
-        rect srcRect = sprite->GetSrcRect();
-
-        rect dstRect{};
-        dstRect.x = pos.x;
-        dstRect.y = pos.y - pos.z;
-        dstRect.w = srcRect.w;
-        dstRect.h = srcRect.h;
-
-        float depth = pos.y - pos.z + size.y;
         float stackDepth = 0;
         Card *c = &card;
         while (c) {
@@ -413,21 +357,14 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;
         drawSprite.color = sprite->color;
+        if (card.cardType == CardType_Deck && !card.deckCount) {
+            drawSprite.color = C255(COLOR_GRAY_5);
+        }
         drawSprite.srcRect = srcRect;
         drawSprite.dstRect = dstRect;
         drawSprite.texture = sprite->GetSDLTexture();
         drawSprite.depth = depth;
         drawQueue.push_back(drawSprite);
-
-#if 0
-        Text *text = (Text *)depot.GetFacet(card.uid, Facet_Text);
-        if (text) {
-            const size_t uidLen = 8;
-            char *stackParent = (char *)depot.frameArena.Alloc(uidLen);
-            snprintf(stackParent, uidLen, "%u", card.stackParent);
-            text->str = stackParent;
-        }
-#endif
     }
 
     std::sort(drawQueue.begin(), drawQueue.end());

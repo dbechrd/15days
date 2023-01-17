@@ -45,7 +45,7 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
         Message msg = depot.msgQueue[i];
 
         switch (msg.type) {
-            case MsgType_Card_Notify_DragUpdate: {
+            case MsgType_Cursor_Notify_DragUpdate: {
                 UID applyFxUid = msg.uid;
                 for (const Collision &collision : collisionList) {
                     UID recvFxUid = 0;
@@ -81,6 +81,7 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
         }
     }
 }
+
 void EffectSystem::ApplyFx_AnyToAny(Depot &depot, const CollisionList &collisionList)
 {
 #if 0

@@ -80,8 +80,7 @@ DragTarget GetDragTarget(Depot &depot, UID cursor, const CollisionList &collisio
         }
 
         Card *card = (Card *)depot.GetFacet(uid, Facet_Card);
-        Deck *deck = (Deck *)depot.GetFacet(uid, Facet_Deck);
-        if (card || deck) {
+        if (card) {
             // Disallow clicking invulnerable cards
             if (card && card->noClickUntil > depot.Now()) {
                 continue;
@@ -117,7 +116,7 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
                     cursor.dragSubjectOffset = dragTarget.offset;
 
                     Message dragBegin{};
-                    dragBegin.type = MsgType_Card_Notify_DragBegin;
+                    dragBegin.type = MsgType_Cursor_Notify_DragBegin;
                     dragBegin.uid = cursor.uidDragSubject;
                     depot.msgQueue.push_back(dragBegin);
                 }
@@ -129,10 +128,10 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             };
 
             Message dragEnd{};
-            dragEnd.type = MsgType_Card_Notify_DragEnd;
+            dragEnd.type = MsgType_Cursor_Notify_DragEnd;
             dragEnd.uid = cursor.uidDragSubject;
-            dragEnd.data.card_dragend.dragDelta.x = dragDelta.x;
-            dragEnd.data.card_dragend.dragDelta.x = dragDelta.y;
+            dragEnd.data.cursor_dragend.dragDelta.x = dragDelta.x;
+            dragEnd.data.cursor_dragend.dragDelta.x = dragDelta.y;
             depot.msgQueue.push_back(dragEnd);
 
             Message msgTryStack{};
@@ -143,7 +142,7 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             float tinyDrag = 5.0f;  // still process clicks after tiny, accidental drags
             if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
                 Message leftClick{};
-                leftClick.type = MsgType_Card_Notify_LeftClick;
+                leftClick.type = MsgType_Card_DoAction;
                 leftClick.uid = cursor.uidDragSubject;
                 depot.msgQueue.push_back(leftClick);
             }
@@ -159,7 +158,7 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             Position *subjectPos = (Position *)depot.GetFacet(cursor.uidDragSubject, Facet_Position);
             if (subjectPos) {
                 Message dragUpdate{};
-                dragUpdate.type = MsgType_Card_Notify_DragUpdate;
+                dragUpdate.type = MsgType_Cursor_Notify_DragUpdate;
                 dragUpdate.uid = cursor.uidDragSubject;
                 depot.msgQueue.push_back(dragUpdate);
 

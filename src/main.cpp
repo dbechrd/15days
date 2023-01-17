@@ -38,9 +38,9 @@ UID create_cursor(Depot &depot)
     position->pos = { x, y };
     position->size = { 1, 1 };
 
-    Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
-    keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
+    //Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
+    //keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
+    //keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
 
     return uidCursor;
 }
@@ -151,8 +151,8 @@ UID create_narrator(Depot &depot, UID subject)
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_RED);
 
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Card_Notify_DragBegin, "audio/narrator_drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Card_Notify_DragEnd, "audio/narrator_drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Cursor_Notify_DragBegin, "audio/narrator_drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Cursor_Notify_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
     depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_IdleBegin,
@@ -317,8 +317,8 @@ UID create_player(Depot &depot)
 
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
     depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Card_Notify_DragBegin, "audio/player_drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Card_Notify_DragEnd, "audio/player_drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Cursor_Notify_DragBegin, "audio/player_drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Cursor_Notify_DragEnd, "audio/player_drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
@@ -424,8 +424,8 @@ UID create_fps_counter(Depot &depot)
         histo->values.push_back(i);
     };
 
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Card_Notify_DragBegin, "audio/drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Card_Notify_DragEnd, "audio/drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Cursor_Notify_DragBegin, "audio/drag_begin.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Cursor_Notify_DragEnd, "audio/drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, false);
@@ -456,7 +456,8 @@ void create_cards(Depot &depot)
     // or whatever.
 
     // Decks
-    depot.cardSystem.SpawnDeck(depot, { 600, 300, 0 }, "sheet_cards", "card_backface");
+    depot.cardSystem.SpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 25);
+    depot.cardSystem.SpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 25);
 
     // Cards
     //depot.cardSystem.SpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });

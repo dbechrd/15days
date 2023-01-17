@@ -3,9 +3,18 @@
 #include "facet.h"
 #include "material.h"
 
+enum CardType {
+    CardType_Card,
+    CardType_Deck,
+};
+
 struct Card : public Facet {
+    CardType     cardType     {};
     UID          stackParent  {};
     UID          stackChild   {};
     const char * cardProto    {};
     double       noClickUntil {};  // timestamp of when next click is allowed on card
+
+    // Deck attribs
+    int          deckCount    {};
 };

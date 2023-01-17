@@ -59,7 +59,6 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
         EMPLACE(Facet_Card,          card);
         EMPLACE(Facet_Combat,        combat);
         EMPLACE(Facet_Cursor,        cursor);
-        EMPLACE(Facet_Deck,          deck);
         EMPLACE(Facet_Font,          font);
         EMPLACE(Facet_FpsCounter,    fpsCounter);
         EMPLACE(Facet_Histogram,     histogram);
@@ -121,7 +120,6 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Card:          return &card          [index];
         case Facet_Combat:        return &combat        [index];
         case Facet_Cursor:        return &cursor        [index];
-        case Facet_Deck:          return &deck          [index];
         case Facet_Font:          return &font          [index];
         case Facet_FpsCounter:    return &fpsCounter    [index];
         case Facet_Keymap:        return &keymap        [index];
@@ -255,13 +253,13 @@ void Depot::Run(void)
         // Update cards based on their parent positions
         cardSystem.UpdateCards(*this);                         // gen: sprite_updateanim, card_dragend (hack for first bounce)
         cardSystem.UpdateStacks(*this, collisionList);
-        effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
         triggerSystem.React(*this);   // reacts to *, generates *
 
         // Pure message reactors (do not modify msgQueue here!)
         cardSystem.React(*this);      // reacts to Card
+        effectSystem.ApplyDragFx(*this, collisionList);
         spriteSystem.React(*this);    // reacts to Sprite
         audioSystem.React(*this);     // reacts to Audio
         textSystem.React(*this);      // reacts to Text

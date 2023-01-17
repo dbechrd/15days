@@ -18,6 +18,11 @@
       material_proto: "mat_flammable"
     },
     {
+      name: "card_proto_deck",
+      spritesheet: "sheet_cards",
+      default_animation: "card_backface"
+    },
+    {
       name: "card_proto_lighter",
       spritesheet: "sheet_cards",
       default_animation: "card_lighter",
