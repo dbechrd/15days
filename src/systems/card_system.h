@@ -4,10 +4,6 @@
 #include "../common/draw_list.h"
 
 struct CardSystem {
-private:
-    UID CardDragSounds(Depot &depot);
-    void DrawCardFromDeck(Depot &depot, UID uidDeck);
-
 public:
     UID SpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount);
     UID SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, float invulnFor = 0);
@@ -17,4 +13,11 @@ public:
 
     void React(Depot &depot);
     void Display(Depot &depot, DrawQueue &drawQueue);
+
+private:
+    UID pendingDragTarget {};
+
+    UID CardDragSounds(Depot &depot);
+    void DrawCardFromDeck(Depot &depot, UID uidDeck);
+    struct Card *FindDragTarget(Depot &depot, const CollisionList &collisionList, struct Card *dragSubject);
 };

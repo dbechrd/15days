@@ -74,6 +74,69 @@ void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
     }
 }
 
+
+Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject)
+{
+    if (!dragSubject) {
+        return 0;
+    }
+
+    std::unordered_set<UID> stackUids{};
+
+    {
+        DLB_ASSERT(dragSubject->stackParent == 0);
+        Card *c = dragSubject;
+        while (c) {
+            stackUids.insert(c->uid);
+            c = (Card *)depot.GetFacet(c->stackChild, Facet_Card);
+        }
+    }
+
+    float maxDepth = 0;
+    Card *topCard = 0;
+    for (const Collision &collision : collisionList) {
+        // Check if cursor collision, and resolve out-of-order A/B nonsense
+        UID targetUid = 0;
+        if (dragSubject->uid == collision.uidA) {
+            targetUid = collision.uidB;
+        } else if (dragSubject->uid == collision.uidB) {
+            targetUid = collision.uidA;
+        } else {
+            continue;
+        }
+
+        // Don't drop cards on other cards in the same stack (including themselves!)
+        if (stackUids.contains(targetUid)) {
+            continue;
+        }
+
+        // Check if target is a card
+        Card *targetCard = (Card *)depot.GetFacet(targetUid, Facet_Card);
+        if (targetCard && (targetCard->cardType == dragSubject->cardType)) {
+            // Check if target is a higher card
+            Position *targetPos = (Position *)depot.GetFacet(targetUid, Facet_Position);
+            DLB_ASSERT(targetPos);
+            if (targetPos && targetPos->Depth() > maxDepth) {
+                topCard = targetCard;
+                maxDepth = targetPos->Depth();
+            }
+        }
+    }
+
+    if (topCard) {
+        Card *lastChild = topCard;
+        while (lastChild && lastChild->stackChild) {
+            lastChild = (Card *)depot.GetFacet(lastChild->stackChild, Facet_Card);
+        }
+
+        DLB_ASSERT(lastChild);
+        DLB_ASSERT(lastChild->uid != dragSubject->uid);
+        return lastChild;
+    }
+
+    return 0;
+}
+
 UID CardSystem::SpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount)
 {
     UID uidCard = SpawnCard(depot, cardProtoKey, spawnPos);
@@ -212,6 +275,8 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
 {
     DLB_ASSERT(depot.cursor.size() == 1);
 
+    pendingDragTarget = 0;
+
     size_t size = depot.msgQueue.size();
     for (int i = 0; i < size; i++) {
         Message msg = depot.msgQueue[i];
@@ -233,68 +298,24 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 card->stackParent = 0;
                 break;
             }
+            case MsgType_Cursor_Notify_DragUpdate:
+            {
+                UID draggingCardUid = msg.uid;
+                Card *draggingCard = (Card *)depot.GetFacet(draggingCardUid, Facet_Card);
+                Card *dragTarget = FindDragTarget(depot, collisionList, draggingCard);
+                if (dragTarget) {
+                    pendingDragTarget = dragTarget->uid;
+                }
+                break;
+            }
             case MsgType_Card_TryToStack: {
                 UID droppedCardUid = msg.uid;
-                Card *card = (Card *)depot.GetFacet(droppedCardUid, Facet_Card);
-                if (!card) {
-                    // Decks aren't cards
-                    continue;
+                Card *droppedCard = (Card *)depot.GetFacet(droppedCardUid, Facet_Card);
+                Card *dragTarget = FindDragTarget(depot, collisionList, droppedCard);
+                if (dragTarget) {
+                    droppedCard->stackParent = dragTarget->uid;
+                    dragTarget->stackChild = droppedCard->uid;
                 }
-
-                std::unordered_set<UID> stackUids{};
-
-                {
-                    DLB_ASSERT(card->stackParent == 0);
-                    Card *c = card;
-                    while (c) {
-                        stackUids.insert(c->uid);
-                        c = (Card *)depot.GetFacet(c->stackChild, Facet_Card);
-                    }
-                }
-
-                float maxDepth = 0;
-                Card *topCard = 0;
-                for (const Collision &collision : collisionList) {
-                    // Check if cursor collision, and resolve out-of-order A/B nonsense
-                    UID targetUid = 0;
-                    if (droppedCardUid == collision.uidA) {
-                        targetUid = collision.uidB;
-                    } else if (droppedCardUid == collision.uidB) {
-                        targetUid = collision.uidA;
-                    } else {
-                        continue;
-                    }
-
-                    // Don't drop cards on other cards in the same stack (including themselves!)
-                    if (stackUids.contains(targetUid)) {
-                        continue;
-                    }
-
-                    // Check if target is a card
-                    Card *targetCard = (Card *)depot.GetFacet(targetUid, Facet_Card);
-                    if (targetCard && (targetCard->cardType == card->cardType)) {
-                        // Check if target is a higher card
-                        Position *targetPos = (Position *)depot.GetFacet(targetUid, Facet_Position);
-                        DLB_ASSERT(targetPos);
-                        if (targetPos && targetPos->Depth() > maxDepth) {
-                            topCard = targetCard;
-                            maxDepth = targetPos->Depth();
-                        }
-                    }
-                }
-
-                if (topCard) {
-                    Card *lastChild = topCard;
-                    while (lastChild && lastChild->stackChild) {
-                        lastChild = (Card *)depot.GetFacet(lastChild->stackChild, Facet_Card);
-                    }
-
-                    DLB_ASSERT(lastChild);
-                    DLB_ASSERT(lastChild->uid != droppedCardUid);
-                    card->stackParent = lastChild->uid;
-                    lastChild->stackChild = card->uid;
-                }
-
                 break;
             }
             default: break;
@@ -356,9 +377,13 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
 
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;
-        drawSprite.color = sprite->color;
-        if (card.cardType == CardType_Deck && !card.deckCount) {
+        if (card.uid == pendingDragTarget) {
+            drawSprite.color = C255(COLOR_RED);
+            drawSprite.outline = true;
+        } else if (card.cardType == CardType_Deck && !card.deckCount) {
             drawSprite.color = C255(COLOR_GRAY_5);
+        } else {
+            drawSprite.color = sprite->color;
         }
         drawSprite.srcRect = srcRect;
         drawSprite.dstRect = dstRect;

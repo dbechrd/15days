@@ -8,6 +8,7 @@ struct DrawCommand {
     rect         srcRect {};
     SDL_Texture *texture {};  // if present, also applies a texture
     float        depth   {};  // lower = draw first
+    bool         outline {};  // show border if true
 
     bool operator<(const DrawCommand &right) const
     {

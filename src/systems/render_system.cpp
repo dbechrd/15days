@@ -430,6 +430,32 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
             SDL_RenderFillRect(renderer, &dstRect);
         }
+
+        bool outline = cmd.outline;
+#if FDOV_DEBUG_BBOX
+        outline = true;
+#elif FDOV_DRAG_BBOX
+        for (Cursor &cursor : depot.cursor) {
+            if (cursor.uidDragSubject == cmd.uid) {
+                outline = true;
+                break;
+            }
+        }
+#endif
+
+        if (outline) {
+            SDL_FPoint points[] = {
+                { cmd.dstRect.x                , cmd.dstRect.y + cmd.dstRect.h },
+                { cmd.dstRect.x + cmd.dstRect.w, cmd.dstRect.y + cmd.dstRect.h },
+                { cmd.dstRect.x + cmd.dstRect.w, cmd.dstRect.y },
+                { cmd.dstRect.x                , cmd.dstRect.y },
+                { cmd.dstRect.x                , cmd.dstRect.y + cmd.dstRect.h },
+            };
+
+            SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
+            SDL_RenderLines(renderer, points, ARRAY_SIZE(points));
+        }
+
 #if 0
         vec2 verts[] = {
             { (float)dstRect.x            , (float)dstRect.y + dstRect.h },
@@ -473,40 +499,6 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
             (void *)indices, ARRAY_SIZE(indices), sizeof(*indices));
         if (err) {
             printf("ERROR: Failed to render raw geometry: [%d] %s\n", err, SDL_GetError());
-        }
-#endif
-
-#if FDOV_DEBUG_BBOX
-        SDL_Point points[] = {
-            { rect.x         , rect.y + rect.h },
-            { rect.x + rect.w, rect.y + rect.h },
-            { rect.x + rect.w, rect.y },
-            { rect.x         , rect.y },
-            { rect.x         , rect.y + rect.h },
-        };
-
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderDrawLines(renderer, points, ARRAY_SIZE(points));
-#elif FDOV_DRAG_BBOX
-        bool uidBeingDragged = false;
-        for (Cursor &cursor : depot.cursor) {
-            if (cursor.uidDragSubject == cmd.uid) {
-                uidBeingDragged = true;
-                break;
-            }
-        }
-
-        if (uidBeingDragged) {
-            SDL_FPoint points[] = {
-                { dstRect.x            , dstRect.y + dstRect.h },
-                { dstRect.x + dstRect.w, dstRect.y + dstRect.h },
-                { dstRect.x + dstRect.w, dstRect.y             },
-                { dstRect.x            , dstRect.y             },
-                { dstRect.x            , dstRect.y + dstRect.h },
-            };
-
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawLinesF(renderer, points, ARRAY_SIZE(points));
         }
 #endif
     }
