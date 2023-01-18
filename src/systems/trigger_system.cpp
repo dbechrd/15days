@@ -71,16 +71,16 @@ void TriggerSystem::Trigger_Sprite_UpdateAnimation(Depot &depot, UID src, MsgTyp
     triggerList->triggers.push_back(trigger);
 }
 
-void TriggerSystem::Trigger_Special_RelayAllMessages(Depot &depot, UID src, UID dst)
+void TriggerSystem::Trigger_Special_RelayAllMessages(Depot &depot, UID src, UID dst, TriggerCallback callback)
 {
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
 
     Trigger relayTrigger{};
     relayTrigger.trigger = MsgType_Special_RelayAllMessages;
     relayTrigger.message.uid = dst;
+    relayTrigger.callback = callback;
     triggerList->triggers.push_back(relayTrigger);
 }
-
 
 void TriggerSystem::React(Depot &depot)
 {

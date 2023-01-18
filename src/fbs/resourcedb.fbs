@@ -9,6 +9,9 @@ table Font {
 table Sound {
     name:string (key);
     path:string;
+    screenshake_amount:float;
+    screenshake_duration:float;
+    screenshake_frequency:float;
 }
 
 table Texture {
@@ -53,6 +56,9 @@ table CardProto {
     default_animation:string;
     material_proto:string;
     effects:EffectTypes;
+    drag_begin_sound_key:string;
+    drag_update_sound_key:string;
+    drag_end_sound_key:string;
 }
 
 table Root {

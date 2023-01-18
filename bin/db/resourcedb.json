@@ -4,7 +4,9 @@
     {
       name: "card_proto_bomb",
       spritesheet: "sheet_cards",
-      default_animation: "card_bomb"
+      default_animation: "card_bomb",
+      drag_update_sound_key: "sfx_fuse_burning",
+      drag_end_sound_key: "sfx_explosion"
     },
     {
       name: "card_proto_camp",
@@ -159,35 +161,38 @@
   ],
   sounds: [
     {
-      name: "drag_begin",
+      name: "sfx_drag_begin",
       path: "audio/drag_begin.wav"
     },
     {
-      name: "drag_end",
+      name: "sfx_drag_end",
       path: "audio/drag_end.wav"
     },
     {
-      name: "explosion",
-      path: "audio/explosion.wav"
+      name: "sfx_explosion",
+      path: "audio/explosion.wav",
+      screenshake_amount: 6.0,
+      screenshake_duration: 0.5,
+      screenshake_frequency: 200.0
     },
     {
-      name: "fire_extinguish",
+      name: "sfx_fire_extinguish",
       path: "audio/fire_extinguish.wav"
     },
     {
-      name: "fire_start",
+      name: "sfx_fire_start",
       path: "audio/fire_start.wav"
     },
     {
-      name: "fuse_burning",
+      name: "sfx_fuse_burning",
       path: "audio/fuse_burning.wav"
     },
     {
-      name: "player_attack",
+      name: "sfx_player_attack",
       path: "audio/primary.wav"
     },
     {
-      name: "player_defend",
+      name: "sfx_player_defend",
       path: "audio/secondary.wav"
     }
   ],

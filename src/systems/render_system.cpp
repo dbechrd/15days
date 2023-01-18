@@ -9,8 +9,13 @@ Texture *RenderSystem::FindOrCreateTextureBMP(Depot &depot, const char *textureK
         return existingTexture;
     }
 
-    const ResourceDB::Texture *dbTex = depot.resources->textures()->LookupByKey(textureKey);
-    const char *path = dbTex->path()->c_str();
+    const ResourceDB::Texture *dbTexture = depot.resources->textures()->LookupByKey(textureKey);
+    const char *path = 0;
+    if (dbTexture) {
+        path = dbTexture->path()->c_str();
+    } else {
+        SDL_LogError(0, "Invalid texture key: %s", textureKey);
+    }
 
     SDL_Surface *surface = SDL_LoadBMP(path);
     if (!surface) {

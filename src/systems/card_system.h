@@ -17,7 +17,6 @@ public:
 private:
     UID pendingDragTarget {};
 
-    UID CardDragSounds(Depot &depot);
     void DrawCardFromDeck(Depot &depot, UID uidDeck);
     struct Card *FindDragTarget(Depot &depot, const CollisionList &collisionList, struct Card *dragSubject);
 };

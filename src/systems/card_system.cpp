@@ -1,19 +1,60 @@
 #include "card_system.h"
 #include "../facets/depot.h"
 
-UID CardSystem::CardDragSounds(Depot &depot)
+void queue_play_sound(Depot &depot, const char *soundKey, bool override = false)
 {
-    const char *name = "draggable_sounds";
+    if (!soundKey) return;
 
-    // Check if already loaded
-    if (depot.uidByName.contains(name)) {
-        return depot.uidByName[name];
+    Message msgPlaySound{};
+    msgPlaySound.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
+    msgPlaySound.type = MsgType_Audio_PlaySound;
+    msgPlaySound.data.audio_playsound.override = override;
+    depot.msgQueue.push_back(msgPlaySound);
+}
+
+void queue_stop_sound(Depot &depot, const char *soundKey)
+{
+    if (!soundKey) return;
+
+    Message msgStopSound{};
+    msgStopSound.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
+    msgStopSound.type = MsgType_Audio_StopSound;
+    depot.msgQueue.push_back(msgStopSound);
+}
+
+void card_drag_sounds(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    Card *card = (Card *)depot.GetFacet(msg.uid, Facet_Card);
+    if (!card) {
+        return;
     }
 
-    UID uidDraggableSounds = depot.Alloc(name);
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragBegin, "drag_begin");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragEnd, "drag_end");
-    return uidDraggableSounds;
+    const ResourceDB::CardProto *cardProto = depot.resources->card_protos()->LookupByKey(card->cardProto);
+    const char *dragBeginSoundKey = (cardProto->drag_begin_sound_key()) ? cardProto->drag_begin_sound_key()->c_str() : 0;
+    const char *dragUpdateSoundKey = (cardProto->drag_update_sound_key()) ? cardProto->drag_update_sound_key()->c_str() : 0;
+    const char *dragEndSoundKey = (cardProto->drag_end_sound_key()) ? cardProto->drag_end_sound_key()->c_str() : 0;
+
+    switch (msg.type) {
+        case MsgType_Cursor_Notify_DragBegin:
+        {
+            queue_play_sound(depot, "sfx_drag_begin");
+            queue_play_sound(depot, dragBeginSoundKey);
+            break;
+        }
+        case MsgType_Cursor_Notify_DragUpdate:
+        {
+            queue_play_sound(depot, dragUpdateSoundKey);
+            break;
+        }
+        case MsgType_Cursor_Notify_DragEnd:
+        {
+            queue_stop_sound(depot, dragUpdateSoundKey);
+            queue_play_sound(depot, "sfx_drag_end");
+            queue_play_sound(depot, dragEndSoundKey, true);
+            break;
+        }
+        default: break;
+    }
 }
 
 void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
@@ -216,9 +257,7 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     debugText->offset.y = 0;
 #endif
 
-    // TODO: Fix me..
-    //depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, uidCardProto);
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, CardDragSounds(depot));
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, 0, card_drag_sounds);
 
     return uidCard;
 }

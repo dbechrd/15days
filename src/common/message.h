@@ -95,9 +95,9 @@ struct Msg_Render_FrameBegin {
 };
 
 struct Msg_Render_Screenshake {
-    float  amount{};
-    float  freq{};
-    double duration{};
+    float  amount   {};
+    double duration {};
+    float  freq     {};
 };
 
 struct Msg_Sprite_UpdateAnimation {

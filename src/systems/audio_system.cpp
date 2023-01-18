@@ -11,17 +11,23 @@ Sound *AudioSystem::FindOrLoadSound(Depot &depot, const char *soundKey)
         return existingSound;
     }
 
+    const char *path = 0;
+
     const ResourceDB::Sound *dbSound = depot.resources->sounds()->LookupByKey(soundKey);
-    const char *path = dbSound->path()->c_str();
+    if (dbSound) {
+        path = dbSound->path()->c_str();
+    } else {
+        SDL_LogError(0, "Invalid sound key: %s", soundKey);
+    }
 
     SoLoud::Wav *wav = new SoLoud::Wav{};
     SoLoud::result err = wav->load(path);
     if (err) {
-        SDL_LogError(0, "Failed to load wav: %s\n  %u\n", path, err);
+        SDL_LogError(0, "Failed to load wav: %s\n  %u", path, err);
 
         err = wav->loadMem(missing_ogg_bytes, sizeof(missing_ogg_bytes), false, false);
         if (err) {
-            SDL_LogError(0, "Failed to load fallback sound:\n  result = %d\n", err);
+            SDL_LogError(0, "Failed to load fallback sound:\n  result = %d", err);
             DLB_ASSERT(!"Missing sound also failed to load.. uh-oh no fallback!");
             return 0;
         }
@@ -172,6 +178,22 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
     if (!sound) {
         printf("WARN: Sound missing for uid: %u\n", soundUid);
         return;
+    }
+
+    const ResourceDB::Sound *dbSound = depot.resources->sounds()->LookupByKey(sound->soundKey);
+    if (dbSound) {
+        float shakeDuration = dbSound->screenshake_duration();
+        if (shakeDuration) {
+            float shakeAmount = dbSound->screenshake_amount();
+            float shakeFreq = dbSound->screenshake_frequency();
+            Message msgScreenshake{};
+            msgScreenshake.uid = soundUid;
+            msgScreenshake.type = MsgType_Render_Screenshake;
+            msgScreenshake.data.render_screenshake.amount = shakeAmount;
+            msgScreenshake.data.render_screenshake.duration = shakeDuration;
+            msgScreenshake.data.render_screenshake.freq = shakeFreq;
+            depot.msgQueue.push_back(msgScreenshake);
+        }
     }
 
     // Check if this sound is already playing

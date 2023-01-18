@@ -9,9 +9,16 @@ Font *TextSystem::FindOrLoadFont(Depot &depot, const char *fontKey)
         return existingFont;
     }
 
+    const char *ttf_path = 0;
+    int point_size = 0;
+
     const ResourceDB::Font *dbFont = depot.resources->fonts()->LookupByKey(fontKey);
-    const char *ttf_path = dbFont->ttf_path()->c_str();
-    int point_size = dbFont->point_size();
+    if (dbFont) {
+        ttf_path = dbFont->ttf_path()->c_str();
+        point_size = dbFont->point_size();
+    } else {
+        SDL_LogError(0, "Invalid font key: %s", fontKey);
+    }
 
     TTF_Font *ttfFont = TTF_OpenFont(ttf_path, point_size);
     if (!ttfFont) {

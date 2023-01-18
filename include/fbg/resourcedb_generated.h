@@ -190,7 +190,10 @@ struct Sound FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_PATH = 6
+    VT_PATH = 6,
+    VT_SCREENSHAKE_AMOUNT = 8,
+    VT_SCREENSHAKE_DURATION = 10,
+    VT_SCREENSHAKE_FREQUENCY = 12
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -204,12 +207,24 @@ struct Sound FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *path() const {
     return GetPointer<const flatbuffers::String *>(VT_PATH);
   }
+  float screenshake_amount() const {
+    return GetField<float>(VT_SCREENSHAKE_AMOUNT, 0.0f);
+  }
+  float screenshake_duration() const {
+    return GetField<float>(VT_SCREENSHAKE_DURATION, 0.0f);
+  }
+  float screenshake_frequency() const {
+    return GetField<float>(VT_SCREENSHAKE_FREQUENCY, 0.0f);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyOffset(verifier, VT_PATH) &&
            verifier.VerifyString(path()) &&
+           VerifyField<float>(verifier, VT_SCREENSHAKE_AMOUNT, 4) &&
+           VerifyField<float>(verifier, VT_SCREENSHAKE_DURATION, 4) &&
+           VerifyField<float>(verifier, VT_SCREENSHAKE_FREQUENCY, 4) &&
            verifier.EndTable();
   }
 };
@@ -223,6 +238,15 @@ struct SoundBuilder {
   }
   void add_path(flatbuffers::Offset<flatbuffers::String> path) {
     fbb_.AddOffset(Sound::VT_PATH, path);
+  }
+  void add_screenshake_amount(float screenshake_amount) {
+    fbb_.AddElement<float>(Sound::VT_SCREENSHAKE_AMOUNT, screenshake_amount, 0.0f);
+  }
+  void add_screenshake_duration(float screenshake_duration) {
+    fbb_.AddElement<float>(Sound::VT_SCREENSHAKE_DURATION, screenshake_duration, 0.0f);
+  }
+  void add_screenshake_frequency(float screenshake_frequency) {
+    fbb_.AddElement<float>(Sound::VT_SCREENSHAKE_FREQUENCY, screenshake_frequency, 0.0f);
   }
   explicit SoundBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -239,8 +263,14 @@ struct SoundBuilder {
 inline flatbuffers::Offset<Sound> CreateSound(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::String> path = 0) {
+    flatbuffers::Offset<flatbuffers::String> path = 0,
+    float screenshake_amount = 0.0f,
+    float screenshake_duration = 0.0f,
+    float screenshake_frequency = 0.0f) {
   SoundBuilder builder_(_fbb);
+  builder_.add_screenshake_frequency(screenshake_frequency);
+  builder_.add_screenshake_duration(screenshake_duration);
+  builder_.add_screenshake_amount(screenshake_amount);
   builder_.add_path(path);
   builder_.add_name(name);
   return builder_.Finish();
@@ -249,13 +279,19 @@ inline flatbuffers::Offset<Sound> CreateSound(
 inline flatbuffers::Offset<Sound> CreateSoundDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    const char *path = nullptr) {
+    const char *path = nullptr,
+    float screenshake_amount = 0.0f,
+    float screenshake_duration = 0.0f,
+    float screenshake_frequency = 0.0f) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto path__ = path ? _fbb.CreateString(path) : 0;
   return ResourceDB::CreateSound(
       _fbb,
       name__,
-      path__);
+      path__,
+      screenshake_amount,
+      screenshake_duration,
+      screenshake_frequency);
 }
 
 struct Texture FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -641,7 +677,10 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_SPRITESHEET = 6,
     VT_DEFAULT_ANIMATION = 8,
     VT_MATERIAL_PROTO = 10,
-    VT_EFFECTS = 12
+    VT_EFFECTS = 12,
+    VT_DRAG_BEGIN_SOUND_KEY = 14,
+    VT_DRAG_UPDATE_SOUND_KEY = 16,
+    VT_DRAG_END_SOUND_KEY = 18
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -664,6 +703,15 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   ResourceDB::EffectTypes effects() const {
     return static_cast<ResourceDB::EffectTypes>(GetField<uint32_t>(VT_EFFECTS, 0));
   }
+  const flatbuffers::String *drag_begin_sound_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_DRAG_BEGIN_SOUND_KEY);
+  }
+  const flatbuffers::String *drag_update_sound_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_DRAG_UPDATE_SOUND_KEY);
+  }
+  const flatbuffers::String *drag_end_sound_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_DRAG_END_SOUND_KEY);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
@@ -675,6 +723,12 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_MATERIAL_PROTO) &&
            verifier.VerifyString(material_proto()) &&
            VerifyField<uint32_t>(verifier, VT_EFFECTS, 4) &&
+           VerifyOffset(verifier, VT_DRAG_BEGIN_SOUND_KEY) &&
+           verifier.VerifyString(drag_begin_sound_key()) &&
+           VerifyOffset(verifier, VT_DRAG_UPDATE_SOUND_KEY) &&
+           verifier.VerifyString(drag_update_sound_key()) &&
+           VerifyOffset(verifier, VT_DRAG_END_SOUND_KEY) &&
+           verifier.VerifyString(drag_end_sound_key()) &&
            verifier.EndTable();
   }
 };
@@ -698,6 +752,15 @@ struct CardProtoBuilder {
   void add_effects(ResourceDB::EffectTypes effects) {
     fbb_.AddElement<uint32_t>(CardProto::VT_EFFECTS, static_cast<uint32_t>(effects), 0);
   }
+  void add_drag_begin_sound_key(flatbuffers::Offset<flatbuffers::String> drag_begin_sound_key) {
+    fbb_.AddOffset(CardProto::VT_DRAG_BEGIN_SOUND_KEY, drag_begin_sound_key);
+  }
+  void add_drag_update_sound_key(flatbuffers::Offset<flatbuffers::String> drag_update_sound_key) {
+    fbb_.AddOffset(CardProto::VT_DRAG_UPDATE_SOUND_KEY, drag_update_sound_key);
+  }
+  void add_drag_end_sound_key(flatbuffers::Offset<flatbuffers::String> drag_end_sound_key) {
+    fbb_.AddOffset(CardProto::VT_DRAG_END_SOUND_KEY, drag_end_sound_key);
+  }
   explicit CardProtoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -716,8 +779,14 @@ inline flatbuffers::Offset<CardProto> CreateCardProto(
     flatbuffers::Offset<flatbuffers::String> spritesheet = 0,
     flatbuffers::Offset<flatbuffers::String> default_animation = 0,
     flatbuffers::Offset<flatbuffers::String> material_proto = 0,
-    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0)) {
+    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0),
+    flatbuffers::Offset<flatbuffers::String> drag_begin_sound_key = 0,
+    flatbuffers::Offset<flatbuffers::String> drag_update_sound_key = 0,
+    flatbuffers::Offset<flatbuffers::String> drag_end_sound_key = 0) {
   CardProtoBuilder builder_(_fbb);
+  builder_.add_drag_end_sound_key(drag_end_sound_key);
+  builder_.add_drag_update_sound_key(drag_update_sound_key);
+  builder_.add_drag_begin_sound_key(drag_begin_sound_key);
   builder_.add_effects(effects);
   builder_.add_material_proto(material_proto);
   builder_.add_default_animation(default_animation);
@@ -732,18 +801,27 @@ inline flatbuffers::Offset<CardProto> CreateCardProtoDirect(
     const char *spritesheet = nullptr,
     const char *default_animation = nullptr,
     const char *material_proto = nullptr,
-    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0)) {
+    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0),
+    const char *drag_begin_sound_key = nullptr,
+    const char *drag_update_sound_key = nullptr,
+    const char *drag_end_sound_key = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto spritesheet__ = spritesheet ? _fbb.CreateString(spritesheet) : 0;
   auto default_animation__ = default_animation ? _fbb.CreateString(default_animation) : 0;
   auto material_proto__ = material_proto ? _fbb.CreateString(material_proto) : 0;
+  auto drag_begin_sound_key__ = drag_begin_sound_key ? _fbb.CreateString(drag_begin_sound_key) : 0;
+  auto drag_update_sound_key__ = drag_update_sound_key ? _fbb.CreateString(drag_update_sound_key) : 0;
+  auto drag_end_sound_key__ = drag_end_sound_key ? _fbb.CreateString(drag_end_sound_key) : 0;
   return ResourceDB::CreateCardProto(
       _fbb,
       name__,
       spritesheet__,
       default_animation__,
       material_proto__,
-      effects);
+      effects,
+      drag_begin_sound_key__,
+      drag_update_sound_key__,
+      drag_end_sound_key__);
 }
 
 struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
