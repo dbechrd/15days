@@ -1,28 +1,53 @@
 #include "card_system.h"
 #include "../facets/depot.h"
 
-void queue_play_sound(Depot &depot, const char *soundKey, bool override = false)
+void deck_try_draw_card(Depot &depot, Card *card)
 {
-    if (!soundKey) return;
+    if (card->cardType != CardType_Deck) {
+        return;
+    }
+    if (card->stackChild) {
+        return;
+    }
 
-    Message msgPlaySound{};
-    msgPlaySound.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
-    msgPlaySound.type = MsgType_Audio_PlaySound;
-    msgPlaySound.data.audio_playsound.override = override;
-    depot.msgQueue.push_back(msgPlaySound);
+    vec3 spawnPos{};
+    Position *position = (Position *)depot.GetFacet(card->uid, Facet_Position);
+    if (position) {
+        spawnPos = position->pos;
+        spawnPos.y += 50;  // TODO: Rand pop
+    }
+
+#if 1
+    int cardsDrawn = 0;
+    while (card->data.deck.cardCount && !card->stackChild && cardsDrawn < 5) {
+#else
+    if (card->data.deck.cardCount) {
+#endif
+        // TODO: Deck should own list of protos/chances
+        const char *cardProtoKey = 0;
+        float rng = dlb_rand32f_range(0, 1);
+        if (rng < 0.5f) {
+            cardProtoKey = "card_proto_lighter";
+        } else if (rng < 0.9f) {
+            cardProtoKey = "card_proto_water_bucket";
+        } else {
+            cardProtoKey = "card_proto_bomb";
+        }
+
+        depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, true);
+        depot.renderSystem.PushShake(depot, 3.0f, 100.0f, 0.1f);
+
+        card->data.deck.cardCount--;
+        cardsDrawn++;
+    }
+
+    if (!card->data.deck.cardCount) {
+        // TODO: Destroy the deck
+        // TODO: Remove "Trigger" as a Facet and go back to std::vector<Trigger> inside of TriggerList??
+    }
 }
 
-void queue_stop_sound(Depot &depot, const char *soundKey)
-{
-    if (!soundKey) return;
-
-    Message msgStopSound{};
-    msgStopSound.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
-    msgStopSound.type = MsgType_Audio_StopSound;
-    depot.msgQueue.push_back(msgStopSound);
-}
-
-void card_drag_sounds(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     Card *card = (Card *)depot.GetFacet(msg.uid, Facet_Card);
     if (!card) {
@@ -35,86 +60,33 @@ void card_drag_sounds(Depot &depot, const Message &msg, const Trigger &trigger, 
     const char *dragEndSoundKey = (cardProto->drag_end_sound_key()) ? cardProto->drag_end_sound_key()->c_str() : 0;
 
     switch (msg.type) {
+        case MsgType_Card_DoAction:
+        {
+            if (card->cardType == CardType_Deck) {
+                deck_try_draw_card(depot, card);
+            }
+        }
         case MsgType_Cursor_Notify_DragBegin:
         {
-            queue_play_sound(depot, "sfx_drag_begin");
-            queue_play_sound(depot, dragBeginSoundKey);
+            depot.audioSystem.PushPlaySound(depot, "sfx_drag_begin");
+            depot.audioSystem.PushPlaySound(depot, dragBeginSoundKey);
             break;
         }
         case MsgType_Cursor_Notify_DragUpdate:
         {
-            queue_play_sound(depot, dragUpdateSoundKey);
+            depot.audioSystem.PushPlaySound(depot, dragUpdateSoundKey);
             break;
         }
         case MsgType_Cursor_Notify_DragEnd:
         {
-            queue_stop_sound(depot, dragUpdateSoundKey);
-            queue_play_sound(depot, "sfx_drag_end");
-            queue_play_sound(depot, dragEndSoundKey, true);
+            depot.audioSystem.PushStopSound(depot, dragUpdateSoundKey);
+            depot.audioSystem.PushPlaySound(depot, "sfx_drag_end");
+            depot.audioSystem.PushPlaySound(depot, dragEndSoundKey, true);
             break;
         }
         default: break;
     }
 }
-
-void CardSystem::DrawCardFromDeck(Depot &depot, UID uidDeck)
-{
-    Card *card = (Card *)depot.GetFacet(uidDeck, Facet_Card);
-    if (!card) {
-        return;
-    }
-
-    if (card->stackChild) {
-        return;
-    }
-
-#if 1
-    int cardsDrawn = 0;
-    while (card->deckCount && !card->stackChild && cardsDrawn < 5) {
-#else
-    if (card->deckCount) {
-#endif
-        vec3 spawnPos{};
-        Position *position = (Position *)depot.GetFacet(uidDeck, Facet_Position);
-        if (position) {
-            spawnPos = position->pos;
-            spawnPos.y += 50;  // TODO: Rand pop
-        }
-        Sprite *sprite = (Sprite *)depot.GetFacet(uidDeck, Facet_Sprite);
-        if (sprite) {
-            // TODO: Search by name or use enum or something smart
-            const char *cardProtoKey = 0;
-            float rng = dlb_rand32f_range(0, 1);
-            if (rng < 0.5f) {
-                cardProtoKey = "card_proto_lighter";
-            } else if (rng < 0.9f) {
-                cardProtoKey = "card_proto_water_bucket";
-            } else {
-                cardProtoKey = "card_proto_bomb";
-            }
-            UID uidNewCard = SpawnCard(depot, cardProtoKey, spawnPos, 0.5);
-
-            Body *body = (Body *)depot.GetFacet(uidNewCard, Facet_Body);
-            body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
-            v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
-            body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
-            depot.renderSystem.Shake(depot, 3.0f, 100.0f, 0.1f);
-        } else {
-            SDL_Log("Cannot draw from deck with no spritesheet\n");
-        }
-
-        card = (Card *)depot.GetFacet(uidDeck, Facet_Card);
-        card->deckCount--;
-        cardsDrawn++;
-    }
-
-    if (!card->deckCount) {
-        // TODO: Destroy the deck
-        // TODO: Remove "Trigger" as a Facet and go back to std::vector<Trigger> inside of TriggerList??
-    }
-}
-
 
 Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject)
 {
@@ -178,38 +150,39 @@ Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionLis
     return 0;
 }
 
-UID CardSystem::SpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount)
+void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount)
 {
-    UID uidCard = SpawnCard(depot, cardProtoKey, spawnPos);
-
-    Card *card = (Card *)depot.GetFacet(uidCard, Facet_Card);
-    card->cardType = CardType_Deck;
-    card->deckCount = cardCount;
-
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidCard, Facet_TriggerList, false);
-
-    Trigger deckDrawTrigger{};
-    deckDrawTrigger.trigger = MsgType_Card_DoAction;
-    deckDrawTrigger.message.uid = uidCard;
-    deckDrawTrigger.message.type = MsgType_Card_Spawn;
-    triggerList->triggers.push_back(deckDrawTrigger);
-
-    return uidCard;
+    Msg_Card_SpawnCardRequest spawnCardRequest{};
+    spawnCardRequest.cardType = CardType_Deck;
+    spawnCardRequest.cardProtoKey = cardProtoKey;
+    spawnCardRequest.spawnPos = spawnPos;
+    spawnCardRequest.data.deck.cardCount = cardCount;
+    spawnCardQueue.push_back(spawnCardRequest);
 }
 
-UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, float invulnFor)
+void CardSystem::PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, bool isDeckDraw)
 {
-    UID uidCard = depot.Alloc(cardProtoKey, false);
+    Msg_Card_SpawnCardRequest spawnCardRequest{};
+    spawnCardRequest.cardType = CardType_Card;
+    spawnCardRequest.cardProtoKey = cardProtoKey;
+    spawnCardRequest.spawnPos = spawnPos;
+    spawnCardRequest.data.card.isDeckDraw = isDeckDraw;
+    spawnCardQueue.push_back(spawnCardRequest);
+}
+
+void CardSystem::SpawnCardInternal(Depot &depot, const Msg_Card_SpawnCardRequest &spawnCardRequest)
+{
+    UID uidCard = depot.Alloc(spawnCardRequest.cardProtoKey, false);
 
     Position *position = (Position *)depot.AddFacet(uidCard, Facet_Position);
-    position->pos = spawnPos;
+    position->pos = spawnCardRequest.spawnPos;
 
     Card *card = (Card *)depot.AddFacet(uidCard, Facet_Card);
-    card->cardType = CardType_Card;
-    card->cardProto = cardProtoKey;
-    card->noClickUntil = depot.Now() + invulnFor;
+    card->cardType = spawnCardRequest.cardType;
+    card->cardProto = spawnCardRequest.cardProtoKey;
 
-    const ResourceDB::CardProto *cardProto = depot.resources->card_protos()->LookupByKey(cardProtoKey);
+    const ResourceDB::CardProto *cardProto =
+        depot.resources->card_protos()->LookupByKey(spawnCardRequest.cardProtoKey);
     if (cardProto->material_proto()) {
         Material *material = (Material *)depot.AddFacet(uidCard, Facet_Material);
         material->materialProtoKey = cardProto->material_proto()->c_str();
@@ -224,7 +197,7 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     } else {
         DLB_ASSERT(!"no sheet");
         printf("Failed to find sheet for card\n");
-        return 0;
+        return;
     }
 
     Body *body = (Body *)depot.AddFacet(uidCard, Facet_Body);
@@ -238,6 +211,26 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     body->runMult = 2.0f;
     float mass = 1.0f;
     body->invMass = 1.0f / mass;
+
+    switch (spawnCardRequest.cardType) {
+        case CardType_Card:
+        {
+            if (spawnCardRequest.data.card.isDeckDraw) {
+                card->noClickUntil = depot.Now() + 0.5f;
+
+                body->impulseBuffer.x = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+                body->impulseBuffer.y = dlb_rand32f_range(0.0f, 1.0f) * (dlb_rand32i_range(0, 1) ? 1.0f : -1.0f);
+                v3_scalef(v3_normalize(&body->impulseBuffer), dlb_rand32f_range(800.0f, 1200.0f));
+                body->jumpBuffer = 12.0f + dlb_rand32f_variance(2.0f);
+            }
+            break;
+        }
+        case CardType_Deck:
+        {
+            card->data.deck.cardCount = spawnCardRequest.data.deck.cardCount;
+            break;
+        }
+    }
 
 #if 0
     Text *debugText = (Text *)depot.AddFacet(uidCard, Facet_Text);
@@ -257,9 +250,16 @@ UID CardSystem::SpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos,
     debugText->offset.y = 0;
 #endif
 
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, 0, card_drag_sounds);
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, 0, card_callback);
+}
 
-    return uidCard;
+void CardSystem::ProcessQueues(Depot &depot)
+{
+    for (const auto &spawnCardRequest : spawnCardQueue) {
+        SpawnCardInternal(depot, spawnCardRequest);
+    }
+
+    spawnCardQueue.clear();
 }
 
 void CardSystem::UpdateCards(Depot &depot)
@@ -282,25 +282,23 @@ void CardSystem::UpdateCards(Depot &depot)
         }
 
         if (card.noClickUntil > depot.Now()) {
-            Message msgUpdateAnim{};
-            msgUpdateAnim.uid = card.uid;
-            msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.animKey = "card_backface";
-            depot.msgQueue.push_back(msgUpdateAnim);
+            depot.spriteSystem.PushUpdateAnimation(depot, card.uid,
+                "sheet_cards", "card_backface", 0);
         } else if (card.noClickUntil) {
             card.noClickUntil = 0;
 
-            const ResourceDB::CardProto *cardProto = depot.resources->card_protos()->LookupByKey(card.cardProto);
+            const ResourceDB::CardProto *cardProto =
+                depot.resources->card_protos()->LookupByKey(card.cardProto);
             if (!cardProto) {
                 printf("WARN: Can't update a card with no card prototype");
                 continue;
             }
 
-            Message msgUpdateAnim{};
-            msgUpdateAnim.uid = card.uid;
-            msgUpdateAnim.type = MsgType_Sprite_UpdateAnimation;
-            msgUpdateAnim.data.sprite_updateanimation.animKey = cardProto->default_animation()->c_str();
-            depot.msgQueue.push_back(msgUpdateAnim);
+            depot.spriteSystem.PushUpdateAnimation(depot, card.uid,
+                cardProto->spritesheet()->c_str(),
+                cardProto->default_animation()->c_str(),
+                0
+            );
 
             Message msgTryStack{};
             msgTryStack.type = MsgType_Card_TryToStack;
@@ -310,6 +308,7 @@ void CardSystem::UpdateCards(Depot &depot)
     }
 }
 
+// TODO: Move all of this logic to card_callback?
 void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
 {
     DLB_ASSERT(depot.cursor.size() == 1);
@@ -355,22 +354,6 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                     droppedCard->stackParent = dragTarget->uid;
                     dragTarget->stackChild = droppedCard->uid;
                 }
-                break;
-            }
-            default: break;
-        }
-    }
-}
-
-void CardSystem::React(Depot &depot)
-{
-    for (int i = 0; i < depot.msgQueue.size(); i++) {
-        Message msg = depot.msgQueue[i];
-
-        switch (msg.type) {
-            case MsgType_Card_Spawn:
-            {
-                DrawCardFromDeck(depot, msg.uid);
                 break;
             }
             default: break;
@@ -443,9 +426,9 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;
         if (card.uid == pendingDragTarget) {
-            //drawSprite.color = C255(COLOR_RED);
+            drawSprite.color = C255(COLOR_RED);
             drawSprite.outline = true;
-        } else if (card.cardType == CardType_Deck && !card.deckCount) {
+        } else if (card.cardType == CardType_Deck && !card.data.deck.cardCount) {
             drawSprite.color = C255(COLOR_GRAY_5);
         } else {
             drawSprite.color = sprite->color;

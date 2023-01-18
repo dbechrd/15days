@@ -172,34 +172,46 @@ void AudioSystem::Destroy(void)
 #endif
 }
 
-void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
+void AudioSystem::PushPlaySound(Depot &depot, const char *soundKey, bool override)
 {
-    Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
-    if (!sound) {
-        printf("WARN: Sound missing for uid: %u\n", soundUid);
-        return;
-    }
+    if (!soundKey) return;
 
-    const ResourceDB::Sound *dbSound = depot.resources->sounds()->LookupByKey(sound->soundKey);
+    Msg_Audio_PlaySoundRequest playSoundRequest{};
+    playSoundRequest.soundKey = soundKey;
+    playSoundRequest.override = override;
+    playSoundQueue.push_back(playSoundRequest);
+}
+
+void AudioSystem::PushStopSound(Depot &depot, const char *soundKey)
+{
+    if (!soundKey) return;
+
+    Msg_Audio_StopSoundRequest stopSoundRequest{};
+    stopSoundRequest.soundKey = soundKey;
+    stopSoundQueue.push_back(stopSoundRequest);
+}
+
+void AudioSystem::PlaySoundInternal(Depot &depot, const Msg_Audio_PlaySoundRequest &playSoundRequest)
+{
+    if (!playSoundRequest.soundKey) return;
+
+    Sound *sound = FindOrLoadSound(depot, playSoundRequest.soundKey);
+    if (!sound) return;
+
+    const ResourceDB::Sound *dbSound = depot.resources->sounds()->LookupByKey(playSoundRequest.soundKey);
     if (dbSound) {
         float shakeDuration = dbSound->screenshake_duration();
         if (shakeDuration) {
             float shakeAmount = dbSound->screenshake_amount();
             float shakeFreq = dbSound->screenshake_frequency();
-            Message msgScreenshake{};
-            msgScreenshake.uid = soundUid;
-            msgScreenshake.type = MsgType_Render_Screenshake;
-            msgScreenshake.data.render_screenshake.amount = shakeAmount;
-            msgScreenshake.data.render_screenshake.duration = shakeDuration;
-            msgScreenshake.data.render_screenshake.freq = shakeFreq;
-            depot.msgQueue.push_back(msgScreenshake);
+            depot.renderSystem.PushShake(depot, shakeAmount, shakeFreq, shakeDuration);
         }
     }
 
     // Check if this sound is already playing
     if (gSoloud.countAudioSource(*sound->wav)) {
         // If user wants to override it
-        if (override) {
+        if (playSoundRequest.override) {
             // restart sound effect
             gSoloud.stopAudioSource(*sound->wav);
             gSoloud.play(*sound->wav);
@@ -212,39 +224,25 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
     }
 }
 
-void AudioSystem::StopSound(Depot &depot, UID soundUid)
+void AudioSystem::StopSoundInternal(Depot &depot, const Msg_Audio_StopSoundRequest &stopSoundRequest)
 {
-    Sound *sound = (Sound *)depot.GetFacet(soundUid, Facet_Sound);
-    if (!sound) {
-        printf("WARN: Sound missing for uid: %u\n", soundUid);
-        return;
-    }
+    if (!stopSoundRequest.soundKey) return;
 
-    gSoloud.stopAudioSource(*sound->wav);
+    Sound *sound = FindOrLoadSound(depot, stopSoundRequest.soundKey);
+    if (sound) {
+        gSoloud.stopAudioSource(*sound->wav);
+    }
 }
 
-void AudioSystem::React(Depot &depot)
+void AudioSystem::ProcessQueues(Depot &depot)
 {
-    size_t size = depot.msgQueue.size();
-    for (int i = 0; i < size; i++) {
-        Message msg = depot.msgQueue[i];
-        //Sound *sound = (Sound *)depot.GetFacet(msg.uid, Facet_Sound);
-        //if (!sound) {
-        //    continue;
-        //}
-
-        switch (msg.type) {
-            case MsgType_Audio_PlaySound:
-            {
-                PlaySound(depot, msg.uid, msg.data.audio_playsound.override);
-                break;
-            }
-            case MsgType_Audio_StopSound:
-            {
-                StopSound(depot, msg.uid);
-                break;
-            }
-            default: break;
-        }
+    for (const auto &playSoundRequest : playSoundQueue) {
+        PlaySoundInternal(depot, playSoundRequest);
     }
+    for (const auto &stopSoundRequest : stopSoundQueue) {
+        StopSoundInternal(depot, stopSoundRequest);
+    }
+
+    playSoundQueue.clear();
+    stopSoundQueue.clear();
 }

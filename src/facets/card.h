@@ -15,6 +15,12 @@ struct Card : public Facet {
     const char * cardProto    {};
     double       noClickUntil {};  // timestamp of when next click is allowed on card
 
-    // Deck attribs
-    int          deckCount    {};
+    union {
+        struct {
+            int unused{};
+        } card;
+        struct {
+            int cardCount{};
+        } deck;
+    } data {};
 };

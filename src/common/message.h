@@ -1,16 +1,17 @@
 #pragma once
 #include "basic.h"
+#include "../facets/card.h"
 #include <vector>
 
 enum MsgType {
     // Relays all messages to another UID
     MsgType_Special_RelayAllMessages,
 
-    MsgType_Audio_PlaySound,
-    MsgType_Audio_StopSound,
+    MsgType_Audio_PlaySoundRequest,
+    MsgType_Audio_StopSoundRequest,
 
     MsgType_Card_DoAction,
-    MsgType_Card_Spawn,
+    MsgType_Card_SpawnCardRequest,
     MsgType_Card_TryToStack,
 
     MsgType_Combat_Primary,
@@ -51,26 +52,35 @@ enum MsgType {
     MsgType_Render_ToggleFullscreen,
     MsgType_Render_DbgSetFontNext,
     MsgType_Render_DbgSetFontPrev,
-    MsgType_Render_Screenshake,
 
-    MsgType_Sprite_UpdateAnimation,
+    MsgType_Sprite_UpdateAnimationRequest,
 
     MsgType_Text_UpdateText,
 
     MsgType_Window_Quit,
 };
 
-struct Msg_Audio_PlaySound {
-    bool override {};
+struct Msg_Audio_PlaySoundRequest {
+    const char * soundKey {};
+    bool         override {};
 };
 
-struct Msg_Cursor_Notify_DragEnd {
-    vec2 dragDelta {};  // delta pos of mouse compared to where drag was started
+struct Msg_Audio_StopSoundRequest {
+    const char * soundKey {};
 };
 
-struct Msg_Combat_Primary {
-    int world_x {};  // note: world:screen is 1:1... for now
-    int world_y {};
+struct Msg_Card_SpawnCardRequest {
+    CardType     cardType     {};
+    const char * cardProtoKey {};
+    vec3         spawnPos     {};
+    union {
+        struct {
+            bool isDeckDraw {};
+        } card;
+        struct {
+            int cardCount {};
+        } deck;
+    } data {};
 };
 
 struct Msg_Combat_Notify_AttackBegin {
@@ -79,6 +89,15 @@ struct Msg_Combat_Notify_AttackBegin {
 
 struct Msg_Combat_Notify_DefendBegin {
     int shield {};  // or whatever
+};
+
+struct Msg_Combat_Primary {
+    int world_x {};  // note: world:screen is 1:1... for now
+    int world_y {};
+};
+
+struct Msg_Cursor_Notify_DragEnd {
+    vec2 dragDelta{};  // delta pos of mouse compared to where drag was started
 };
 
 struct Msg_Physics_ApplyImpulse {
@@ -94,14 +113,11 @@ struct Msg_Render_FrameBegin {
     double realDtSmooth {};
 };
 
-struct Msg_Render_Screenshake {
-    float  amount   {};
-    double duration {};
-    float  freq     {};
-};
-
-struct Msg_Sprite_UpdateAnimation {
-    const char *animKey {};
+struct Msg_Sprite_UpdateAnimationRequest {
+    UID          uidSprite      {};
+    const char * spritesheetKey {};
+    const char * animationKey   {};
+    int          frame          {};
 };
 
 struct Msg_FpsCounter_Notify_Update {
@@ -124,16 +140,18 @@ struct Message {
     UID     uid  {};  // primary subject of interest
     MsgType type {};
     union {
-        Msg_Audio_PlaySound audio_playsound;
-        Msg_Cursor_Notify_DragEnd cursor_dragend;
+        Msg_Audio_PlaySoundRequest audio_playsoundrequest;
+        Msg_Audio_StopSoundRequest audio_stopsoundrequest;
+        Msg_Card_SpawnCardRequest card_spawncardrequest;
         Msg_Combat_Notify_AttackBegin combat_attackbegin;
         Msg_Combat_Notify_DefendBegin combat_defendbegin;
+        Msg_Combat_Primary combat_primary;
+        Msg_Cursor_Notify_DragEnd cursor_dragend;
         Msg_FpsCounter_Notify_Update fpscounter_notify_update;
         Msg_Physics_ApplyImpulse physics_applyimpulse;
         Msg_Physics_Notify_Collide physics_notify_collide;
         Msg_Render_FrameBegin render_framebegin;
-        Msg_Render_Screenshake render_screenshake;
-        Msg_Sprite_UpdateAnimation sprite_updateanimation;
+        Msg_Sprite_UpdateAnimationRequest sprite_updateanimationrequest;
         Msg_Text_UpdateText text_updatetext;
     } data {};
 

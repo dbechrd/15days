@@ -171,12 +171,14 @@ void RenderSystem::Clear(vec4 color)
     SDL_RenderClear(renderer);
 }
 
-void RenderSystem::Shake(Depot &depot, float amount, float freq, double duration)
+void RenderSystem::PushShake(Depot &depot, float amount, float freq, double duration)
 {
-    shakeAmount = amount;
-    shakeFreq = freq;
-    shakeDuration = duration;
-    shakeStartedAt = depot.Now();
+    if (amount > shakeAmount) {
+        shakeAmount = amount;
+        shakeFreq = freq;
+        shakeDuration = duration;
+        shakeStartedAt = depot.Now();
+    }
 }
 
 void RenderSystem::React(Depot &depot)
@@ -187,14 +189,6 @@ void RenderSystem::React(Depot &depot)
             case MsgType_Render_Quit:
             {
                 running = false;
-                break;
-            }
-            case MsgType_Render_Screenshake:
-            {
-                Shake(depot,
-                    msg.data.render_screenshake.amount,
-                    msg.data.render_screenshake.freq,
-                    msg.data.render_screenshake.duration);
                 break;
             }
             case MsgType_Render_ToggleVsync:

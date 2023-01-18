@@ -19,7 +19,7 @@ struct RenderSystem {
 
     bool Running(void);
     void Clear(vec4 color);
-    void Shake(Depot &depot, float amount, float freq, double duration);
+    void PushShake(Depot &depot, float amount, float freq, double duration);
 
     void React(Depot &depot);
     void UpdateCachedTextures(Depot &depot);

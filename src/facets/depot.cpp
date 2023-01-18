@@ -259,11 +259,11 @@ void Depot::Run(void)
         triggerSystem.React(*this);   // reacts to *, generates *
 
         // Pure message reactors (do not modify msgQueue here!)
-        cardSystem.React(*this);      // reacts to Card
-        spriteSystem.React(*this);    // reacts to Sprite
-        audioSystem.React(*this);     // reacts to Audio
-        textSystem.React(*this);      // reacts to Text
-        renderSystem.React(*this);    // reacts to Render
+        cardSystem.ProcessQueues(*this);   // reacts to Card
+        spriteSystem.ProcessQueues(*this); // reacts to Sprite
+        audioSystem.ProcessQueues(*this);  // reacts to Audio
+        textSystem.React(*this);           // reacts to Text
+        renderSystem.React(*this);         // reacts to Render
 
         spriteSystem.Update(*this);
         renderSystem.UpdateCachedTextures(*this);

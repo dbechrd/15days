@@ -10,30 +10,47 @@ void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color,
     sprite.UpdateRect(depot);
 }
 
-void SpriteSystem::React(Depot &depot)
+void SpriteSystem::PushUpdateAnimation(Depot &depot, UID uidSprite,
+    const char *spritesheetKey, const char *animationKey, int frame)
 {
-    size_t size = depot.msgQueue.size();
-    for (int i = 0; i < size; i++) {
-        Message msg = depot.msgQueue[i];
-        Sprite *sprite = (Sprite *)depot.GetFacet(msg.uid, Facet_Sprite);
-        if (!sprite) {
-            continue;
-        }
+    Msg_Sprite_UpdateAnimationRequest updateAnimationRequest{};
+    updateAnimationRequest.uidSprite = uidSprite;
+    updateAnimationRequest.spritesheetKey = spritesheetKey;
+    updateAnimationRequest.animationKey = animationKey;
+    updateAnimationRequest.frame = frame;
+    updateAnimationQueue.push_back(updateAnimationRequest);
+}
 
-        switch (msg.type) {
-            case MsgType_Sprite_UpdateAnimation:
-            {
-                const ResourceDB::Spritesheet *sheet =
-                    depot.resources->spritesheets()->LookupByKey(sprite->spritesheetKey);
-                if (sheet) {
-                    sprite->animationKey = msg.data.sprite_updateanimation.animKey;
-                    sprite->UpdateRect(depot);
-                }
-                break;
+void SpriteSystem::UpdateAnimationInternal(Depot &depot,
+    const Msg_Sprite_UpdateAnimationRequest &updateAnimationRequest)
+{
+    if (!updateAnimationRequest.spritesheetKey) return;
+    if (!updateAnimationRequest.animationKey) return;
+
+    Sprite *sprite = (Sprite *)depot.GetFacet(updateAnimationRequest.uidSprite, Facet_Sprite);
+    if (!sprite) return;
+
+    const ResourceDB::Spritesheet *sheet =
+        depot.resources->spritesheets()->LookupByKey(sprite->spritesheetKey);
+    if (sheet) {
+        sprite->spritesheetKey = updateAnimationRequest.spritesheetKey;
+        sprite->animationKey = updateAnimationRequest.animationKey;
+        if (sprite->animationKey) {
+            const ResourceDB::Animation *dbAnimation = sheet->animations()->LookupByKey(sprite->animationKey);
+            if (dbAnimation) {
+                sprite->frame = CLAMP(updateAnimationRequest.frame, 0, dbAnimation->frame_count() - 1);
             }
-            default: break;
         }
+        sprite->UpdateRect(depot);
     }
+}
+
+void SpriteSystem::ProcessQueues(Depot &depot)
+{
+    for (const auto &updateAnimationRequest : updateAnimationQueue) {
+        UpdateAnimationInternal(depot, updateAnimationRequest);
+    }
+    updateAnimationQueue.clear();
 }
 
 void SpriteSystem::Update(Depot &depot)

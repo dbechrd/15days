@@ -122,10 +122,12 @@ UID create_narrator(Depot &depot, UID subject)
     position->pos.x = windowWidth / 2.0f;
     position->pos.y = 200.0f;
 
-    Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
-    if (campPos) {
-        position->pos.x = campPos->pos.x - 100.0f;
-        position->pos.y = campPos->pos.y - 100.0f;
+    if (depot.card.size()) {
+        Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
+        if (campPos) {
+            position->pos.x = campPos->pos.x - 100.0f;
+            position->pos.y = campPos->pos.y - 100.0f;
+        }
     }
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
@@ -252,6 +254,23 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
     }
 }
 
+void player_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    switch (msg.type) {
+        case MsgType_Combat_Notify_AttackBegin:
+        {
+            depot.audioSystem.PushPlaySound(depot, "sfx_player_attack");
+            break;
+        }
+        case MsgType_Combat_Notify_DefendBegin:
+        {
+            depot.audioSystem.PushPlaySound(depot, "sfx_player_defend");
+            break;
+        }
+        default: break;
+    }
+}
+
 UID create_player(Depot &depot)
 {
     // TODO: Make a "save_file_default" that is loaded when the player first
@@ -317,8 +336,7 @@ UID create_player(Depot &depot)
         keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
     }
 
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "sfx_player_attack");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "sfx_player_defend", false);
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidPlayer, 0, player_callback);
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
@@ -454,32 +472,25 @@ void create_cards(Depot &depot)
     // or whatever.
 
     // Decks
-    depot.cardSystem.SpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 25);
-    depot.cardSystem.SpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 25);
 
     // Cards
-    //depot.cardSystem.SpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });
-    //depot.cardSystem.SpawnCard(depot, "card_proto_water_bucket", { 800, 300, 0 });
-    //depot.cardSystem.SpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
-    depot.cardSystem.SpawnCard(depot, "card_proto_camp", { 900, 300, 0 });
+    //depot.cardSystem.PushSpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });
+    //depot.cardSystem.PushSpawnCard(depot, "card_proto_water_bucket", { 800, 300, 0 });
+    //depot.cardSystem.PushSpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 });
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 });
 
-    UID uidCampfire = depot.cardSystem.SpawnCard(depot, "card_proto_campfire", { 200, 500, 0 });
-
-    // TODO: Make triggers for card protos somehow.. or all cards.. or global.. or something
-    //depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragUpdate, "audio/fuse_burning.wav", false);
-    //depot.triggerSystem.Trigger_Audio_StopSound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/fuse_burning.wav");
-    //depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidBombProto, MsgType_Card_Notify_DragEnd, "audio/explosion.wav", true);
-    //depot.triggerSystem.Trigger_Render_Screenshake(depot, uidBombProto, MsgType_Card_Notify_DragEnd, 6.0f, 200.0f, 0.5);
-
-    // TODO: This should go on the campfire proto somehow, similar to bomb events above
-    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
-    depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_start", true);
-    // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_extinguish");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_extinguish", true);
-    // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_start");
+    //  TODO: This should go on the campfire proto
+    // depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
+    // depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
+    // depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_start", true);
+    // // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+    // depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_extinguish");
+    // depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_extinguish", true);
+    // // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
+    // depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_start");
 }
 
 //void *fdov_malloc_func(size_t size)
