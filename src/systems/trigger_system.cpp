@@ -52,7 +52,7 @@ void TriggerSystem::CheckTriggers(Depot &depot, TriggerList &triggerList, Messag
         if (trigger.trigger == MsgType_Special_RelayAllMessages) {
             if (!msg.uid) {
                 // Don't relay global messages that were already broadcasted
-                continue;
+                //continue;
             }
 
             if (trigger.callback) {

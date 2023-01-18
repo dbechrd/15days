@@ -182,51 +182,27 @@ UID create_narrator(Depot &depot, UID subject)
     return uidNarrator;
 }
 
-void combat_try_attack(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+bool combat_try_attack(Depot &depot, Combat *combat)
 {
-    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
-    if (!combat) {
-        return;
-    }
-
     bool canAttack = combat->Idle();
     if (canAttack) {
         combat->attackStartedAt = depot.Now();
         combat->attackCooldown = 0.2;
-
-        Message notifyAttack{};
-        notifyAttack.uid = trigger.message.uid;
-        notifyAttack.type = trigger.message.type;
-        depot.msgQueue.push_back(notifyAttack);
     }
+    return canAttack;
 }
-void combat_try_defend(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+bool combat_try_defend(Depot &depot, Combat *combat)
 {
-    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
-    if (!combat) {
-        return;
-    }
-
     bool canDefend = combat->Idle() || combat->Defending();
     if (canDefend) {
         combat->defendStartedAt = depot.Now();
         combat->defendCooldown = 0.6;
-
-        Message notifyDefend{};
-        notifyDefend.uid = trigger.message.uid;
-        notifyDefend.type = trigger.message.type;
-        depot.msgQueue.push_back(notifyDefend);
     }
+    return canDefend;
 }
-void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+bool combat_try_idle(Depot &depot, Combat *combat)
 {
-    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
-    if (!combat) {
-        return;
-    }
-
     bool idleBegin = false;
-
     if (combat->attackStartedAt) {
         DLB_ASSERT(combat->attackCooldown);
         float attackAlpha = (depot.Now() - combat->attackStartedAt) / combat->attackCooldown;
@@ -245,26 +221,38 @@ void combat_try_idle(Depot &depot, const Message &msg, const Trigger &trigger, v
             idleBegin = true;
         }
     }
-
-    if (idleBegin) {
-        Message notifyIdle{};
-        notifyIdle.uid = trigger.message.uid;
-        notifyIdle.type = trigger.message.type;
-        depot.msgQueue.push_back(notifyIdle);
-    }
+    return idleBegin;
 }
 
 void player_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
+    Combat *combat = (Combat *)depot.GetFacet(trigger.message.uid, Facet_Combat);
+    if (!combat) {
+        return;
+    }
+
     switch (msg.type) {
-        case MsgType_Combat_Notify_AttackBegin:
+        case MsgType_Render_FrameBegin:
         {
-            depot.audioSystem.PushPlaySound(depot, "sfx_player_attack");
+            if (combat_try_idle(depot, combat)) {
+                // TODO: Update narrator text
+            }
             break;
         }
-        case MsgType_Combat_Notify_DefendBegin:
+        case MsgType_Combat_Primary:
         {
-            depot.audioSystem.PushPlaySound(depot, "sfx_player_defend");
+            if (combat_try_attack(depot, combat)) {
+                // TODO: Update narrator text
+                depot.audioSystem.PushPlaySound(depot, "sfx_player_attack");
+            }
+            break;
+        }
+        case MsgType_Combat_Secondary:
+        {
+            if (combat_try_defend(depot, combat)) {
+                // TODO: Update narrator text
+                depot.audioSystem.PushPlaySound(depot, "sfx_player_defend");
+            }
             break;
         }
         default: break;
@@ -336,32 +324,7 @@ UID create_player(Depot &depot)
         keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
     }
 
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidPlayer, 0, player_callback);
-
-    {
-        TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
-
-        Trigger attackTrigger{};
-        attackTrigger.trigger = MsgType_Combat_Primary;
-        attackTrigger.message.uid = uidPlayer;
-        attackTrigger.message.type = MsgType_Combat_Notify_AttackBegin;
-        attackTrigger.callback = combat_try_attack;
-        triggerList->triggers.push_back(attackTrigger);
-
-        Trigger defendTrigger{};
-        defendTrigger.trigger = MsgType_Combat_Secondary;
-        defendTrigger.message.uid = uidPlayer;
-        defendTrigger.message.type = MsgType_Combat_Notify_DefendBegin;
-        defendTrigger.callback = combat_try_defend;
-        triggerList->triggers.push_back(defendTrigger);
-
-        Trigger idleTrigger{};
-        idleTrigger.trigger = MsgType_Render_FrameBegin;
-        idleTrigger.message.uid = uidPlayer;
-        idleTrigger.message.type = MsgType_Combat_Notify_IdleBegin;
-        idleTrigger.callback = combat_try_idle;
-        triggerList->triggers.push_back(idleTrigger);
-    }
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidPlayer, uidPlayer, player_callback);
 
     create_narrator(depot, uidPlayer);
 
@@ -370,48 +333,55 @@ UID create_player(Depot &depot)
 
 void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
-    const double fps = depot.FpsSmooth();
-    const double dt = depot.DtSmooth();
-    const double dtMillis = dt * 1000.0f;
-    const double realDt = depot.RealDt();
-    const double realDtMillis = realDt * 1000.0f;
+    switch (msg.type) {
+        case MsgType_Render_FrameBegin:
+        {
+            const double fps = depot.FpsSmooth();
+            const double dt = depot.DtSmooth();
+            const double dtMillis = dt * 1000.0f;
+            const double realDt = depot.RealDt();
+            const double realDtMillis = realDt * 1000.0f;
 
-    const size_t fpsCounterMaxLen = 2048;
-    char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
-    if (fpsCounterBuf) {
-        snprintf(fpsCounterBuf, fpsCounterMaxLen,
-            "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
+            const size_t fpsCounterMaxLen = 2048;
+            char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
+            if (fpsCounterBuf) {
+                snprintf(fpsCounterBuf, fpsCounterMaxLen,
+                    "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
 #if FDOV_SHOW_TODO_LIST
-            "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
-            "DefaultSaveFile.fbb (for new games)\n"
-            "make deck disappear when empty\n"
-            //"font atlas / glyph cache\n"
-            //"text drop shadow\n"
-            "runes\n"
-            "volume control\n"
-            "sell stuff\n"
-            "buy stuffffffff\n"
-            "roll random attribs\n"
-            "card groups (inventory?)\n"
-            "click location cards to teleport there\n"
-            "charges\n"
-            "cards that recharge other cards\n"
-            "cards with timers (e.g. bomb)\n"
-            "networking (?)\n"
+                    "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
+                    "DefaultSaveFile.fbb (for new games)\n"
+                    "make deck disappear when empty\n"
+                    //"font atlas / glyph cache\n"
+                    //"text drop shadow\n"
+                    "runes\n"
+                    "volume control\n"
+                    "sell stuff\n"
+                    "buy stuffffffff\n"
+                    "roll random attribs\n"
+                    "card groups (inventory?)\n"
+                    "click location cards to teleport there\n"
+                    "charges\n"
+                    "cards that recharge other cards\n"
+                    "cards with timers (e.g. bomb)\n"
+                    "networking (?)\n"
 #endif
-            ,
-            fps, dtMillis, realDtMillis, depot.Hashes()
-        );
+                    ,
+                    fps, dtMillis, realDtMillis, depot.Hashes()
+                );
 
-        Message updateText{};
-        updateText.uid = trigger.message.uid;
-        updateText.type = MsgType_Text_UpdateText;
-        updateText.data.text_updatetext.str = fpsCounterBuf;
-        updateText.data.text_updatetext.color = C255(COLOR_WHITE);
-        updateText.data.text_updatetext.offset.y = 20.0f;
-        depot.msgQueue.push_back(updateText);
-    } else {
-        printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
+                // TODO: depot.textSystem.PushUdateText
+                Message updateText{};
+                updateText.uid = trigger.message.uid;
+                updateText.type = MsgType_Text_UpdateText;
+                updateText.data.text_updatetext.str = fpsCounterBuf;
+                updateText.data.text_updatetext.color = C255(COLOR_WHITE);
+                updateText.data.text_updatetext.offset.y = 20.0f;
+                depot.msgQueue.push_back(updateText);
+            } else {
+                printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
+            }
+            break;
+        }
     }
 }
 
@@ -443,15 +413,7 @@ UID create_fps_counter(Depot &depot)
         histo->values.push_back(i);
     };
 
-    {
-        TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, false);
-
-        Trigger updateTextTrigger{};
-        updateTextTrigger.trigger = MsgType_Render_FrameBegin;
-        updateTextTrigger.message.uid = uidFpsCounter;
-        updateTextTrigger.callback = fps_update_text;
-        triggerList->triggers.push_back(updateTextTrigger);
-    }
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidFpsCounter, uidFpsCounter, fps_update_text);
 
     // TODO: NarratorSystem
     // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)

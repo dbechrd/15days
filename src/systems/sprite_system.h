@@ -9,10 +9,10 @@ typedef std::vector<Msg_Sprite_UpdateAnimationRequest> Sprite_UpdateAnimationQue
 struct SpriteSystem {
     // TODO: I feel like someone else maybe should own this, but idk yet
     static void InitSprite(Depot &depot, Sprite &sprite, vec4 color,
-        const char *spritesheetKey, const char *animationKey);
+        const char *spritesheetKey, const char *animationKey, int frame = 0);
 
     void PushUpdateAnimation(Depot &depot, UID uidSprite,
-        const char *spritesheetKey, const char *animationKey, int frame);
+        const char *spritesheetKey, const char *animationKey, int frame = 0);
     void ProcessQueues(Depot &depot);
 
     void Update(Depot &depot);

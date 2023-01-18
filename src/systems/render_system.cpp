@@ -173,12 +173,10 @@ void RenderSystem::Clear(vec4 color)
 
 void RenderSystem::PushShake(Depot &depot, float amount, float freq, double duration)
 {
-    if (amount > shakeAmount) {
-        shakeAmount = amount;
-        shakeFreq = freq;
-        shakeDuration = duration;
-        shakeStartedAt = depot.Now();
-    }
+    shakeAmount = amount;
+    shakeFreq = freq;
+    shakeDuration = duration;
+    shakeStartedAt = depot.Now();
 }
 
 void RenderSystem::React(Depot &depot)

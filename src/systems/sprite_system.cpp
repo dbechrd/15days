@@ -2,7 +2,7 @@
 #include "../facets/depot.h"
 
 void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color,
-    const char *spritesheetKey, const char *animationKey)
+    const char *spritesheetKey, const char *animationKey, int frame)
 {
     sprite.color = color;
     sprite.spritesheetKey = spritesheetKey;
