@@ -23,7 +23,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     CRT_SECURE_NO_WARNINGS
     SDL_DISABLE_ANALYZE_MACROS
-    WITH_SDL2_STATIC
+    WITH_SDL2_STATIC  # For SoLoud to use SDL2 as a back-end
 )
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE

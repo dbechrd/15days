@@ -1,6 +1,39 @@
 #include "audio_system.h"
 #include "../facets/depot.h"
 
+#include "../common/missing_ogg.h"
+
+Sound *AudioSystem::FindOrLoadSound(Depot &depot, const char *soundKey)
+{
+    // Check if already loaded
+    Sound *existingSound = (Sound *)depot.GetFacetByName(soundKey, Facet_Sound);
+    if (existingSound) {
+        return existingSound;
+    }
+
+    const ResourceDB::Sound *dbSound = depot.resources->sounds()->LookupByKey(soundKey);
+    const char *path = dbSound->path()->c_str();
+
+    SoLoud::Wav *wav = new SoLoud::Wav{};
+    SoLoud::result err = wav->load(path);
+    if (err) {
+        SDL_LogError(0, "Failed to load wav: %s\n  %u\n", path, err);
+
+        err = wav->loadMem(missing_ogg_bytes, sizeof(missing_ogg_bytes), false, false);
+        if (err) {
+            SDL_LogError(0, "Failed to load fallback sound:\n  result = %d\n", err);
+            DLB_ASSERT(!"Missing sound also failed to load.. uh-oh no fallback!");
+            return 0;
+        }
+    }
+
+    UID uidSound = depot.Alloc(soundKey);
+    Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound);
+    sound->soundKey = soundKey;
+    sound->wav = wav;
+    return sound;
+}
+
 void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
 {
     char formatBuf[16]{};
@@ -101,11 +134,13 @@ FDOVResult AudioSystem::Init(void)
     printf("\nAudio driver: %s\n", SDL_GetCurrentAudioDriver());
     return FDOV_SUCCESS;
 #else
-    SoLoud::result res = gSoloud.init();
-    if (res) {
-        SDL_Log("SoLoud failed to init with error code %u\n", res);
+    SoLoud::result err = gSoloud.init(); //gSoloud.FLAGS::CLIP_ROUNDOFF, gSoloud.BACKENDS::SDL2);
+    if (err) {
+        SDL_Log("SoLoud failed to init with error code %u\n", err);
         return FDOV_INIT_FAILED;
     }
+
+    SDL_Log("SoLoud init with backend: %s", gSoloud.mBackendString);
 
     gSoloud.setGlobalVolume(0.2f);
 
@@ -125,40 +160,9 @@ void AudioSystem::Destroy(void)
 #if 0
     SDL_CloseAudioDevice(playbackDeviceId);
 #else
+    // Destructor will do this:
+    gSoloud.stopAll();
     gSoloud.deinit();
-#endif
-}
-
-UID AudioSystem::LoadSound(Depot &depot, const char *filename)
-{
-    // Check if already loaded
-    Sound *existingSound = (Sound *)depot.GetFacetByName(filename, Facet_Sound);
-    if (existingSound) {
-        return existingSound->uid;
-    }
-
-    // Load a new audio buffer
-    UID uidSound = depot.Alloc(filename);
-    Sound *sound = (Sound *)depot.AddFacet(uidSound, Facet_Sound);
-    InitSound(depot, *sound, filename);
-    return uidSound;
-}
-
-void AudioSystem::InitSound(Depot &depot, Sound &sound, const char *filename)
-{
-#if 0
-    SDL_LoadWAV(filename.c_str(), &sound.spec, &sound.data, &sound.data_length);
-    if (!sound.data) {
-        printf("Failed to load wav: %s\n  %s\n", filename.c_str(), SDL_GetError());
-    }
-#else
-    sound.filename = filename;
-    sound.wav = (SoLoud::Wav *)depot.resourceArena.Alloc(sizeof(SoLoud::Wav));
-    new (sound.wav) SoLoud::Wav;
-    SoLoud::result res = sound.wav->load(filename);
-    if (res) {
-        printf("Failed to load wav: %s\n  %u\n", filename, res);
-    }
 #endif
 }
 
@@ -181,7 +185,8 @@ void AudioSystem::PlaySound(Depot &depot, UID soundUid, bool override)
         // implicit else: don't play it again, wait until it finishes
     } else {
         // play sound effect
-        gSoloud.play(*sound->wav);
+        DLB_ASSERT(sound->wav->mSampleCount);
+        gSoloud.play(*sound->wav, 1.0f);
     }
 }
 

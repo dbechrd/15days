@@ -59,7 +59,7 @@ enum Error {
     E_VERIFY_FAILED,   // for flatbuffers
 };
 
-Error load_resource_db(Depot &depot, const char *filename, const ResourceDB::Root **result, void **bufToDelete)
+Error load_resource_db(Depot &depot, const char *filename, void **bufToDelete)
 {
     size_t size{};
     void *data = SDL_LoadFile(filename, &size);
@@ -75,9 +75,11 @@ Error load_resource_db(Depot &depot, const char *filename, const ResourceDB::Roo
         return E_VERIFY_FAILED;
     }
 
+    depot.resources = db;
+
     // Preload spritesheet textures (to prevent lazy-loading later)
     for (const auto &sheet : *db->spritesheets()) {
-        depot.renderSystem.LoadTexture_BMP(depot, sheet->texture_path()->c_str());
+        depot.renderSystem.FindOrCreateTextureBMP(depot, sheet->texture_key()->c_str());
     }
 
 #if 1
@@ -104,7 +106,6 @@ Error load_resource_db(Depot &depot, const char *filename, const ResourceDB::Roo
     // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
     // return values in functions meant to return things, all sorts of nonsensical
     // bullshit occurs.
-    if (result) *result = db;
     return E_SUCCESS;
 }
 
@@ -132,7 +133,7 @@ UID create_narrator(Depot &depot, UID subject)
 #if 1
     position->pos.x = 10.0f;
     position->pos.y = 4.0f;
-    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
+    text->fontKey = "karmina_bold_64";
     text->str =
         C_RED     "Red"
         C_GREEN   " Green"
@@ -151,9 +152,6 @@ UID create_narrator(Depot &depot, UID subject)
 
     text->align = TextAlign_VBottom_HCenter;
     text->color = C255(COLOR_RED);
-
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Cursor_Notify_DragBegin, "audio/narrator_drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidNarrator, MsgType_Cursor_Notify_DragEnd, "audio/narrator_drag_end.wav");
 
     // Self triggers
     depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_IdleBegin,
@@ -290,7 +288,7 @@ UID create_player(Depot &depot)
     body->invMass = 1.0f / mass;
 
     Text *debugText = (Text *)depot.AddFacet(uidPlayer, Facet_Text);
-    debugText->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
+    debugText->fontKey = "opensans_bold_16";
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
     debugText->color = C255(COLOR_WHITE);
@@ -316,10 +314,8 @@ UID create_player(Depot &depot)
         keymap->hotkeys.emplace_back(HotkeyMod_Any, SDL_SCANCODE_SPACE, 0, 0, Hotkey_Press, MsgType_Movement_Jump);
     }
 
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "audio/primary.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "audio/secondary.wav", false);
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Cursor_Notify_DragBegin, "audio/player_drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Cursor_Notify_DragEnd, "audio/player_drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_AttackBegin, "player_attack");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidPlayer, MsgType_Combat_Notify_DefendBegin, "player_defend", false);
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidPlayer, Facet_TriggerList, false);
@@ -411,9 +407,7 @@ UID create_fps_counter(Depot &depot)
     position->pos.y = 90;
 
     Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
-    //text->font = depot.textSystem.LoadFont(depot, "font/ChivoMono-Bold.ttf", 16);
-    //text->font = depot.textSystem.LoadFont(depot, "font/FiraCode-Bold.ttf", 16);
-    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 16);
+    text->fontKey = "opensans_bold_16";
     //text->font = depot.textSystem.LoadFont(depot, "font/pricedown_bl.ttf", 16);
 
     text->str = "00 fps (00.00 ms)";
@@ -424,9 +418,6 @@ UID create_fps_counter(Depot &depot)
     for (int i = 1; i <= 100; i++) {
         histo->values.push_back(i);
     };
-
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Cursor_Notify_DragBegin, "audio/drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidFpsCounter, MsgType_Cursor_Notify_DragEnd, "audio/drag_end.wav");
 
     {
         TriggerList *triggerList = (TriggerList *)depot.AddFacet(uidFpsCounter, Facet_TriggerList, false);
@@ -480,12 +471,12 @@ void create_cards(Depot &depot)
     // TODO: This should go on the campfire proto somehow, similar to bomb events above
     depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
     depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_start.wav", true);
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "fire_start", true);
     // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "audio/fire_extinguish.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_extinguish.wav", true);
+    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "fire_extinguish");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "fire_extinguish", true);
     // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "audio/fire_start.wav");
+    depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "fire_start");
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -546,20 +537,20 @@ int main(int argc, char *argv[])
     if (err) return err;
 
     if (TTF_Init() < 0) {
-        SDL_Log("Couldn't initialize TTF: %s\n", TTF_GetError());
+        SDL_LogError(0, "Couldn't initialize TTF: %s\n", TTF_GetError());
         return -1;
     }
 
     err = depot.audioSystem.Init();
     if (err) {
-        SDL_Log("Failed to initalize audio subsystem\n");
+        SDL_LogError(0, "Failed to initalize audio subsystem\n");
     }
 
     dlb_rand32_seed(SDL_GetTicks());
 
     // TODO: Move this into depot init?
     void *bufToDelete = 0;
-    Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &depot.resources, &bufToDelete);
+    Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &bufToDelete);
     if (!resourceDbErr) {
         create_global_keymap(depot);
         create_cursor(depot);
@@ -571,6 +562,7 @@ int main(int argc, char *argv[])
         depot.TransitionTo(GameState_Play);
         depot.Run();
     } else {
+        SDL_LogError(0, "Uh oh, resdb failed to load");
         DLB_ASSERT(!"Uh oh, resdb failed to load");
     }
 

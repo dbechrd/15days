@@ -1,23 +1,27 @@
 #include "text_system.h"
 #include "../facets/depot.h"
 
-UID TextSystem::LoadFont(Depot &depot, const char *filename, int ptsize)
+Font *TextSystem::FindOrLoadFont(Depot &depot, const char *fontKey)
 {
-    size_t keyLen = strlen(filename) + 10;
-    char *key = (char *)depot.frameArena.Alloc(keyLen);
-    snprintf(key, keyLen, "%s?ptsize=%d", filename, ptsize);
-
     // Check if already loaded
-    Font *existingFont = (Font *)depot.GetFacetByName(key, Facet_Font);
+    Font *existingFont = (Font *)depot.GetFacetByName(fontKey, Facet_Font);
     if (existingFont) {
-        return existingFont->uid;
+        return existingFont;
     }
 
-    // Load a new font
-    UID uidFont = depot.Alloc(key);
+    const ResourceDB::Font *dbFont = depot.resources->fonts()->LookupByKey(fontKey);
+    const char *ttf_path = dbFont->ttf_path()->c_str();
+    int point_size = dbFont->point_size();
+
+    TTF_Font *ttfFont = TTF_OpenFont(ttf_path, point_size);
+    if (!ttfFont) {
+        SDL_LogError(0, "Failed to load font %s\n  %s\n", ttf_path, TTF_GetError());
+        return 0;
+    }
+
+    UID uidFont = depot.Alloc(fontKey);
     Font *font = (Font *)depot.AddFacet(uidFont, Facet_Font);
-    font->filename = filename;
-    font->ptsize = ptsize;
+    font->fontKey = fontKey;
 #if 0
     font->outline = 0;
     font->outlineOffset = { 2, 1 };
@@ -29,12 +33,8 @@ UID TextSystem::LoadFont(Depot &depot, const char *filename, int ptsize)
     font->outline = 1;
     font->outlineOffset = { 0 };
 #endif
-    font->ttf_font = TTF_OpenFont(filename, ptsize);
-    if (!font->ttf_font) {
-        SDL_LogError(0, "Failed to load font %s\n", filename);
-    }
-
-    return uidFont;
+    font->ttf_font = ttfFont;
+    return font;
 }
 
 void TextSystem::React(Depot &depot)
@@ -78,7 +78,7 @@ void TextSystem::Display(Depot &depot, DrawQueue &drawQueue)
         float x = position->pos.x + text.offset.x;
         float y = position->pos.y - position->pos.z + text.offset.y;
 
-        Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
+        Font *font = FindOrLoadFont(depot, text.fontKey);
         if (!font) {
             printf("WARN: Can't draw text with no font\n");
             continue;

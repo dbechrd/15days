@@ -17,8 +17,8 @@ enum TextAlign {
 
 struct TextCache {
     // values of relevant properties when cached texture was last generated
-    UID   font {};
-    char *str  {};
+    const char * fontKey {};
+    char *       str     {};
 
     void Destroy(void) {
         free(str);
@@ -27,19 +27,19 @@ struct TextCache {
 };
 
 struct Text : public Facet {
-    UID         font   {};  // will invalidate cache
-    vec4        color  {};  // will invalidate cache
-    const char *str    {};  // will invalidate cache
-    TextCache   cache  {};  // created/used by RenderSystem
+    const char * fontKey {};  // will invalidate cache
+    vec4         color   {};  // will invalidate cache
+    const char * str     {};  // will invalidate cache
+    TextCache    cache   {};  // created/used by RenderSystem
 
-    TextAlign   align  {};  // how to calculate relative offset of text
-    vec2        offset {};  // apply arbitrary offset from calculated position
+    TextAlign    align   {};  // how to calculate relative offset of text
+    vec2         offset  {};  // apply arbitrary offset from calculated position
 
     inline bool isDirty(void)
     {
         return
             str != cache.str ||
-            font != cache.font ||
+            fontKey != cache.fontKey ||
             strcmp(str, cache.str);
     }
 };

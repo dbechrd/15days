@@ -1,24 +1,47 @@
 #include "render_system.h"
 #include "../facets/depot.h"
 
-void RenderSystem::InitTexture(Texture &texture, const char *filename)
+Texture *RenderSystem::FindOrCreateTextureBMP(Depot &depot, const char *textureKey)
 {
-    SDL_Surface *surface = SDL_LoadBMP(filename);
+    // Check if already loaded
+    Texture *existingTexture = (Texture *)depot.GetFacetByName(textureKey, Facet_Texture);
+    if (existingTexture) {
+        return existingTexture;
+    }
+
+    const ResourceDB::Texture *dbTex = depot.resources->textures()->LookupByKey(textureKey);
+    const char *path = dbTex->path()->c_str();
+
+    SDL_Surface *surface = SDL_LoadBMP(path);
     if (!surface) {
+        SDL_LogError(0, "Failed to load surface: %s\n  %s\n", path, SDL_GetError());
+
         static SDL_Surface *pinkSquare{};
         if (!pinkSquare) {
             pinkSquare = SDL_CreateSurface(16, 16, SDL_PIXELFORMAT_RGBA8888);
+            if (!pinkSquare) {
+                SDL_LogError(0, "Failed to load fallback surface:\n  %s\n", SDL_GetError());
+                DLB_ASSERT(!"Missing texture also failed to load.. uh-oh no fallback!");
+                return 0;
+            }
             SDL_FillSurfaceRect(pinkSquare, 0, 0xFF00FFFF);
         }
         surface = pinkSquare;
-        filename = "FILE_FAILED_TO_LOAD_PINK_SQUARE";
-        printf("Failed to load texture: %s\n  %s\n", filename, SDL_GetError());
     }
 
-    texture.filename = filename;
-    texture.size = { (float)surface->w, (float)surface->h };
-    texture.sdl_texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Texture *sdlTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!sdlTexture) {
+        SDL_LogError(0, "Failed to create texture from surface: %s\n  %s\n", path, SDL_GetError());
+        return 0;
+    }
     SDL_DestroySurface(surface);
+
+    UID uidTexture = depot.Alloc(textureKey);
+    Texture *texture = (Texture *)depot.AddFacet(uidTexture, Facet_Texture);
+    texture->textureKey = textureKey;
+    texture->size = { (float)surface->w, (float)surface->h };
+    texture->sdl_texture = sdlTexture;
+    return texture;
 }
 
 FDOVResult RenderSystem::Init(const char *title, int width, int height)
@@ -34,7 +57,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
     SDL_SetHint(SDL_HINT_RENDER_BATCHING, "true");
 
-    int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO);
+    int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     if (sdl_init_err < 0) {
         printf("Failed to initialize SDL video: %s\n", SDL_GetError());
         return FDOV_INIT_FAILED;
@@ -132,21 +155,6 @@ void RenderSystem::Destroy(void)
     SDL_Quit();
 }
 
-UID RenderSystem::LoadTexture_BMP(Depot &depot, const char *filename)
-{
-    // Check if already loaded
-    Texture *existingTexture = (Texture *)depot.GetFacetByName(filename, Facet_Texture);
-    if (existingTexture) {
-        return existingTexture->uid;
-    }
-
-    // Load a new texture
-    UID uidTexture = depot.Alloc(filename);
-    Texture *texture = (Texture *)depot.AddFacet(uidTexture, Facet_Texture);
-    depot.renderSystem.InitTexture(*texture, filename);
-    return uidTexture;
-}
-
 bool RenderSystem::Running(void)
 {
     return running;
@@ -219,9 +227,9 @@ void RenderSystem::React(Depot &depot)
     }
     if (dbgFontIdx != oldDbgFontIdx) {
         for (Text &text : depot.text) {
-            text.font = depot.font[dbgFontIdx].uid;
+            text.fontKey = depot.font[dbgFontIdx].fontKey;
         }
-        printf("font: %s\n", depot.font[dbgFontIdx].filename);
+        printf("font: %s\n", depot.font[dbgFontIdx].fontKey);
     }
 }
 
@@ -251,7 +259,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
             //text.cacheProps.str = (char *)calloc(strlen(text.str) + 1, sizeof(*text.cacheProps.str));
             //memcpy((void *)text.cacheProps.str, text.str, strLen);
 
-            Font *font = (Font *)depot.GetFacet(text.font, Facet_Font);
+            Font *font = depot.textSystem.FindOrLoadFont(depot, text.fontKey);
             if (font && font->ttf_font) {
                 //DLB_ASSERT(fabs(font->outlineOffset.x <= font->outline));
                 //DLB_ASSERT(fabs(font->outlineOffset.y <= font->outline));
@@ -381,7 +389,7 @@ void RenderSystem::UpdateCachedTextures(Depot &depot)
                     SDL_SetTextureBlendMode(gc->atlasTexture, SDL_BLENDMODE_BLEND);
                 }
             } else {
-                SDL_Log("Unable to update text %u, cannot find font for uid %u\n", text.uid, text.font);
+                SDL_Log("Unable to update text %u, cannot find font key %s\n", text.uid, text.fontKey);
             }
         }
     }
@@ -463,7 +471,7 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
                 { cmd.dstRect.x                , cmd.dstRect.y + cmd.dstRect.h },
             };
 
-            SDL_SetRenderDrawColor(renderer, cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
+            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a);
             SDL_RenderLines(renderer, points, ARRAY_SIZE(points));
         }
 

@@ -1,5 +1,21 @@
 namespace ResourceDB;
 
+table Font {
+    name:string (key);
+    ttf_path:string;
+    point_size:int;
+}
+
+table Sound {
+    name:string (key);
+    path:string;
+}
+
+table Texture {
+    name:string (key);
+    path:string;
+}
+
 table Animation {
     name:string (key);
     desc:string;
@@ -9,7 +25,7 @@ table Animation {
 
 table Spritesheet {
     name:string (key);
-    texture_path:string;
+    texture_key:string;
     cell_count:int;
     cell_width:int;
     cell_height:int;
@@ -42,8 +58,11 @@ table CardProto {
 table Root {
     name:string;
     card_protos:[CardProto];
+    fonts:[Font];
     material_protos:[MaterialProto];
     spritesheets:[Spritesheet];
+    sounds:[Sound];
+    textures:[Texture];
 }
 
 root_type Root;

@@ -2,7 +2,7 @@
 #include "facet.h"
 
 struct Sound : public Facet {
-    const char  *filename {};
+    const char  *soundKey {};
     SoLoud::Wav *wav      {};
     //SDL_AudioSpec  spec        {};
     //uint8_t       *data        {};

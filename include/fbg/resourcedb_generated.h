@@ -15,6 +15,15 @@ static_assert(FLATBUFFERS_VERSION_MAJOR == 2 &&
 
 namespace ResourceDB {
 
+struct Font;
+struct FontBuilder;
+
+struct Sound;
+struct SoundBuilder;
+
+struct Texture;
+struct TextureBuilder;
+
 struct Animation;
 struct AnimationBuilder;
 
@@ -85,6 +94,243 @@ inline const char *EnumNameEffectTypes(EffectTypes e) {
   if (flatbuffers::IsOutRange(e, EffectTypes_IgniteFlammable, EffectTypes_ExtinguishFlammable)) return "";
   const size_t index = static_cast<size_t>(e) - static_cast<size_t>(EffectTypes_IgniteFlammable);
   return EnumNamesEffectTypes()[index];
+}
+
+struct Font FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FontBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
+    return "ResourceDB.Font";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_TTF_PATH = 6,
+    VT_POINT_SIZE = 8
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool KeyCompareLessThan(const Font *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
+  const flatbuffers::String *ttf_path() const {
+    return GetPointer<const flatbuffers::String *>(VT_TTF_PATH);
+  }
+  int32_t point_size() const {
+    return GetField<int32_t>(VT_POINT_SIZE, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_TTF_PATH) &&
+           verifier.VerifyString(ttf_path()) &&
+           VerifyField<int32_t>(verifier, VT_POINT_SIZE, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct FontBuilder {
+  typedef Font Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Font::VT_NAME, name);
+  }
+  void add_ttf_path(flatbuffers::Offset<flatbuffers::String> ttf_path) {
+    fbb_.AddOffset(Font::VT_TTF_PATH, ttf_path);
+  }
+  void add_point_size(int32_t point_size) {
+    fbb_.AddElement<int32_t>(Font::VT_POINT_SIZE, point_size, 0);
+  }
+  explicit FontBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Font> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Font>(end);
+    fbb_.Required(o, Font::VT_NAME);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Font> CreateFont(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> ttf_path = 0,
+    int32_t point_size = 0) {
+  FontBuilder builder_(_fbb);
+  builder_.add_point_size(point_size);
+  builder_.add_ttf_path(ttf_path);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Font> CreateFontDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *ttf_path = nullptr,
+    int32_t point_size = 0) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto ttf_path__ = ttf_path ? _fbb.CreateString(ttf_path) : 0;
+  return ResourceDB::CreateFont(
+      _fbb,
+      name__,
+      ttf_path__,
+      point_size);
+}
+
+struct Sound FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SoundBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
+    return "ResourceDB.Sound";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_PATH = 6
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool KeyCompareLessThan(const Sound *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
+  const flatbuffers::String *path() const {
+    return GetPointer<const flatbuffers::String *>(VT_PATH);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
+           verifier.EndTable();
+  }
+};
+
+struct SoundBuilder {
+  typedef Sound Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Sound::VT_NAME, name);
+  }
+  void add_path(flatbuffers::Offset<flatbuffers::String> path) {
+    fbb_.AddOffset(Sound::VT_PATH, path);
+  }
+  explicit SoundBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Sound> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Sound>(end);
+    fbb_.Required(o, Sound::VT_NAME);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Sound> CreateSound(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> path = 0) {
+  SoundBuilder builder_(_fbb);
+  builder_.add_path(path);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Sound> CreateSoundDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *path = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
+  return ResourceDB::CreateSound(
+      _fbb,
+      name__,
+      path__);
+}
+
+struct Texture FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TextureBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
+    return "ResourceDB.Texture";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_PATH = 6
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool KeyCompareLessThan(const Texture *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
+  const flatbuffers::String *path() const {
+    return GetPointer<const flatbuffers::String *>(VT_PATH);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_PATH) &&
+           verifier.VerifyString(path()) &&
+           verifier.EndTable();
+  }
+};
+
+struct TextureBuilder {
+  typedef Texture Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Texture::VT_NAME, name);
+  }
+  void add_path(flatbuffers::Offset<flatbuffers::String> path) {
+    fbb_.AddOffset(Texture::VT_PATH, path);
+  }
+  explicit TextureBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<Texture> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Texture>(end);
+    fbb_.Required(o, Texture::VT_NAME);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Texture> CreateTexture(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> path = 0) {
+  TextureBuilder builder_(_fbb);
+  builder_.add_path(path);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<Texture> CreateTextureDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *path = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto path__ = path ? _fbb.CreateString(path) : 0;
+  return ResourceDB::CreateTexture(
+      _fbb,
+      name__,
+      path__);
 }
 
 struct Animation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -193,7 +439,7 @@ struct Spritesheet FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_TEXTURE_PATH = 6,
+    VT_TEXTURE_KEY = 6,
     VT_CELL_COUNT = 8,
     VT_CELL_WIDTH = 10,
     VT_CELL_HEIGHT = 12,
@@ -208,8 +454,8 @@ struct Spritesheet FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int KeyCompareWithValue(const char *_name) const {
     return strcmp(name()->c_str(), _name);
   }
-  const flatbuffers::String *texture_path() const {
-    return GetPointer<const flatbuffers::String *>(VT_TEXTURE_PATH);
+  const flatbuffers::String *texture_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_TEXTURE_KEY);
   }
   int32_t cell_count() const {
     return GetField<int32_t>(VT_CELL_COUNT, 0);
@@ -227,8 +473,8 @@ struct Spritesheet FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
-           VerifyOffset(verifier, VT_TEXTURE_PATH) &&
-           verifier.VerifyString(texture_path()) &&
+           VerifyOffset(verifier, VT_TEXTURE_KEY) &&
+           verifier.VerifyString(texture_key()) &&
            VerifyField<int32_t>(verifier, VT_CELL_COUNT, 4) &&
            VerifyField<int32_t>(verifier, VT_CELL_WIDTH, 4) &&
            VerifyField<int32_t>(verifier, VT_CELL_HEIGHT, 4) &&
@@ -246,8 +492,8 @@ struct SpritesheetBuilder {
   void add_name(flatbuffers::Offset<flatbuffers::String> name) {
     fbb_.AddOffset(Spritesheet::VT_NAME, name);
   }
-  void add_texture_path(flatbuffers::Offset<flatbuffers::String> texture_path) {
-    fbb_.AddOffset(Spritesheet::VT_TEXTURE_PATH, texture_path);
+  void add_texture_key(flatbuffers::Offset<flatbuffers::String> texture_key) {
+    fbb_.AddOffset(Spritesheet::VT_TEXTURE_KEY, texture_key);
   }
   void add_cell_count(int32_t cell_count) {
     fbb_.AddElement<int32_t>(Spritesheet::VT_CELL_COUNT, cell_count, 0);
@@ -276,7 +522,7 @@ struct SpritesheetBuilder {
 inline flatbuffers::Offset<Spritesheet> CreateSpritesheet(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    flatbuffers::Offset<flatbuffers::String> texture_path = 0,
+    flatbuffers::Offset<flatbuffers::String> texture_key = 0,
     int32_t cell_count = 0,
     int32_t cell_width = 0,
     int32_t cell_height = 0,
@@ -286,7 +532,7 @@ inline flatbuffers::Offset<Spritesheet> CreateSpritesheet(
   builder_.add_cell_height(cell_height);
   builder_.add_cell_width(cell_width);
   builder_.add_cell_count(cell_count);
-  builder_.add_texture_path(texture_path);
+  builder_.add_texture_key(texture_key);
   builder_.add_name(name);
   return builder_.Finish();
 }
@@ -294,18 +540,18 @@ inline flatbuffers::Offset<Spritesheet> CreateSpritesheet(
 inline flatbuffers::Offset<Spritesheet> CreateSpritesheetDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    const char *texture_path = nullptr,
+    const char *texture_key = nullptr,
     int32_t cell_count = 0,
     int32_t cell_width = 0,
     int32_t cell_height = 0,
     std::vector<flatbuffers::Offset<ResourceDB::Animation>> *animations = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
+  auto texture_key__ = texture_key ? _fbb.CreateString(texture_key) : 0;
   auto animations__ = animations ? _fbb.CreateVectorOfSortedTables<ResourceDB::Animation>(animations) : 0;
   return ResourceDB::CreateSpritesheet(
       _fbb,
       name__,
-      texture_path__,
+      texture_key__,
       cell_count,
       cell_width,
       cell_height,
@@ -508,8 +754,11 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_CARD_PROTOS = 6,
-    VT_MATERIAL_PROTOS = 8,
-    VT_SPRITESHEETS = 10
+    VT_FONTS = 8,
+    VT_MATERIAL_PROTOS = 10,
+    VT_SPRITESHEETS = 12,
+    VT_SOUNDS = 14,
+    VT_TEXTURES = 16
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -517,11 +766,20 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>> *card_protos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>> *>(VT_CARD_PROTOS);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *fonts() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *>(VT_FONTS);
+  }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *material_protos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *>(VT_MATERIAL_PROTOS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *spritesheets() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *>(VT_SPRITESHEETS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Sound>> *sounds() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Sound>> *>(VT_SOUNDS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Texture>> *textures() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Texture>> *>(VT_TEXTURES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -530,12 +788,21 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CARD_PROTOS) &&
            verifier.VerifyVector(card_protos()) &&
            verifier.VerifyVectorOfTables(card_protos()) &&
+           VerifyOffset(verifier, VT_FONTS) &&
+           verifier.VerifyVector(fonts()) &&
+           verifier.VerifyVectorOfTables(fonts()) &&
            VerifyOffset(verifier, VT_MATERIAL_PROTOS) &&
            verifier.VerifyVector(material_protos()) &&
            verifier.VerifyVectorOfTables(material_protos()) &&
            VerifyOffset(verifier, VT_SPRITESHEETS) &&
            verifier.VerifyVector(spritesheets()) &&
            verifier.VerifyVectorOfTables(spritesheets()) &&
+           VerifyOffset(verifier, VT_SOUNDS) &&
+           verifier.VerifyVector(sounds()) &&
+           verifier.VerifyVectorOfTables(sounds()) &&
+           VerifyOffset(verifier, VT_TEXTURES) &&
+           verifier.VerifyVector(textures()) &&
+           verifier.VerifyVectorOfTables(textures()) &&
            verifier.EndTable();
   }
 };
@@ -550,11 +817,20 @@ struct RootBuilder {
   void add_card_protos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>>> card_protos) {
     fbb_.AddOffset(Root::VT_CARD_PROTOS, card_protos);
   }
+  void add_fonts(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts) {
+    fbb_.AddOffset(Root::VT_FONTS, fonts);
+  }
   void add_material_protos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>>> material_protos) {
     fbb_.AddOffset(Root::VT_MATERIAL_PROTOS, material_protos);
   }
   void add_spritesheets(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>>> spritesheets) {
     fbb_.AddOffset(Root::VT_SPRITESHEETS, spritesheets);
+  }
+  void add_sounds(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Sound>>> sounds) {
+    fbb_.AddOffset(Root::VT_SOUNDS, sounds);
+  }
+  void add_textures(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Texture>>> textures) {
+    fbb_.AddOffset(Root::VT_TEXTURES, textures);
   }
   explicit RootBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -571,11 +847,17 @@ inline flatbuffers::Offset<Root> CreateRoot(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>>> card_protos = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>>> material_protos = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>>> spritesheets = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>>> spritesheets = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Sound>>> sounds = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Texture>>> textures = 0) {
   RootBuilder builder_(_fbb);
+  builder_.add_textures(textures);
+  builder_.add_sounds(sounds);
   builder_.add_spritesheets(spritesheets);
   builder_.add_material_protos(material_protos);
+  builder_.add_fonts(fonts);
   builder_.add_card_protos(card_protos);
   builder_.add_name(name);
   return builder_.Finish();
@@ -585,18 +867,27 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::CardProto>> *card_protos = nullptr,
+    std::vector<flatbuffers::Offset<ResourceDB::Font>> *fonts = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *material_protos = nullptr,
-    std::vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *spritesheets = nullptr) {
+    std::vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *spritesheets = nullptr,
+    std::vector<flatbuffers::Offset<ResourceDB::Sound>> *sounds = nullptr,
+    std::vector<flatbuffers::Offset<ResourceDB::Texture>> *textures = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto card_protos__ = card_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::CardProto>(card_protos) : 0;
+  auto fonts__ = fonts ? _fbb.CreateVectorOfSortedTables<ResourceDB::Font>(fonts) : 0;
   auto material_protos__ = material_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::MaterialProto>(material_protos) : 0;
   auto spritesheets__ = spritesheets ? _fbb.CreateVectorOfSortedTables<ResourceDB::Spritesheet>(spritesheets) : 0;
+  auto sounds__ = sounds ? _fbb.CreateVectorOfSortedTables<ResourceDB::Sound>(sounds) : 0;
+  auto textures__ = textures ? _fbb.CreateVectorOfSortedTables<ResourceDB::Texture>(textures) : 0;
   return ResourceDB::CreateRoot(
       _fbb,
       name__,
       card_protos__,
+      fonts__,
       material_protos__,
-      spritesheets__);
+      spritesheets__,
+      sounds__,
+      textures__);
 }
 
 inline const ResourceDB::Root *GetRoot(const void *buf) {

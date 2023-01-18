@@ -8,13 +8,12 @@ struct SDL_Window;
 struct SDL_Renderer;
 
 struct RenderSystem {
-    void InitTexture(Texture &texture, const char *filename);
+    Texture *FindOrCreateTextureBMP(Depot &depot, const char *textureKey);
 
     FDOVResult Init(const char *title, int width, int height);
     void DestroyDepot(Depot &depot);
     void Destroy();
 
-    UID LoadTexture_BMP(Depot &depot, const char *filename);
 
     SDL_Window *Window(void) { return window; }
 

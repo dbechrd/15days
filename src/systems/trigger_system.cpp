@@ -3,26 +3,26 @@
 
 
 void TriggerSystem::Trigger_Audio_PlaySound(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile, bool override)
+    const char *soundKey, bool override)
 {
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
 
     Trigger trigger{};
     trigger.trigger = msgType;
-    trigger.message.uid = depot.audioSystem.LoadSound(depot, soundFile);
+    trigger.message.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
     trigger.message.type = MsgType_Audio_PlaySound;
     trigger.message.data.audio_playsound.override = override;
     triggerList->triggers.push_back(trigger);
 }
 
 void TriggerSystem::Trigger_Audio_StopSound(Depot &depot, UID subject, MsgType msgType,
-    const char *soundFile)
+    const char *soundKey)
 {
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(subject, Facet_TriggerList, false);
 
     Trigger trigger{};
     trigger.trigger = msgType;
-    trigger.message.uid = depot.audioSystem.LoadSound(depot, soundFile);
+    trigger.message.uid = depot.audioSystem.FindOrLoadSound(depot, soundKey)->uid;
     trigger.message.type = MsgType_Audio_StopSound;
     triggerList->triggers.push_back(trigger);
 }

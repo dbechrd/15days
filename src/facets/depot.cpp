@@ -251,15 +251,15 @@ void Depot::Run(void)
         cursorSystem.UpdateDragTargets(*this, collisionList);  // gen: card_dragbegin, card_dragupdate, card_leftclick
 
         // Update cards based on their parent positions
-        cardSystem.UpdateCards(*this);                         // gen: sprite_updateanim, card_dragend (hack for first bounce)
         cardSystem.UpdateStacks(*this, collisionList);
+        cardSystem.UpdateCards(*this);                         // gen: sprite_updateanim, card_dragend (hack for first bounce)
+        effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
         triggerSystem.React(*this);   // reacts to *, generates *
 
         // Pure message reactors (do not modify msgQueue here!)
         cardSystem.React(*this);      // reacts to Card
-        effectSystem.ApplyDragFx(*this, collisionList);
         spriteSystem.React(*this);    // reacts to Sprite
         audioSystem.React(*this);     // reacts to Audio
         textSystem.React(*this);      // reacts to Text

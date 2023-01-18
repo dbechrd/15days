@@ -35,6 +35,18 @@
       effects: "ExtinguishFlammable"
     }
   ],
+  fonts: [
+    {
+      name: "karmina_bold_64",
+      ttf_path: "font/KarminaBold.otf",
+      point_size: 64
+    },
+    {
+      name: "opensans_bold_16",
+      ttf_path: "font/OpenSans-Bold.ttf",
+      point_size: 16
+    }
+  ],
   material_protos: [
     {
       name: "mat_flammable",
@@ -44,7 +56,7 @@
   spritesheets: [
     {
       name: "sheet_campfire",
-      texture_path: "texture/campfire_small.bmp",
+      texture_key: "tex_campfire_small",
       cell_count: 9,
       cell_width: 100,
       cell_height: 150,
@@ -64,7 +76,7 @@
     },
     {
       name: "sheet_cards",
-      texture_path: "texture/cards.bmp",
+      texture_key: "tex_cards",
       cell_count: 10,
       cell_width: 100,
       cell_height: 150,
@@ -132,7 +144,7 @@
     },
     {
       name: "sheet_player",
-      texture_path: "texture/player.bmp",
+      texture_key: "tex_player",
       cell_count: 1,
       cell_width: 70,
       cell_height: 140,
@@ -143,6 +155,54 @@
           frame_count: 1
         }
       ]
+    }
+  ],
+  sounds: [
+    {
+      name: "drag_begin",
+      path: "audio/drag_begin.wav"
+    },
+    {
+      name: "drag_end",
+      path: "audio/drag_end.wav"
+    },
+    {
+      name: "explosion",
+      path: "audio/explosion.wav"
+    },
+    {
+      name: "fire_extinguish",
+      path: "audio/fire_extinguish.wav"
+    },
+    {
+      name: "fire_start",
+      path: "audio/fire_start.wav"
+    },
+    {
+      name: "fuse_burning",
+      path: "audio/fuse_burning.wav"
+    },
+    {
+      name: "player_attack",
+      path: "audio/primary.wav"
+    },
+    {
+      name: "player_defend",
+      path: "audio/secondary.wav"
+    }
+  ],
+  textures: [
+    {
+      name: "tex_campfire_small",
+      path: "texture/campfire_small.bmp"
+    },
+    {
+      name: "tex_cards",
+      path: "texture/cards.bmp"
+    },
+    {
+      name: "tex_player",
+      path: "texture/player.bmp"
     }
   ]
 }

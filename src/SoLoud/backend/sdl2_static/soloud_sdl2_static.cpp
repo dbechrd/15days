@@ -37,7 +37,7 @@ namespace SoLoud
 
 #else
 
-#include "SDL.h"
+#include "SDL3/SDL.h"
 #include <math.h>
 
 namespace SoLoud
@@ -99,7 +99,7 @@ namespace SoLoud
 
 		aSoloud->mBackendCleanupFunc = soloud_sdl2static_deinit;
 
-		SDL_PauseAudioDevice(gAudioDeviceID);
+		SDL_PlayAudioDevice(gAudioDeviceID);
 		aSoloud->mBackendString = "SDL2 (static)";
 		return 0;
 	}

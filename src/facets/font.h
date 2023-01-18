@@ -16,8 +16,7 @@ struct GlyphCache {
 };
 
 struct Font : public Facet {
-    const char *filename      {};
-    int         ptsize        {};
+    const char *fontKey       {};
     int         outline       {};
     vec2        outlineOffset {};  // useful for off-center drop shadow effect
     TTF_Font   *ttf_font      {};

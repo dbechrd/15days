@@ -11,8 +11,8 @@ UID CardSystem::CardDragSounds(Depot &depot)
     }
 
     UID uidDraggableSounds = depot.Alloc(name);
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragBegin, "audio/drag_begin.wav");
-    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragEnd, "audio/drag_end.wav");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragBegin, "drag_begin");
+    depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidDraggableSounds, MsgType_Cursor_Notify_DragEnd, "drag_end");
     return uidDraggableSounds;
 }
 
@@ -404,7 +404,7 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         DrawCommand drawSprite{};
         drawSprite.uid = sprite->uid;
         if (card.uid == pendingDragTarget) {
-            drawSprite.color = C255(COLOR_RED);
+            //drawSprite.color = C255(COLOR_RED);
             drawSprite.outline = true;
         } else if (card.cardType == CardType_Deck && !card.deckCount) {
             drawSprite.color = C255(COLOR_GRAY_5);

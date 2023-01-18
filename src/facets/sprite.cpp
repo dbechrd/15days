@@ -32,8 +32,7 @@ void Sprite::UpdateRect(Depot &depot)
     ///////////////////////////////////////////////////////////////////////////
 
     // TODO: Rename this to FindOrCreate or something..
-    UID texUid = depot.renderSystem.LoadTexture_BMP(depot, sheet->texture_path()->c_str());
-    Texture *texture = (Texture *)depot.GetFacet(texUid, Facet_Texture);
+    Texture *texture = depot.renderSystem.FindOrCreateTextureBMP(depot, sheet->texture_key()->c_str());
     if (!texture) {
         SDL_LogError(0, "Can't update sprite rect when spritesheet has no texture");
         return;

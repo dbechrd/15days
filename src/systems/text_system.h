@@ -3,7 +3,7 @@
 #include "../common/draw_list.h"
 
 struct TextSystem {
-    UID LoadFont(Depot &depot, const char *filename, int ptsize);
+    struct Font *FindOrLoadFont(Depot &depot, const char *fontKey);
 
     void React(Depot &depot);
     void Display(Depot &depot, DrawQueue &drawQueue);

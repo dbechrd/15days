@@ -116,8 +116,8 @@ struct Depot {
         // currently need to destroy things
         renderSystem.DestroyDepot(*this);
         audioSystem.DestroyDepot(*this);
-        renderSystem.Destroy();
         audioSystem.Destroy();
+        renderSystem.Destroy();
 
         // TODO: FontSystem?
         for (Font &font : font) {

@@ -2,7 +2,7 @@
 #include "facet.h"
 
 struct Texture : public Facet {
-    const char  *filename    {};
+    const char  *textureKey  {};
     vec2         size        {};
     SDL_Texture *sdl_texture {};
 };
