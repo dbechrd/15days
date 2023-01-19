@@ -15,8 +15,8 @@
     },
     {
       name: "card_proto_campfire",
-      spritesheet: "sheet_campfire",
-      default_animation: "unlit",
+      spritesheet: "sheet_campfire_small",
+      default_animation: "anim_unlit",
       material_proto: "mat_flammable"
     },
     {
@@ -57,20 +57,20 @@
   ],
   spritesheets: [
     {
-      name: "sheet_campfire",
+      name: "sheet_campfire_small",
       texture_key: "tex_campfire_small",
       cell_count: 9,
       cell_width: 100,
       cell_height: 150,
       animations: [
         {
-          name: "burning",
+          name: "anim_burning",
           desc: "",
           frame_start: 1,
           frame_count: 8
         },
         {
-          name: "unlit",
+          name: "anim_unlit",
           desc: "",
           frame_count: 1
         }

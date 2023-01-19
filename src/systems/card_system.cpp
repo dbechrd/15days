@@ -34,7 +34,7 @@ void deck_try_draw_card(Depot &depot, Card *card)
             cardProtoKey = "card_proto_bomb";
         }
 
-        depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, true);
+        depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, 0, true);
         depot.renderSystem.PushShake(depot, 3.0f, 100.0f, 0.1f);
 
         card->data.deck.cardCount--;
@@ -150,27 +150,29 @@ Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionLis
     return 0;
 }
 
-void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount)
+void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, int cardCount)
 {
-    Msg_Card_SpawnCardRequest spawnCardRequest{};
+    Card_SpawnCardRequest spawnCardRequest{};
     spawnCardRequest.cardType = CardType_Deck;
     spawnCardRequest.cardProtoKey = cardProtoKey;
     spawnCardRequest.spawnPos = spawnPos;
+    spawnCardRequest.msgCallback = msgCallback;
     spawnCardRequest.data.deck.cardCount = cardCount;
     spawnCardQueue.push_back(spawnCardRequest);
 }
 
-void CardSystem::PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, bool isDeckDraw)
+void CardSystem::PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, bool isDeckDraw)
 {
-    Msg_Card_SpawnCardRequest spawnCardRequest{};
+    Card_SpawnCardRequest spawnCardRequest{};
     spawnCardRequest.cardType = CardType_Card;
     spawnCardRequest.cardProtoKey = cardProtoKey;
     spawnCardRequest.spawnPos = spawnPos;
+    spawnCardRequest.msgCallback = msgCallback;
     spawnCardRequest.data.card.isDeckDraw = isDeckDraw;
     spawnCardQueue.push_back(spawnCardRequest);
 }
 
-void CardSystem::SpawnCardInternal(Depot &depot, const Msg_Card_SpawnCardRequest &spawnCardRequest)
+void CardSystem::SpawnCardInternal(Depot &depot, const Card_SpawnCardRequest &spawnCardRequest)
 {
     UID uidCard = depot.Alloc(spawnCardRequest.cardProtoKey, false);
 
@@ -251,6 +253,7 @@ void CardSystem::SpawnCardInternal(Depot &depot, const Msg_Card_SpawnCardRequest
 #endif
 
     depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, 0, card_callback);
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidCard, 0, spawnCardRequest.msgCallback);
 }
 
 void CardSystem::ProcessQueues(Depot &depot)

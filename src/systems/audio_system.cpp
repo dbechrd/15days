@@ -66,7 +66,7 @@ void PrintSDLAudioSpec(const SDL_AudioSpec &spec)
     );
 }
 
-FDOVResult AudioSystem::Init(void)
+Error AudioSystem::Init(void)
 {
 #if 0
     int sdl_init_err = SDL_Init(SDL_INIT_AUDIO);
@@ -143,14 +143,14 @@ FDOVResult AudioSystem::Init(void)
     SoLoud::result err = gSoloud.init(); //gSoloud.FLAGS::CLIP_ROUNDOFF, gSoloud.BACKENDS::SDL2);
     if (err) {
         SDL_Log("SoLoud failed to init with error code %u\n", err);
-        return FDOV_INIT_FAILED;
+        return E_INIT_FAILED;
     }
 
     SDL_Log("SoLoud init with backend: %s", gSoloud.mBackendString);
 
     gSoloud.setGlobalVolume(0.2f);
 
-    return FDOV_SUCCESS;
+    return E_SUCCESS;
 #endif
 }
 
@@ -176,7 +176,7 @@ void AudioSystem::PushPlaySound(Depot &depot, const char *soundKey, bool overrid
 {
     if (!soundKey) return;
 
-    Msg_Audio_PlaySoundRequest playSoundRequest{};
+    Audio_PlaySoundRequest playSoundRequest{};
     playSoundRequest.soundKey = soundKey;
     playSoundRequest.override = override;
     playSoundQueue.push_back(playSoundRequest);
@@ -186,12 +186,12 @@ void AudioSystem::PushStopSound(Depot &depot, const char *soundKey)
 {
     if (!soundKey) return;
 
-    Msg_Audio_StopSoundRequest stopSoundRequest{};
+    Audio_StopSoundRequest stopSoundRequest{};
     stopSoundRequest.soundKey = soundKey;
     stopSoundQueue.push_back(stopSoundRequest);
 }
 
-void AudioSystem::PlaySoundInternal(Depot &depot, const Msg_Audio_PlaySoundRequest &playSoundRequest)
+void AudioSystem::PlaySoundInternal(Depot &depot, const Audio_PlaySoundRequest &playSoundRequest)
 {
     if (!playSoundRequest.soundKey) return;
 
@@ -224,7 +224,7 @@ void AudioSystem::PlaySoundInternal(Depot &depot, const Msg_Audio_PlaySoundReque
     }
 }
 
-void AudioSystem::StopSoundInternal(Depot &depot, const Msg_Audio_StopSoundRequest &stopSoundRequest)
+void AudioSystem::StopSoundInternal(Depot &depot, const Audio_StopSoundRequest &stopSoundRequest)
 {
     if (!stopSoundRequest.soundKey) return;
 

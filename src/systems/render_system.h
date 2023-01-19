@@ -1,16 +1,19 @@
 #pragma once
 #include "../common/basic.h"
 #include "../common/draw_list.h"
-#include "../common/error.h"
 #include "../facets/texture.h"
 
 struct SDL_Window;
 struct SDL_Renderer;
 
+struct Msg_Render_FrameBegin {
+    double realDtSmooth {};
+};
+
 struct RenderSystem {
     Texture *FindOrCreateTextureBMP(Depot &depot, const char *textureKey);
 
-    FDOVResult Init(const char *title, int width, int height);
+    Error Init(const char *title, int width, int height);
     void DestroyDepot(Depot &depot);
     void Destroy();
 

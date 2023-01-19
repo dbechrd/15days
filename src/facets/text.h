@@ -27,13 +27,13 @@ struct TextCache {
 };
 
 struct Text : public Facet {
-    const char * fontKey {};  // will invalidate cache
-    vec4         color   {};  // will invalidate cache
-    const char * str     {};  // will invalidate cache
-    TextCache    cache   {};  // created/used by RenderSystem
+    const char * fontKey  {};  // will invalidate cache
+    const char * str      {};  // will invalidate cache
+    bool         strOwner {};  // if true, need to free it
+    TextCache    cache    {};  // created/used by RenderSystem
 
-    TextAlign    align   {};  // how to calculate relative offset of text
-    vec2         offset  {};  // apply arbitrary offset from calculated position
+    TextAlign    align    {};  // how to calculate relative offset of text
+    vec2         offset   {};  // apply arbitrary offset from calculated position
 
     inline bool isDirty(void)
     {

@@ -1,22 +1,10 @@
 #include "trigger_system.h"
 #include "../facets/depot.h"
 
-void TriggerSystem::Trigger_Text_UpdateText(Depot &depot, UID src, MsgType msgType, UID dst,
-    const char *str, vec4 color)
-{
-    TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
-
-    Trigger trigger{};
-    trigger.trigger = msgType;
-    trigger.message.uid = dst;
-    trigger.message.type = MsgType_Text_UpdateText;
-    trigger.message.data.text_updatetext.str = str;
-    trigger.message.data.text_updatetext.color = color;
-    triggerList->triggers.push_back(trigger);
-}
-
 void TriggerSystem::Trigger_Special_RelayAllMessages(Depot &depot, UID src, UID dst, TriggerCallback callback)
 {
+    if (!callback) return;
+
     TriggerList *triggerList = (TriggerList *)depot.AddFacet(src, Facet_TriggerList, false);
 
     Trigger relayTrigger{};

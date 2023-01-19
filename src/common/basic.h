@@ -44,6 +44,16 @@
 typedef uint32_t UID;
 struct Depot;
 
+//vec4 cBlack  = {   0,   0,   0, 255 };
+//vec4 cWhite  = { 255, 255, 255, 255 };
+//vec4 cBeige  = { 224, 186, 139, 255 };
+//vec4 cPink   = { 255, 178, 223, 255 };
+//vec4 cPurple = {  55,  31,  69, 255 };
+//vec4 cGreen  = { 147, 255, 155, 255 };
+//vec4 cBlue   = { 130, 232, 255, 255 };
+//vec4 cYellow = { 255, 232, 150, 255 };
+//vec4 cOrange = { 255, 124,  30, 255 };
+
 #define C255(color) {\
     color.r * 255, \
     color.g * 255, \
@@ -54,3 +64,12 @@ struct Depot;
 //#define C_GRASS { 49, 134, 112, 255 }  // blue-green
 #define C_GRASS { 18, 100, 38, 255 }     // green
 //#define C_GRASS { 255, 249, 216, 255 } // wheat
+
+enum Error {
+    E_SUCCESS,         // no error
+    E_INIT_FAILED,     // init
+    E_EOF,             // reached EOF prematurely
+    E_UNEXPECTED_CHAR, // unexpected character encountered
+    E_IO_ERROR,        // failed to read/write file
+    E_VERIFY_FAILED,   // for flatbuffers
+};

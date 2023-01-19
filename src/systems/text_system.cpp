@@ -1,6 +1,66 @@
 #include "text_system.h"
 #include "../facets/depot.h"
 
+UID TextSystem::CreateNarrator(Depot &depot)
+{
+    UID uidNarrator = depot.Alloc("narrator");
+
+    Position *position = (Position *)depot.AddFacet(uidNarrator, Facet_Position);
+    int windowWidth = 0, windowHeight = 0;
+    SDL_GetWindowSize(depot.renderSystem.Window(), &windowWidth, &windowHeight);
+    position->pos.x = windowWidth / 2.0f;
+    position->pos.y = 200.0f;
+
+    if (depot.card.size()) {
+        Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
+        if (campPos) {
+            position->pos.x = campPos->pos.x - 100.0f;
+            position->pos.y = campPos->pos.y - 100.0f;
+        }
+    }
+
+    Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
+#if 0
+    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
+    text->str = "15 Days";
+#endif
+#if 1
+    position->pos.x = 10.0f;
+    position->pos.y = 4.0f;
+    text->fontKey = "karmina_bold_64";
+    text->str =
+        C_RED     "Red"
+        C_GREEN   " Green"
+        C_BLUE    " Blue"
+        C_CYAN    " Cyan"
+        C_MAGENTA " Magenta"
+        C_YELLOW  " Yellow"
+        C_WHITE   " White";
+#endif
+#if 0
+    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 20);
+    text->str = "The`g camp`w is your home.\n"
+        "Your adventure starts here.\n"
+        "`r+10 health`w while in camp.";
+#endif
+
+    text->align = TextAlign_VBottom_HCenter;
+
+    // TODO: NarratorSystem
+    // - Check if position.pos + sprite.size outside of screen w/h
+    //       Msg_Physics_Notify_Collide (uid=player)
+    //         v
+    //       NarrationEvent_LeaveScreen (uid=player)
+    //         v
+    //       Msg_Narrator_Says (uid=narrator, text="collided!")
+    // - NarratorSystem::Update()
+    //   - If delay timer elapsed, dequeue oldest item in the narrationQueue
+    // - NarratorSystem::Draw(narratorQueue, drawList);
+    //   - Generate draw commands for active text using the narrationQueue
+
+    return uidNarrator;
+}
+
 Font *TextSystem::FindOrLoadFont(Depot &depot, const char *fontKey)
 {
     // Check if already loaded
@@ -44,26 +104,76 @@ Font *TextSystem::FindOrLoadFont(Depot &depot, const char *fontKey)
     return font;
 }
 
-void TextSystem::React(Depot &depot)
+void TextSystem::Init(Depot &depot)
 {
-    size_t size = depot.msgQueue.size();
-    for (int i = 0; i < size; i++) {
-        Message msg = depot.msgQueue[i];
-        Text *text = (Text *)depot.GetFacet(msg.uid, Facet_Text);
-        if (!text) {
-            continue;
-        }
+    uidNarrator = CreateNarrator(depot);
+}
 
-        switch (msg.type) {
-            case MsgType_Text_UpdateText:
-            {
-                text->str = msg.data.text_updatetext.str;
-                text->offset = msg.data.text_updatetext.offset;
-                text->color = msg.data.text_updatetext.color;
-                break;
-            }
-            default: break;
+void TextSystem::PushUpdateText(Depot &depot, UID uidText, vec2 offset, vec4 color,
+    const char *str, bool strOwner)
+{
+    Text *text = (Text *)depot.GetFacet(uidText, Facet_Text);
+    if (!text) return;
+
+    if (text->strOwner) {
+        free((void *)text->str);
+        text->strOwner = false;
+    }
+
+    text->str = str;
+    text->strOwner = strOwner;
+    text->offset = offset;
+}
+
+void TextSystem::PushUpdateNarrator(Depot &depot, vec2 offset, vec4 color,
+    const char *str, double displayFor, bool interrupt)
+{
+    if (interrupt) {
+        updateNarratorQueue.clear();
+        narratorMsgStartedAt = 0;
+    }
+
+    size_t len = strlen(str);
+    char *copyOfStr = 0;
+    if (len) {
+        copyOfStr = (char *)calloc(len + 1, 1);
+        strncpy(copyOfStr, str, len);
+    }
+
+    Text_UpdateNarratorRequest updateNarratorRequest{};
+    updateNarratorRequest.str = copyOfStr;
+    updateNarratorRequest.offset = offset;
+    updateNarratorRequest.color = color;
+    updateNarratorRequest.displayFor = displayFor;
+    updateNarratorQueue.push_back(updateNarratorRequest);
+}
+
+void TextSystem::Update(Depot &depot)
+{
+    if (!updateNarratorQueue.size()) return;
+
+    // Get current message
+    const Text_UpdateNarratorRequest *msg = &updateNarratorQueue.front();
+    const Text_UpdateNarratorRequest *nextMsg = 0;
+
+    if (!narratorMsgStartedAt) {
+        // Narrator idle, start displaying the message
+        nextMsg = msg;
+    } else if (depot.Now() - narratorMsgStartedAt >= msg->displayFor) {
+        // Narrator displaying expired message, show next message
+        updateNarratorQueue.pop_front();
+        nextMsg = updateNarratorQueue.size() ? &updateNarratorQueue.front() : 0;
+        if (!nextMsg) {
+            // If no next message, clear the message
+            static Text_UpdateNarratorRequest emptyMsg{ "", {}, {}, 0 };
+            nextMsg = &emptyMsg;
         }
+    }
+
+    if (nextMsg) {
+        PushUpdateText(depot, uidNarrator, nextMsg->offset, nextMsg->color,
+            nextMsg->str, true);
+        narratorMsgStartedAt = nextMsg->str ? depot.Now() : 0;
     }
 }
 

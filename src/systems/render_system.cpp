@@ -49,7 +49,7 @@ Texture *RenderSystem::FindOrCreateTextureBMP(Depot &depot, const char *textureK
     return texture;
 }
 
-FDOVResult RenderSystem::Init(const char *title, int width, int height)
+Error RenderSystem::Init(const char *title, int width, int height)
 {
 #if FDOV_VSYNC
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "true");
@@ -65,7 +65,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     int sdl_init_err = SDL_Init(SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     if (sdl_init_err < 0) {
         printf("Failed to initialize SDL video: %s\n", SDL_GetError());
-        return FDOV_INIT_FAILED;
+        return E_INIT_FAILED;
     }
 
     int flags = SDL_WINDOW_OPENGL;
@@ -80,7 +80,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     );
     if (!window) {
         printf("Failed to create window: %s\n", SDL_GetError());
-        return FDOV_INIT_FAILED;
+        return E_INIT_FAILED;
     }
 
 #if 0
@@ -114,7 +114,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     renderer = SDL_CreateRenderer(window, 0, 0); //SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         printf("Failed to create renderer: %s\n", SDL_GetError());
-        return FDOV_INIT_FAILED;
+        return E_INIT_FAILED;
     }
 
     SDL_RendererInfo rendererInfo{};
@@ -130,7 +130,7 @@ FDOVResult RenderSystem::Init(const char *title, int width, int height)
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
 
     running = true;
-    return FDOV_SUCCESS;
+    return E_SUCCESS;
 }
 
 void RenderSystem::DestroyDepot(Depot &depot)

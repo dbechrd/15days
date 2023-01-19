@@ -4,23 +4,23 @@
 void Sprite::UpdateRect(Depot &depot)
 {
     if (!spritesheetKey) {
-        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
+        SDL_LogWarn(0, "Can't update sprite rect when sprite has no spritesheet");
         return;
     }
     if (!animationKey) {
-        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no animation");
+        SDL_LogWarn(0, "Can't update sprite rect when sprite has no animation");
         return;
     }
 
     Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
     if (!position) {
-        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no position");
+        SDL_LogWarn(0, "Can't update sprite rect when sprite has no position");
         return;
     }
 
     const ResourceDB::Spritesheet *sheet = depot.resources->spritesheets()->LookupByKey(spritesheetKey);
     if (!sheet) {
-        SDL_LogWarn(0, "WARN: Can't update sprite rect when sprite has no spritesheet");
+        SDL_LogWarn(0, "Can't update sprite rect when spritesheetKey [%s] is invalid", spritesheetKey);
         return;
     }
 

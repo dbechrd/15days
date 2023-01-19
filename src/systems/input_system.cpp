@@ -4,6 +4,9 @@
 // Return true if you want to skip further processing of hotkeys
 bool CheckHotkeysDebug(Depot &depot, const InputEvent &e)
 {
+    SDL_Keycode keycode = SDL_GetKeyFromScancode((SDL_Scancode)e.scancode);
+    SDL_GetKeyName(keycode);
+
     switch (e.scancode) {
         case SDL_SCANCODE_K: {
             if (e.down) {

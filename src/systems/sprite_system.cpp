@@ -13,7 +13,7 @@ void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color,
 void SpriteSystem::PushUpdateAnimation(Depot &depot, UID uidSprite,
     const char *spritesheetKey, const char *animationKey, int frame)
 {
-    Msg_Sprite_UpdateAnimationRequest updateAnimationRequest{};
+    Sprite_UpdateAnimationRequest updateAnimationRequest{};
     updateAnimationRequest.uidSprite = uidSprite;
     updateAnimationRequest.spritesheetKey = spritesheetKey;
     updateAnimationRequest.animationKey = animationKey;
@@ -22,7 +22,7 @@ void SpriteSystem::PushUpdateAnimation(Depot &depot, UID uidSprite,
 }
 
 void SpriteSystem::UpdateAnimationInternal(Depot &depot,
-    const Msg_Sprite_UpdateAnimationRequest &updateAnimationRequest)
+    const Sprite_UpdateAnimationRequest &updateAnimationRequest)
 {
     if (!updateAnimationRequest.spritesheetKey) return;
     if (!updateAnimationRequest.animationKey) return;

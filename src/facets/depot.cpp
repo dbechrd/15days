@@ -262,7 +262,7 @@ void Depot::Run(void)
         cardSystem.ProcessQueues(*this);   // reacts to Card
         spriteSystem.ProcessQueues(*this); // reacts to Sprite
         audioSystem.ProcessQueues(*this);  // reacts to Audio
-        textSystem.React(*this);           // reacts to Text
+        textSystem.Update(*this);           // reacts to Text
         renderSystem.React(*this);         // reacts to Render
 
         spriteSystem.Update(*this);

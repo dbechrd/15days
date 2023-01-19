@@ -54,14 +54,6 @@ struct Slice {
     size_t       length {};
 };
 
-enum Error {
-    E_SUCCESS,         // no error
-    E_EOF,             // reached EOF prematurely
-    E_UNEXPECTED_CHAR, // unexpected character encountered
-    E_IO_ERROR,        // failed to read/write file
-    E_VERIFY_FAILED,   // for flatbuffers
-};
-
 Error load_resource_db(Depot &depot, const char *filename, void **bufToDelete)
 {
     size_t size{};
@@ -110,76 +102,6 @@ Error load_resource_db(Depot &depot, const char *filename, void **bufToDelete)
     // return values in functions meant to return things, all sorts of nonsensical
     // bullshit occurs.
     return E_SUCCESS;
-}
-
-UID create_narrator(Depot &depot, UID subject)
-{
-    UID uidNarrator = depot.Alloc("narrator");
-
-    Position *position = (Position *)depot.AddFacet(uidNarrator, Facet_Position);
-    int windowWidth = 0, windowHeight = 0;
-    SDL_GetWindowSize(depot.renderSystem.Window(), &windowWidth, &windowHeight);
-    position->pos.x = windowWidth / 2.0f;
-    position->pos.y = 200.0f;
-
-    if (depot.card.size()) {
-        Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
-        if (campPos) {
-            position->pos.x = campPos->pos.x - 100.0f;
-            position->pos.y = campPos->pos.y - 100.0f;
-        }
-    }
-
-    Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
-#if 0
-    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
-    text->str = "15 Days";
-#endif
-#if 1
-    position->pos.x = 10.0f;
-    position->pos.y = 4.0f;
-    text->fontKey = "karmina_bold_64";
-    text->str =
-        C_RED     "Red"
-        C_GREEN   " Green"
-        C_BLUE    " Blue"
-        C_CYAN    " Cyan"
-        C_MAGENTA " Magenta"
-        C_YELLOW  " Yellow"
-        C_WHITE   " White";
-#endif
-#if 0
-    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 20);
-    text->str = "The`g camp`w is your home.\n"
-        "Your adventure starts here.\n"
-        "`r+10 health`w while in camp.";
-#endif
-
-    text->align = TextAlign_VBottom_HCenter;
-    text->color = C255(COLOR_RED);
-
-    // Self triggers
-    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_IdleBegin,
-        uidNarrator, "Neutral", C255(COLOR_GRAY_4));
-    // Subject triggers
-    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_AttackBegin,
-        uidNarrator, "Primary", C255(COLOR_RED));
-    depot.triggerSystem.Trigger_Text_UpdateText(depot, subject, MsgType_Combat_Notify_DefendBegin,
-        uidNarrator, "Secondary", C255(COLOR_DODGER));
-
-    // TODO: NarratorSystem
-    // - Check if position.pos + sprite.size outside of screen w/h
-    //       Msg_Physics_Notify_Collide (uid=player)
-    //         v
-    //       NarrationEvent_LeaveScreen (uid=player)
-    //         v
-    //       Msg_Narrator_Says (uid=narrator, text="collided!")
-    // - NarratorSystem::Update()
-    //   - If delay timer elapsed, dequeue oldest item in the narrationQueue
-    // - NarratorSystem::Draw(narratorQueue, drawList);
-    //   - Generate draw commands for active text using the narrationQueue
-
-    return uidNarrator;
 }
 
 bool combat_try_attack(Depot &depot, Combat *combat)
@@ -235,23 +157,23 @@ void player_callback(Depot &depot, const Message &msg, const Trigger &trigger, v
         case MsgType_Render_FrameBegin:
         {
             if (combat_try_idle(depot, combat)) {
-                // TODO: Update narrator text
+                depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_GRAY_4), "`wNeutral", 5, true);
             }
             break;
         }
         case MsgType_Combat_Primary:
         {
             if (combat_try_attack(depot, combat)) {
-                // TODO: Update narrator text
                 depot.audioSystem.PushPlaySound(depot, "sfx_player_attack");
+                depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_GRAY_4), "`rPrimary", 5, true);
             }
             break;
         }
         case MsgType_Combat_Secondary:
         {
             if (combat_try_defend(depot, combat)) {
-                // TODO: Update narrator text
                 depot.audioSystem.PushPlaySound(depot, "sfx_player_defend");
+                depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_GRAY_4), "`cSecondary", 5, true);
             }
             break;
         }
@@ -301,7 +223,6 @@ UID create_player(Depot &depot)
     debugText->fontKey = "opensans_bold_16";
     debugText->str = 0;
     debugText->align = TextAlign_VBottom_HCenter;
-    debugText->color = C255(COLOR_WHITE);
 
     {
         // TODO: Make keymaps be per-mode *not* Depots. There should only be 1 depot.
@@ -325,8 +246,6 @@ UID create_player(Depot &depot)
     }
 
     depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidPlayer, uidPlayer, player_callback);
-
-    create_narrator(depot, uidPlayer);
 
     return uidPlayer;
 }
@@ -369,19 +288,14 @@ void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, v
                     fps, dtMillis, realDtMillis, depot.Hashes()
                 );
 
-                // TODO: depot.textSystem.PushUdateText
-                Message updateText{};
-                updateText.uid = trigger.message.uid;
-                updateText.type = MsgType_Text_UpdateText;
-                updateText.data.text_updatetext.str = fpsCounterBuf;
-                updateText.data.text_updatetext.color = C255(COLOR_WHITE);
-                updateText.data.text_updatetext.offset.y = 20.0f;
-                depot.msgQueue.push_back(updateText);
+                depot.textSystem.PushUpdateText(depot, trigger.message.uid,
+                    { 0.0f, 20.0f }, C255(COLOR_WHITE), fpsCounterBuf);
             } else {
                 printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
             }
             break;
         }
+        default: break;
     }
 }
 
@@ -406,7 +320,6 @@ UID create_fps_counter(Depot &depot)
 
     text->str = "00 fps (00.00 ms)";
     text->align = TextAlign_VTop_HLeft;
-    text->color = C255(COLOR_WHITE);
 
     Histogram *histo = (Histogram *)depot.AddFacet(uidFpsCounter, Facet_Histogram);
     for (int i = 1; i <= 100; i++) {
@@ -427,6 +340,29 @@ UID create_fps_counter(Depot &depot)
     return uidFpsCounter;
 }
 
+void campfire_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
+{
+    UID uidCampfire = msg.uid;
+
+    switch (msg.type) {
+        case MsgType_Effect_OnFireBegin:
+        {
+            depot.audioSystem.PushPlaySound(depot, "sfx_fire_start", true);
+            depot.audioSystem.PushStopSound(depot, "sfx_fire_extinguish");
+            depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_burning");
+            break;
+        }
+        case MsgType_Effect_OnFireEnd:
+        {
+            depot.audioSystem.PushPlaySound(depot, "sfx_fire_extinguish", true);
+            depot.audioSystem.PushStopSound(depot, "sfx_fire_start");
+            depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_unlit");
+            break;
+        }
+        default: break;
+    }
+}
+
 void create_cards(Depot &depot)
 {
     // TODO: Make a "save_file_default" that is loaded when the player first
@@ -434,25 +370,15 @@ void create_cards(Depot &depot)
     // or whatever.
 
     // Decks
-    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 25);
-    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 0, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 0, 25);
 
     // Cards
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_water_bucket", { 800, 300, 0 });
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
-    depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 });
-    depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 });
-
-    //  TODO: This should go on the campfire proto
-    // depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireBegin, uidCampfire, "burning");
-    // depot.triggerSystem.Trigger_Sprite_UpdateAnimation(depot, uidCampfire, MsgType_Effect_OnFireEnd, uidCampfire, "unlit");
-    // depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_start", true);
-    // // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    // depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireBegin, "sfx_fire_extinguish");
-    // depot.triggerSystem.Trigger_Audio_PlaySound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_extinguish", true);
-    // // TODO: Stop all other sounds playing on this UID (e.g. iterate all sound_play triggers for sounds and stop them??)
-    // depot.triggerSystem.Trigger_Audio_StopSound(depot, uidCampfire, MsgType_Effect_OnFireEnd, "sfx_fire_start");
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 }, 0);
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 }, campfire_callback);
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -481,17 +407,7 @@ void create_cards(Depot &depot)
 
 int main(int argc, char *argv[])
 {
-    //vec4 cBlack  = {   0,   0,   0, 255 };
-    //vec4 cWhite  = { 255, 255, 255, 255 };
-    //vec4 cBeige  = { 224, 186, 139, 255 };
-    //vec4 cPink   = { 255, 178, 223, 255 };
-    //vec4 cPurple = {  55,  31,  69, 255 };
-    //vec4 cGreen  = { 147, 255, 155, 255 };
-    //vec4 cBlue   = { 130, 232, 255, 255 };
-    //vec4 cYellow = { 255, 232, 150, 255 };
-    //vec4 cOrange = { 255, 124,  30, 255 };
-
-    int err;
+    Error err = E_SUCCESS;
     assert(FDOV_FIRST_SCANCODE == SDL_NUM_SCANCODES);
 
     for (int i = 0; i < argc; i++) {
@@ -507,54 +423,48 @@ int main(int argc, char *argv[])
 
     Depot *depotPtr = new Depot();
     Depot &depot = *depotPtr;
-    depot.Init(GameState_Play);
+    err = depot.Init(GameState_Play);
+    if (!err) {
+        dlb_rand32_seed(SDL_GetTicks());
 
-    err = depot.renderSystem.Init("15days", SCREEN_W, SCREEN_H);
-    if (err) return err;
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days");
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "I hope you have fun");
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "It worksssss!!!");
 
-    if (TTF_Init() < 0) {
-        SDL_LogError(0, "Couldn't initialize TTF: %s\n", TTF_GetError());
-        return -1;
+        // TODO: Move this into depot init?
+        void *bufToDelete = 0;
+        Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &bufToDelete);
+        if (!resourceDbErr) {
+            create_global_keymap(depot);
+            create_cursor(depot);
+            create_fps_counter(depot);
+            create_cards(depot);
+            create_player(depot);
+
+            // Run the game
+            depot.TransitionTo(GameState_Play);
+            depot.Run();
+        } else {
+            SDL_LogError(0, "Uh oh, resdb failed to load");
+            DLB_ASSERT(!"Uh oh, resdb failed to load");
+            err = E_INIT_FAILED;
+        }
+
+        depot.Destroy();
+        delete depotPtr;
+
+        TTF_Quit();
+
+        // TODO: Move this into depot destroy?
+        SDL_free(bufToDelete);
+
+        // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to
+        // try to find it yet.
+        printf("SDL reported %d unfreed allocations\n", SDL_GetNumAllocations());
+        //getchar();
     }
 
-    err = depot.audioSystem.Init();
-    if (err) {
-        SDL_LogError(0, "Failed to initalize audio subsystem\n");
-    }
-
-    dlb_rand32_seed(SDL_GetTicks());
-
-    // TODO: Move this into depot init?
-    void *bufToDelete = 0;
-    Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &bufToDelete);
-    if (!resourceDbErr) {
-        create_global_keymap(depot);
-        create_cursor(depot);
-        create_fps_counter(depot);
-        create_cards(depot);
-        create_player(depot);
-
-        // Run the game
-        depot.TransitionTo(GameState_Play);
-        depot.Run();
-    } else {
-        SDL_LogError(0, "Uh oh, resdb failed to load");
-        DLB_ASSERT(!"Uh oh, resdb failed to load");
-    }
-
-    depot.Destroy();
-    delete depotPtr;
-
-    TTF_Quit();
-
-    // TODO: Move this into depot destroy?
-    SDL_free(bufToDelete);
-
-    // SDL is currently reporting 1 unfreed alloc, but I haven't bothered to
-    // try to find it yet.
-    printf("SDL reported %d unfreed allocations\n", SDL_GetNumAllocations());
-    //getchar();
-    return 0;
+    return err;
 }
 
 #define DLB_MATH_IMPLEMENTATION

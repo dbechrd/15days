@@ -98,16 +98,30 @@ struct Depot {
     void *GetFacet(UID uid, FacetType type);
     void *GetFacetByName(const char *name, FacetType type);
 
-    void Init(GameState state)
+    Error Init(GameState state)
     {
         gameState = state;
         gameStatePending = gameState;
         frameArena.Init(KB(32));
         resourceArena.Init(KB(4));
 
-        //for (int i = 0; i < Facet_Count; i++) {
-        //    dlb_hash_init(&indexByUid[i], DLB_HASH_INT, "indexByUid", 256);
-        //}
+        Error err = renderSystem.Init("15days", SCREEN_W, SCREEN_H);
+        if (err) return err;
+
+        if (TTF_Init() < 0) {
+            SDL_LogError(0, "Couldn't initialize TTF: %s\n", TTF_GetError());
+            return E_INIT_FAILED;
+        }
+
+        err = audioSystem.Init();
+        if (err) {
+            SDL_LogError(0, "Failed to initalize audio subsystem\n");
+            return E_INIT_FAILED;
+        }
+
+        textSystem.Init(*this);
+
+        return E_SUCCESS;
     }
 
     void Destroy(void)

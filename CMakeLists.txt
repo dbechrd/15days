@@ -21,7 +21,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    CRT_SECURE_NO_WARNINGS
+    _CRT_SECURE_NO_WARNINGS
     SDL_DISABLE_ANALYZE_MACROS
     WITH_SDL2_STATIC  # For SoLoud to use SDL2 as a back-end
 )

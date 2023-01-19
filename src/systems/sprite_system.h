@@ -4,7 +4,14 @@
 #include "../common/message.h"
 #include "../facets/sprite.h"
 
-typedef std::vector<Msg_Sprite_UpdateAnimationRequest> Sprite_UpdateAnimationQueue;
+struct Sprite_UpdateAnimationRequest {
+    UID          uidSprite      {};
+    const char * spritesheetKey {};
+    const char * animationKey   {};
+    int          frame          {};
+};
+
+typedef std::vector<Sprite_UpdateAnimationRequest> Sprite_UpdateAnimationQueue;
 
 struct SpriteSystem {
     // TODO: I feel like someone else maybe should own this, but idk yet
@@ -23,5 +30,5 @@ private:
     double lastAnimAt = 0;
 
     void UpdateAnimationInternal(Depot &depot,
-        const Msg_Sprite_UpdateAnimationRequest &updateAnimationRequest);
+        const Sprite_UpdateAnimationRequest &updateAnimationRequest);
 };
