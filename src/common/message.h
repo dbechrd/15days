@@ -7,7 +7,6 @@ enum MsgType {
     // Relays all messages to another UID
     MsgType_Special_RelayAllMessages,
 
-    MsgType_Card_DoAction,
     MsgType_Card_TryToStack,
 
     MsgType_Combat_Primary,

@@ -12,6 +12,7 @@ struct Card : public Facet {
     CardType     cardType     {};
     UID          stackParent  {};
     UID          stackChild   {};
+    bool         wantsToStack {};
     const char * cardProto    {};
     double       noClickUntil {};  // timestamp of when next click is allowed on card
 

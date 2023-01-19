@@ -134,19 +134,6 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             dragEnd.data.cursor_dragend.dragDelta.x = dragDelta.y;
             depot.msgQueue.push_back(dragEnd);
 
-            Message msgTryStack{};
-            msgTryStack.type = MsgType_Card_TryToStack;
-            msgTryStack.uid = cursor.uidDragSubject;
-            depot.msgQueue.push_back(msgTryStack);
-
-            float tinyDrag = 5.0f;  // still process clicks after tiny, accidental drags
-            if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
-                Message leftClick{};
-                leftClick.type = MsgType_Card_DoAction;
-                leftClick.uid = cursor.uidDragSubject;
-                depot.msgQueue.push_back(leftClick);
-            }
-
             // Button no longer held down, reset drag state
             cursor.dragBeginPos = {};
             cursor.uidDragSubject = 0;

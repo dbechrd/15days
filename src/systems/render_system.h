@@ -3,9 +3,6 @@
 #include "../common/draw_list.h"
 #include "../facets/texture.h"
 
-struct SDL_Window;
-struct SDL_Renderer;
-
 struct Msg_Render_FrameBegin {
     double realDtSmooth {};
 };
@@ -17,8 +14,9 @@ struct RenderSystem {
     void DestroyDepot(Depot &depot);
     void Destroy();
 
-
+    // Use sparingly, inter-system dependencies make the code less readable
     SDL_Window *Window(void) { return window; }
+    SDL_Renderer *Renderer(void) { return renderer; }
 
     bool Running(void);
     void Clear(vec4 color);

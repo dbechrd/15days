@@ -55,6 +55,4 @@ void CombatSystem::Display(Depot &depot, DrawQueue &drawQueue)
             drawQueue.push_back(defendOverlay);
         }
     }
-
-    std::sort(drawQueue.begin(), drawQueue.end());
 }

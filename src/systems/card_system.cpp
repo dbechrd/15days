@@ -60,16 +60,17 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
     const char *dragEndSoundKey = (cardProto->drag_end_sound_key()) ? cardProto->drag_end_sound_key()->c_str() : 0;
 
     switch (msg.type) {
-        case MsgType_Card_DoAction:
-        {
-            if (card->cardType == CardType_Deck) {
-                deck_try_draw_card(depot, card);
-            }
-        }
         case MsgType_Cursor_Notify_DragBegin:
         {
             depot.audioSystem.PushPlaySound(depot, "sfx_drag_begin");
             depot.audioSystem.PushPlaySound(depot, dragBeginSoundKey);
+
+            // Break from parent stack
+            Card *parent = (Card *)depot.GetFacet(card->stackParent, Facet_Card);
+            if (parent) parent->stackChild = 0;
+            card->stackParent = 0;
+            card->wantsToStack = false;
+
             break;
         }
         case MsgType_Cursor_Notify_DragUpdate:
@@ -82,6 +83,19 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
             depot.audioSystem.PushStopSound(depot, dragUpdateSoundKey);
             depot.audioSystem.PushPlaySound(depot, "sfx_drag_end");
             depot.audioSystem.PushPlaySound(depot, dragEndSoundKey, true);
+
+            // If drag was tiny, treat as click
+            const vec2 dragDelta = msg.data.cursor_dragend.dragDelta;
+            const float tinyDrag = 5.0f;
+            if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
+                if (card->cardType == CardType_Deck) {
+                    deck_try_draw_card(depot, card);
+                }
+            } else {
+                // Maybe this should happen during tiny drags too?
+                card->wantsToStack = true;
+            }
+
             break;
         }
         default: break;
@@ -261,8 +275,31 @@ void CardSystem::ProcessQueues(Depot &depot)
     for (const auto &spawnCardRequest : spawnCardQueue) {
         SpawnCardInternal(depot, spawnCardRequest);
     }
-
     spawnCardQueue.clear();
+}
+
+void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
+{
+    DLB_ASSERT(depot.cursor.size() == 1);
+    pendingDragTarget = 0;
+
+    UID uidCursorDragSubject = depot.cursor.front().uidDragSubject;
+
+    for (Card &card : depot.card) {
+        if (card.uid == uidCursorDragSubject) {
+            Card *dragTarget = FindDragTarget(depot, collisionList, &card);
+            if (dragTarget) {
+                pendingDragTarget = dragTarget->uid;
+            }
+        } else if (card.wantsToStack) {
+            Card *dragTarget = FindDragTarget(depot, collisionList, &card);
+            if (dragTarget) {
+                card.stackParent = dragTarget->uid;
+                dragTarget->stackChild = card.uid;
+            }
+            card.wantsToStack = false;
+        }
+    }
 }
 
 void CardSystem::UpdateCards(Depot &depot)
@@ -301,65 +338,15 @@ void CardSystem::UpdateCards(Depot &depot)
                 cardProto->spritesheet()->c_str(),
                 cardProto->default_animation()->c_str());
 
-            Message msgTryStack{};
-            msgTryStack.type = MsgType_Card_TryToStack;
-            msgTryStack.uid = card.uid;
-            depot.msgQueue.push_back(msgTryStack);
+            card.wantsToStack = true;
         }
     }
 }
 
-// TODO: Move all of this logic to card_callback?
-void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
+void CardSystem::Update(Depot &depot, const CollisionList &collisionList)
 {
-    DLB_ASSERT(depot.cursor.size() == 1);
-
-    pendingDragTarget = 0;
-
-    size_t size = depot.msgQueue.size();
-    for (int i = 0; i < size; i++) {
-        Message msg = depot.msgQueue[i];
-
-        switch (msg.type) {
-            case MsgType_Cursor_Notify_DragBegin: {
-                UID draggedCard = msg.uid;
-
-                Card *card = (Card *)depot.GetFacet(draggedCard, Facet_Card);
-                if (!card) {
-                    continue;
-                }
-
-                Card *prev = (Card *)depot.GetFacet(card->stackParent, Facet_Card);
-                if (prev) {
-                    prev->stackChild = 0;
-                }
-
-                card->stackParent = 0;
-                break;
-            }
-            case MsgType_Cursor_Notify_DragUpdate:
-            {
-                UID draggingCardUid = msg.uid;
-                Card *draggingCard = (Card *)depot.GetFacet(draggingCardUid, Facet_Card);
-                Card *dragTarget = FindDragTarget(depot, collisionList, draggingCard);
-                if (dragTarget) {
-                    pendingDragTarget = dragTarget->uid;
-                }
-                break;
-            }
-            case MsgType_Card_TryToStack: {
-                UID droppedCardUid = msg.uid;
-                Card *droppedCard = (Card *)depot.GetFacet(droppedCardUid, Facet_Card);
-                Card *dragTarget = FindDragTarget(depot, collisionList, droppedCard);
-                if (dragTarget) {
-                    droppedCard->stackParent = dragTarget->uid;
-                    dragTarget->stackChild = droppedCard->uid;
-                }
-                break;
-            }
-            default: break;
-        }
-    }
+    UpdateStacks(depot, collisionList);
+    UpdateCards(depot);
 }
 
 void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
@@ -434,59 +421,15 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
         } else {
             drawSprite.color = sprite->color;
         }
+
+        if (card.wantsToStack) {
+            drawSprite.color = C255(COLOR_MAGENTA);
+        }
+
         drawSprite.srcRect = srcRect;
         drawSprite.dstRect = dstRectCard;
         drawSprite.texture = sprite->GetSDLTexture();
         drawSprite.depth = depth;
         drawQueue.push_back(drawSprite);
-    }
-
-    std::sort(drawQueue.begin(), drawQueue.end());
-
-
-
-
-
-    // HACK(dlb): Don't put dis here u dummy, it's the player, not a card
-    // NOTE(guy): Okay boomer, but why even have a player in a card game?
-    for (Combat &player : depot.combat) {
-        Position *position = (Position *)depot.GetFacet(player.uid, Facet_Position);
-        vec3 pos = position->pos;
-        vec2 size = position->size;
-
-        Sprite *sprite = (Sprite *)depot.GetFacet(player.uid, Facet_Sprite);
-        if (!sprite) {
-            SDL_LogError(0, "ERROR: Can't draw a card with no sprite");
-            continue;
-        }
-
-        rect srcRect = sprite->GetSrcRect();
-
-        rect dstRect{};
-        dstRect.x = pos.x;
-        dstRect.y = pos.y - pos.z;
-        dstRect.w = srcRect.w;
-        dstRect.h = srcRect.h;
-
-        float depth = pos.y - pos.z + size.y;
-
-        DrawCommand drawSprite{};
-        drawSprite.uid = sprite->uid;
-        drawSprite.color = sprite->color;
-        drawSprite.srcRect = srcRect;
-        drawSprite.dstRect = dstRect;
-        drawSprite.texture = sprite->GetSDLTexture();
-        drawSprite.depth = depth;
-        drawQueue.push_back(drawSprite);
-
-#if 0
-        Text *text = (Text *)depot.GetFacet(card.uid, Facet_Text);
-        if (text) {
-            const size_t uidLen = 8;
-            char *stackParent = (char *)depot.frameArena.Alloc(uidLen);
-            snprintf(stackParent, uidLen, "%u", card.stackParent);
-            text->str = stackParent;
-        }
-#endif
     }
 }

@@ -31,4 +31,6 @@ private:
     double narratorMsgStartedAt = 0;
 
     UID CreateNarrator(Depot &depot);
+    void UpdateNarrator(Depot &depot);
+    void UpdateCachedTextures(Depot &depot);
 };

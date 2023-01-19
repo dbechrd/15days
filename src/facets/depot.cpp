@@ -181,6 +181,52 @@ static void DebugFontAtlas(Depot &depot, DrawQueue &drawQueue)
 #endif
 }
 
+static void DrawPlayer(Depot &depot, DrawQueue &drawQueue)
+{
+    // HACK(dlb): Don't put dis here u dummy, it's the player, not a card
+    // NOTE(guy): Okay boomer, but why even have a player in a card game?
+    for (Combat &player : depot.combat) {
+        Position *position = (Position *)depot.GetFacet(player.uid, Facet_Position);
+        vec3 pos = position->pos;
+        vec2 size = position->size;
+
+        Sprite *sprite = (Sprite *)depot.GetFacet(player.uid, Facet_Sprite);
+        if (!sprite) {
+            SDL_LogError(0, "ERROR: Can't draw a card with no sprite");
+            continue;
+        }
+
+        rect srcRect = sprite->GetSrcRect();
+
+        rect dstRect{};
+        dstRect.x = pos.x;
+        dstRect.y = pos.y - pos.z;
+        dstRect.w = srcRect.w;
+        dstRect.h = srcRect.h;
+
+        float depth = pos.y - pos.z + size.y;
+
+        DrawCommand drawSprite{};
+        drawSprite.uid = sprite->uid;
+        drawSprite.color = sprite->color;
+        drawSprite.srcRect = srcRect;
+        drawSprite.dstRect = dstRect;
+        drawSprite.texture = sprite->GetSDLTexture();
+        drawSprite.depth = depth;
+        drawQueue.push_back(drawSprite);
+
+#if 0
+        Text *text = (Text *)depot.GetFacet(card.uid, Facet_Text);
+        if (text) {
+            const size_t uidLen = 8;
+            char *stackParent = (char *)depot.frameArena.Alloc(uidLen);
+            snprintf(stackParent, uidLen, "%u", card.stackParent);
+            text->str = stackParent;
+        }
+#endif
+    }
+}
+
 void Depot::Run(void)
 {
     DrawQueue cardQueue{};
@@ -247,36 +293,38 @@ void Depot::Run(void)
         }
 
         collisionSystem.DetectCollisions(*this, collisionList);
-
         cursorSystem.UpdateDragTargets(*this, collisionList);  // gen: card_dragbegin, card_dragupdate, card_leftclick
-
-        // Update cards based on their parent positions
-        cardSystem.UpdateStacks(*this, collisionList);
-        cardSystem.UpdateCards(*this);                         // gen: sprite_updateanim, card_dragend (hack for first bounce)
         effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter
         triggerSystem.React(*this);   // reacts to *, generates *
 
-        // Pure message reactors (do not modify msgQueue here!)
-        cardSystem.ProcessQueues(*this);   // reacts to Card
-        spriteSystem.ProcessQueues(*this); // reacts to Sprite
-        audioSystem.ProcessQueues(*this);  // reacts to Audio
-        textSystem.Update(*this);           // reacts to Text
-        renderSystem.React(*this);         // reacts to Render
+        cardSystem.ProcessQueues(*this);
+        spriteSystem.ProcessQueues(*this);
+        audioSystem.ProcessQueues(*this);
 
+        cardSystem.Update(*this, collisionList);
+        textSystem.Update(*this);
         spriteSystem.Update(*this);
-        renderSystem.UpdateCachedTextures(*this);
 
-        // Populate draw queue(s)
+        // Pure message reactors (do not modify msgQueue here!)
+        renderSystem.React(*this);  // reacts to Render
+
+        // Reset draw queues
         cardQueue.clear();
         histogramQueue.clear();
         textQueue.clear();
         dbgAtlasQueue.clear();
+
+        // Populate draw queues
         cardSystem.Display(*this, cardQueue);
+        DrawPlayer(*this, cardQueue);
         combatSystem.Display(*this, cardQueue);
         histogramSystem.Display(*this, histogramQueue);
         textSystem.Display(*this, textQueue);
+
+        // Sort draw queues (if necessary)
+        std::sort(cardQueue.begin(), cardQueue.end());
 
         DebugFontAtlas(*this, dbgAtlasQueue);
 
