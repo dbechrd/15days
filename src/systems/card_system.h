@@ -25,8 +25,8 @@ typedef std::vector<Card_SpawnCardRequest> Card_SpawnCardQueue;
 
 struct CardSystem {
 public:
-    void PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, int cardCount);
-    void PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, bool isDeckDraw = false);
+    void PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount, TriggerCallback msgCallback = 0);
+    void PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, bool isDeckDraw = false, TriggerCallback msgCallback = 0);
     void ProcessQueues(Depot &depot);
     void Update(Depot &depot, const CollisionList &collisionList);
     void Display(Depot &depot, DrawQueue &drawQueue);

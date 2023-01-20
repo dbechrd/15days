@@ -68,11 +68,27 @@ table CardProto {
     drag_end_sound_key:string;
 }
 
+enum MapRoomType:uint {
+    Empty,
+    Start,
+    Monster,
+    Treasure,
+    End,
+}
+
+table MapRoom {
+    name:string (key);
+    room_type:MapRoomType;
+    spritesheet_key:string;
+    animation_key:string;
+}
+
 table Root {
     name:string;
     card_protos:[CardProto];
     element_protos:[ElementProto];
     fonts:[Font];
+    map_rooms:[MapRoom];
     material_protos:[MaterialProto];
     spritesheets:[Spritesheet];
     sounds:[Sound];

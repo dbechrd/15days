@@ -86,7 +86,13 @@ void PhysicsSystem::Update(Depot &depot, double dt)
         }
 
 #if FDOV_PHYSICS_CONSTRAIN_TO_SCREEN
+        if (position->uid == 11) {
+            printf("");
+        }
 
+        vec2 windowSize = depot.renderSystem.WindowSize();
+        position->pos.x = CLAMP(position->pos.x, 0, windowSize.x - position->size.x);
+        position->pos.y = CLAMP(position->pos.y, 0, windowSize.y - position->size.y);
 #endif
 
 #if FDOV_DEBUG_BODY

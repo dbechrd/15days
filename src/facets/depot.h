@@ -13,6 +13,7 @@
 #include "../systems/event_system_sdl.h"
 #include "../systems/input_system.h"
 #include "../systems/histogram_system.h"
+#include "../systems/map_system.h"
 #include "../systems/movement_system.h"
 #include "../systems/physics_system.h"
 #include "../systems/render_system.h"
@@ -29,6 +30,7 @@
 #include "fps_counter.h"
 #include "histogram.h"
 #include "keymap.h"
+#include "map.h"
 #include "material.h"
 #include "position.h"
 #include "sound.h"
@@ -60,6 +62,7 @@ struct Depot {
     std::vector<FpsCounter>    fpsCounter    {};
     std::vector<Histogram>     histogram     {};
     std::vector<Keymap>        keymap        {};
+    std::vector<Map>           map           {};
     std::vector<Material>      material      {};
     std::vector<Position>      position      {};
     std::vector<Sound>         sound         {};
@@ -84,6 +87,7 @@ struct Depot {
     CursorSystem     cursorSystem     {};
     EffectSystem     effectSystem     {};
     HistogramSystem  histogramSystem  {};
+    MapSystem        mapSystem        {};
     MovementSystem   movementSystem   {};
     PhysicsSystem    physicsSystem    {};
     RenderSystem     renderSystem     {};
@@ -103,7 +107,13 @@ struct Depot {
         frameArena.Init(KB(32));
         resourceArena.Init(KB(4));
 
-        Error err = renderSystem.Init("15days", SCREEN_W, SCREEN_H);
+#if FDOV_FULLSCREEN
+        const vec2 windowSize{ 1920, 1080 };
+#else
+        const vec2 windowSize{ 1728, 972 };
+#endif
+
+        Error err = renderSystem.Init("15days", windowSize);
         if (err) return err;
 
         if (TTF_Init() < 0) {
@@ -118,6 +128,7 @@ struct Depot {
         }
 
         textSystem.Init(*this);
+        mapSystem.Init(*this);
 
         return E_SUCCESS;
     }

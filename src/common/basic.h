@@ -37,15 +37,6 @@
 #define FDOV_DEBUG_BODY                     0
 #define FDOV_DEBUG_GLYPH_ATLAS              0
 
-// TODO: These need to be queried from rendersystem or something
-#if FDOV_FULLSCREEN
-#define SCREEN_W 1920
-#define SCREEN_H 1080
-#else
-#define SCREEN_W 1728
-#define SCREEN_H 972
-#endif
-
 typedef uint32_t UID;
 struct Depot;
 

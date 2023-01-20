@@ -107,7 +107,7 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
                     }
 
                     Material *material = (Material *)depot.GetFacet(recvFxUid, Facet_Material);
-                    if (material) {
+                    if (material && cardProto->element_proto()) {
                         ApplyEffectsToMaterial(depot, *material, cardProto->element_proto()->c_str());
                         break;
                     }

@@ -39,6 +39,9 @@ struct ElementProtoBuilder;
 struct CardProto;
 struct CardProtoBuilder;
 
+struct MapRoom;
+struct MapRoomBuilder;
+
 struct Root;
 struct RootBuilder;
 
@@ -94,6 +97,45 @@ inline const char *EnumNameMaterialStates(MaterialStates e) {
   if (flatbuffers::IsOutRange(e, MaterialStates_OnFire, MaterialStates_OnFire)) return "";
   const size_t index = static_cast<size_t>(e) - static_cast<size_t>(MaterialStates_OnFire);
   return EnumNamesMaterialStates()[index];
+}
+
+enum MapRoomType : uint32_t {
+  MapRoomType_Empty = 0,
+  MapRoomType_Start = 1,
+  MapRoomType_Monster = 2,
+  MapRoomType_Treasure = 3,
+  MapRoomType_End = 4,
+  MapRoomType_MIN = MapRoomType_Empty,
+  MapRoomType_MAX = MapRoomType_End
+};
+
+inline const MapRoomType (&EnumValuesMapRoomType())[5] {
+  static const MapRoomType values[] = {
+    MapRoomType_Empty,
+    MapRoomType_Start,
+    MapRoomType_Monster,
+    MapRoomType_Treasure,
+    MapRoomType_End
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesMapRoomType() {
+  static const char * const names[6] = {
+    "Empty",
+    "Start",
+    "Monster",
+    "Treasure",
+    "End",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameMapRoomType(MapRoomType e) {
+  if (flatbuffers::IsOutRange(e, MapRoomType_Empty, MapRoomType_End)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesMapRoomType()[index];
 }
 
 struct Font FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -935,6 +977,107 @@ inline flatbuffers::Offset<CardProto> CreateCardProtoDirect(
       drag_end_sound_key__);
 }
 
+struct MapRoom FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef MapRoomBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
+    return "ResourceDB.MapRoom";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_ROOM_TYPE = 6,
+    VT_SPRITESHEET_KEY = 8,
+    VT_ANIMATION_KEY = 10
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool KeyCompareLessThan(const MapRoom *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
+  ResourceDB::MapRoomType room_type() const {
+    return static_cast<ResourceDB::MapRoomType>(GetField<uint32_t>(VT_ROOM_TYPE, 0));
+  }
+  const flatbuffers::String *spritesheet_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_SPRITESHEET_KEY);
+  }
+  const flatbuffers::String *animation_key() const {
+    return GetPointer<const flatbuffers::String *>(VT_ANIMATION_KEY);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<uint32_t>(verifier, VT_ROOM_TYPE, 4) &&
+           VerifyOffset(verifier, VT_SPRITESHEET_KEY) &&
+           verifier.VerifyString(spritesheet_key()) &&
+           VerifyOffset(verifier, VT_ANIMATION_KEY) &&
+           verifier.VerifyString(animation_key()) &&
+           verifier.EndTable();
+  }
+};
+
+struct MapRoomBuilder {
+  typedef MapRoom Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(MapRoom::VT_NAME, name);
+  }
+  void add_room_type(ResourceDB::MapRoomType room_type) {
+    fbb_.AddElement<uint32_t>(MapRoom::VT_ROOM_TYPE, static_cast<uint32_t>(room_type), 0);
+  }
+  void add_spritesheet_key(flatbuffers::Offset<flatbuffers::String> spritesheet_key) {
+    fbb_.AddOffset(MapRoom::VT_SPRITESHEET_KEY, spritesheet_key);
+  }
+  void add_animation_key(flatbuffers::Offset<flatbuffers::String> animation_key) {
+    fbb_.AddOffset(MapRoom::VT_ANIMATION_KEY, animation_key);
+  }
+  explicit MapRoomBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<MapRoom> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<MapRoom>(end);
+    fbb_.Required(o, MapRoom::VT_NAME);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<MapRoom> CreateMapRoom(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    ResourceDB::MapRoomType room_type = ResourceDB::MapRoomType_Empty,
+    flatbuffers::Offset<flatbuffers::String> spritesheet_key = 0,
+    flatbuffers::Offset<flatbuffers::String> animation_key = 0) {
+  MapRoomBuilder builder_(_fbb);
+  builder_.add_animation_key(animation_key);
+  builder_.add_spritesheet_key(spritesheet_key);
+  builder_.add_room_type(room_type);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<MapRoom> CreateMapRoomDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    ResourceDB::MapRoomType room_type = ResourceDB::MapRoomType_Empty,
+    const char *spritesheet_key = nullptr,
+    const char *animation_key = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto spritesheet_key__ = spritesheet_key ? _fbb.CreateString(spritesheet_key) : 0;
+  auto animation_key__ = animation_key ? _fbb.CreateString(animation_key) : 0;
+  return ResourceDB::CreateMapRoom(
+      _fbb,
+      name__,
+      room_type,
+      spritesheet_key__,
+      animation_key__);
+}
+
 struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef RootBuilder Builder;
   static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
@@ -945,10 +1088,11 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CARD_PROTOS = 6,
     VT_ELEMENT_PROTOS = 8,
     VT_FONTS = 10,
-    VT_MATERIAL_PROTOS = 12,
-    VT_SPRITESHEETS = 14,
-    VT_SOUNDS = 16,
-    VT_TEXTURES = 18
+    VT_MAP_ROOMS = 12,
+    VT_MATERIAL_PROTOS = 14,
+    VT_SPRITESHEETS = 16,
+    VT_SOUNDS = 18,
+    VT_TEXTURES = 20
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -961,6 +1105,9 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *fonts() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *>(VT_FONTS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MapRoom>> *map_rooms() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MapRoom>> *>(VT_MAP_ROOMS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *material_protos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *>(VT_MATERIAL_PROTOS);
@@ -987,6 +1134,9 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_FONTS) &&
            verifier.VerifyVector(fonts()) &&
            verifier.VerifyVectorOfTables(fonts()) &&
+           VerifyOffset(verifier, VT_MAP_ROOMS) &&
+           verifier.VerifyVector(map_rooms()) &&
+           verifier.VerifyVectorOfTables(map_rooms()) &&
            VerifyOffset(verifier, VT_MATERIAL_PROTOS) &&
            verifier.VerifyVector(material_protos()) &&
            verifier.VerifyVectorOfTables(material_protos()) &&
@@ -1019,6 +1169,9 @@ struct RootBuilder {
   void add_fonts(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts) {
     fbb_.AddOffset(Root::VT_FONTS, fonts);
   }
+  void add_map_rooms(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MapRoom>>> map_rooms) {
+    fbb_.AddOffset(Root::VT_MAP_ROOMS, map_rooms);
+  }
   void add_material_protos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>>> material_protos) {
     fbb_.AddOffset(Root::VT_MATERIAL_PROTOS, material_protos);
   }
@@ -1048,6 +1201,7 @@ inline flatbuffers::Offset<Root> CreateRoot(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>>> card_protos = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::ElementProto>>> element_protos = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MapRoom>>> map_rooms = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>>> material_protos = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>>> spritesheets = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Sound>>> sounds = 0,
@@ -1057,6 +1211,7 @@ inline flatbuffers::Offset<Root> CreateRoot(
   builder_.add_sounds(sounds);
   builder_.add_spritesheets(spritesheets);
   builder_.add_material_protos(material_protos);
+  builder_.add_map_rooms(map_rooms);
   builder_.add_fonts(fonts);
   builder_.add_element_protos(element_protos);
   builder_.add_card_protos(card_protos);
@@ -1070,6 +1225,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
     std::vector<flatbuffers::Offset<ResourceDB::CardProto>> *card_protos = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::ElementProto>> *element_protos = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::Font>> *fonts = nullptr,
+    std::vector<flatbuffers::Offset<ResourceDB::MapRoom>> *map_rooms = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *material_protos = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *spritesheets = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::Sound>> *sounds = nullptr,
@@ -1078,6 +1234,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
   auto card_protos__ = card_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::CardProto>(card_protos) : 0;
   auto element_protos__ = element_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::ElementProto>(element_protos) : 0;
   auto fonts__ = fonts ? _fbb.CreateVectorOfSortedTables<ResourceDB::Font>(fonts) : 0;
+  auto map_rooms__ = map_rooms ? _fbb.CreateVectorOfSortedTables<ResourceDB::MapRoom>(map_rooms) : 0;
   auto material_protos__ = material_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::MaterialProto>(material_protos) : 0;
   auto spritesheets__ = spritesheets ? _fbb.CreateVectorOfSortedTables<ResourceDB::Spritesheet>(spritesheets) : 0;
   auto sounds__ = sounds ? _fbb.CreateVectorOfSortedTables<ResourceDB::Sound>(sounds) : 0;
@@ -1088,6 +1245,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
       card_protos__,
       element_protos__,
       fonts__,
+      map_rooms__,
       material_protos__,
       spritesheets__,
       sounds__,

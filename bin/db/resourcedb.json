@@ -4,14 +4,14 @@
     {
       name: "card_proto_bomb",
       spritesheet: "sheet_cards",
-      default_animation: "card_bomb",
+      default_animation: "anim_card_bomb",
       drag_update_sound_key: "sfx_fuse_burning",
       drag_end_sound_key: "sfx_explosion"
     },
     {
       name: "card_proto_camp",
       spritesheet: "sheet_cards",
-      default_animation: "card_camp"
+      default_animation: "anim_card_camp"
     },
     {
       name: "card_proto_campfire",
@@ -22,18 +22,18 @@
     {
       name: "card_proto_deck",
       spritesheet: "sheet_cards",
-      default_animation: "card_backface"
+      default_animation: "anim_card_backface"
     },
     {
       name: "card_proto_lighter",
       spritesheet: "sheet_cards",
-      default_animation: "card_lighter",
+      default_animation: "anim_card_lighter",
       element_proto: "elem_fire"
     },
     {
       name: "card_proto_water_bucket",
       spritesheet: "sheet_cards",
-      default_animation: "card_water_bucket",
+      default_animation: "anim_card_water_bucket",
       element_proto: "elem_water"
     }
   ],
@@ -60,6 +60,36 @@
       name: "opensans_bold_16",
       ttf_path: "font/OpenSans-Bold.ttf",
       point_size: 16
+    }
+  ],
+  map_rooms: [
+    {
+      name: "map_room_empty",
+      spritesheet_key: "sheet_cards",
+      animation_key: "anim_card_empty_slot"
+    },
+    {
+      name: "map_room_end",
+      room_type: "End",
+      spritesheet_key: "sheet_cards",
+      animation_key: "anim_card_empty_slot"
+    },
+    {
+      name: "map_room_monster",
+      room_type: "Monster",
+      spritesheet_key: "sheet_cards",
+      animation_key: "anim_card_empty_slot"
+    },
+    {
+      name: "map_room_start",
+      spritesheet_key: "sheet_cards",
+      animation_key: "anim_card_empty_slot"
+    },
+    {
+      name: "map_room_treasure",
+      room_type: "Treasure",
+      spritesheet_key: "sheet_cards",
+      animation_key: "anim_card_empty_slot"
     }
   ],
   material_protos: [
@@ -97,62 +127,37 @@
       cell_height: 150,
       animations: [
         {
-          name: "card_5",
+          name: "anim_card_backface",
           desc: "",
-          frame_start: 5,
+          frame_start: 1,
           frame_count: 1
         },
         {
-          name: "card_6",
-          desc: "",
-          frame_start: 6,
-          frame_count: 1
-        },
-        {
-          name: "card_7",
-          desc: "",
-          frame_start: 7,
-          frame_count: 1
-        },
-        {
-          name: "card_8",
-          desc: "",
-          frame_start: 8,
-          frame_count: 1
-        },
-        {
-          name: "card_9",
-          desc: "",
-          frame_start: 9,
-          frame_count: 1
-        },
-        {
-          name: "card_backface",
-          desc: "",
-          frame_start: 2,
-          frame_count: 1
-        },
-        {
-          name: "card_bomb",
+          name: "anim_card_bomb",
           desc: "Dis is a `kbomb`w.",
-          frame_start: 3,
-          frame_count: 1
-        },
-        {
-          name: "card_camp",
-          desc: "The `gcamp`w is your home.\nYour adventure starts here.\n`r+10 health`w while in camp.",
           frame_start: 4,
           frame_count: 1
         },
         {
-          name: "card_lighter",
-          desc: "Dis is a `rlighter`w.",
+          name: "anim_card_camp",
+          desc: "The `gcamp`w is your home.\nYour adventure starts here.\n`r+10 health`w while in camp.",
+          frame_start: 5,
           frame_count: 1
         },
         {
-          name: "card_water_bucket",
+          name: "anim_card_empty_slot",
+          frame_count: 1
+        },
+        {
+          name: "anim_card_lighter",
+          desc: "Dis is a `rlighter`w.",
+          frame_start: 2,
+          frame_count: 1
+        },
+        {
+          name: "anim_card_water_bucket",
           desc: "Dis is a `bwater bucket`w",
-          frame_start: 1,
+          frame_start: 3,
           frame_count: 1
         }
       ]

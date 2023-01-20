@@ -63,6 +63,7 @@ void *Depot::AddFacet(UID uid, FacetType type, bool warnDupe)
         EMPLACE(Facet_FpsCounter,    fpsCounter);
         EMPLACE(Facet_Histogram,     histogram);
         EMPLACE(Facet_Keymap,        keymap);
+        EMPLACE(Facet_Map,           map);
         EMPLACE(Facet_Material,      material);
         EMPLACE(Facet_Position,      position);
         EMPLACE(Facet_Sound,         sound);
@@ -123,6 +124,7 @@ void *Depot::GetFacet(UID uid, FacetType type)
         case Facet_Font:          return &font          [index];
         case Facet_FpsCounter:    return &fpsCounter    [index];
         case Facet_Keymap:        return &keymap        [index];
+        case Facet_Map:           return &map           [index];
         case Facet_Material:      return &material      [index];
         case Facet_Position:      return &position      [index];
         case Facet_Sound:         return &sound         [index];
@@ -232,6 +234,7 @@ static void DrawPlayer(Depot &depot, DrawQueue &drawQueue)
 void Depot::Run(void)
 {
     DrawQueue cardQueue{};
+    DrawQueue mapQueue{};
     DrawQueue histogramQueue{};
     DrawQueue textQueue{};
     DrawQueue dbgAtlasQueue{};
@@ -295,12 +298,14 @@ void Depot::Run(void)
         renderSystem.React(*this);  // reacts to Render
 
         // Reset draw queues
+        mapQueue.clear();
         cardQueue.clear();
         histogramQueue.clear();
         textQueue.clear();
         dbgAtlasQueue.clear();
 
         // Populate draw queues
+        mapSystem.Display(*this, mapQueue);
         cardSystem.Display(*this, cardQueue);
         DrawPlayer(*this, cardQueue);
         combatSystem.Display(*this, cardQueue);
@@ -336,6 +341,7 @@ void Depot::Run(void)
 
         // Render draw queue(s)
         renderSystem.Clear(C_GRASS);
+        renderSystem.Flush(*this, mapQueue);
         renderSystem.Flush(*this, cardQueue);
         renderSystem.Flush(*this, histogramQueue);
         renderSystem.Flush(*this, textQueue);

@@ -12,7 +12,9 @@ struct DrawCommand {
 
     bool operator<(const DrawCommand &right) const
     {
-        return depth < right.depth;
+        return depth != right.depth
+            ? depth < right.depth
+            : uid < right.uid;
     }
 };
 

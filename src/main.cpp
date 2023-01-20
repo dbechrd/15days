@@ -286,12 +286,14 @@ UID create_player(Depot &depot)
 
     UID uidPlayer = depot.Alloc("player");
 
+    vec2 windowSize = depot.renderSystem.WindowSize();
+
     Position *position = (Position *)depot.AddFacet(uidPlayer, Facet_Position);
     position->size.x = sheet->cell_width();
     position->size.y = sheet->cell_height();
     position->pos = {
-        SCREEN_W / 2.0f - position->size.x / 2.0f,
-        SCREEN_H / 2.0f - position->size.y / 2.0f,
+        windowSize.x / 2.0f - position->size.x / 2.0f,
+        windowSize.y / 2.0f - position->size.y / 2.0f,
     };
 
     depot.AddFacet(uidPlayer, Facet_Combat);
@@ -374,15 +376,37 @@ void create_cards(Depot &depot)
     // or whatever.
 
     // Decks
-    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 0, 25);
-    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 0, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 600, 300, 0 }, 25);
+    depot.cardSystem.PushSpawnDeck(depot, "card_proto_deck", { 700, 300, 0 }, 25);
 
     // Cards
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_lighter", { 700, 300, 0 });
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_water_bucket", { 800, 300, 0 });
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
-    depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 }, 0);
-    depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 }, campfire_callback);
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 });
+    depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 }, false, campfire_callback);
+}
+
+UID create_map(Depot &depot)
+{
+    UID uidMap = depot.Alloc("map_slot", false);
+
+    Position *position = (Position *)depot.AddFacet(uidMap, Facet_Position);
+    const vec2 windowSize = depot.renderSystem.WindowSize();
+    position->pos = {
+        windowSize.x - 20 - 600,
+        20,
+        0
+    };
+
+    Map *map = (Map *)depot.AddFacet(uidMap, Facet_Map);
+    for (int y = 0; y < MAP_MAX_H; y++) {
+        for (int x = 0; x < MAP_MAX_W; x++) {
+            map->slots[y][x].mapRoomKey = "map_room_empty";
+        }
+    }
+
+    return uidMap;
 }
 
 void say_hello(Depot &depot)
@@ -462,6 +486,7 @@ int main(int argc, char *argv[])
             create_fps_counter(depot);
             create_player(depot);
             create_cards(depot);
+            create_map(depot);
             say_hello(depot);
 
             // Run the game

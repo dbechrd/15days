@@ -14,7 +14,7 @@ void CombatSystem::Display(Depot &depot, DrawQueue &drawQueue)
         float depth = position->pos.y - position->pos.z + position->size.y;
         for (Cursor &cursor : depot.cursor) {
             if (cursor.uidDragSubject == combat.uid) {
-                depth = SCREEN_H * 2.0f;
+                depth = 9999.0f;
             }
         }
 

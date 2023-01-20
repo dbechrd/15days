@@ -34,7 +34,7 @@ void deck_try_draw_card(Depot &depot, Card *card)
             cardProtoKey = "card_proto_bomb";
         }
 
-        depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, 0, true);
+        depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, true);
         depot.renderSystem.PushShake(depot, 3.0f, 100.0f, 0.1f);
 
         card->data.deck.cardCount--;
@@ -175,7 +175,7 @@ Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionLis
     return 0;
 }
 
-void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, int cardCount)
+void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spawnPos, int cardCount, TriggerCallback msgCallback)
 {
     Card_SpawnCardRequest spawnCardRequest{};
     spawnCardRequest.cardType = CardType_Deck;
@@ -186,7 +186,7 @@ void CardSystem::PushSpawnDeck(Depot &depot, const char *cardProtoKey, vec3 spaw
     spawnCardQueue.push_back(spawnCardRequest);
 }
 
-void CardSystem::PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, TriggerCallback msgCallback, bool isDeckDraw)
+void CardSystem::PushSpawnCard(Depot &depot, const char *cardProtoKey, vec3 spawnPos, bool isDeckDraw, TriggerCallback msgCallback)
 {
     Card_SpawnCardRequest spawnCardRequest{};
     spawnCardRequest.cardType = CardType_Card;
@@ -335,7 +335,7 @@ void CardSystem::UpdateCards(Depot &depot)
         }
 
         if (card.noClickUntil > depot.Now()) {
-            depot.spriteSystem.PushUpdateAnimation(card.uid, "sheet_cards", "card_backface");
+            depot.spriteSystem.PushUpdateAnimation(card.uid, "sheet_cards", "anim_card_backface");
         } else if (card.noClickUntil) {
             card.noClickUntil = 0;
 
@@ -386,7 +386,7 @@ void CardSystem::Display(Depot &depot, DrawQueue &drawQueue)
             Card *c = &card;
             while (c) {
                 if (cursor.uidDragSubject == c->uid) {
-                    depth = SCREEN_H * 2.0f + stackDepth;
+                    depth = 9999.0f + stackDepth;
                     dragOffset.x += 4.0f;
                     dragOffset.y += 6.0f;
                     break;

@@ -10,7 +10,7 @@ struct Msg_Render_FrameBegin {
 struct RenderSystem {
     Texture *FindOrCreateTextureBMP(Depot &depot, const char *textureKey);
 
-    Error Init(const char *title, int width, int height);
+    Error Init(const char *title, vec2 windowSize);
     void DestroyDepot(Depot &depot);
     void Destroy();
 

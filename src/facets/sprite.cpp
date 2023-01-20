@@ -1,6 +1,7 @@
 #include "sprite.h"
 #include "depot.h"
 
+// TODO: Just hard-code spritesheet frame rects in the file.. get rid of this nonsense
 void Sprite::UpdateRect(Depot &depot)
 {
     if (!spritesheetKey) {
@@ -12,26 +13,22 @@ void Sprite::UpdateRect(Depot &depot)
         return;
     }
 
-    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
-    if (!position) {
-        SDL_LogWarn(0, "Can't update sprite rect when sprite has no position");
-        return;
-    }
-
     const ResourceDB::Spritesheet *sheet = depot.resources->spritesheets()->LookupByKey(spritesheetKey);
     if (!sheet) {
         SDL_LogWarn(0, "Can't update sprite rect when spritesheetKey [%s] is invalid", spritesheetKey);
         return;
     }
 
-    // NOTE: If you ever change this, you probably also need to make SetAnim*
-    // functions call UpdateBbox again (e.g. if frames can be diff sizes)
-    position->size.x = sheet->cell_width();
-    position->size.y = sheet->cell_height();
+    Position *position = (Position *)depot.GetFacet(uid, Facet_Position);
+    if (position) {
+        // NOTE: If you ever change this, you probably also need to make SetAnim*
+        // functions call UpdateBbox again (e.g. if frames can be diff sizes)
+        position->size.x = sheet->cell_width();
+        position->size.y = sheet->cell_height();
+    } else {
+        SDL_LogWarn(0, "Can't update position size when sprite has no position");
+    }
 
-    ///////////////////////////////////////////////////////////////////////////
-
-    // TODO: Rename this to FindOrCreate or something..
     Texture *texture = depot.renderSystem.FindOrCreateTextureBMP(depot, sheet->texture_key()->c_str());
     if (!texture) {
         SDL_LogError(0, "Can't update sprite rect when spritesheet has no texture");

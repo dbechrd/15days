@@ -64,12 +64,20 @@ void SpriteSystem::Update(Depot &depot)
                 if (sprite.animationKey) {
                     const ResourceDB::Animation *anim =
                         sheet->animations()->LookupByKey(sprite.animationKey);
-                    const int frameCount = anim->frame_count();
-                    if (anim && frameCount) {
-                        sprite.frame = (sprite.frame + 1) % frameCount;
-                        sprite.UpdateRect(depot);
+                    if (anim) {
+                        const int frameCount = anim->frame_count();
+                        if (frameCount) {
+                            sprite.frame = (sprite.frame + 1) % frameCount;
+                            sprite.UpdateRect(depot);
+                        } else {
+                            SDL_LogError(0, "Could not animate sprite with a zero frame animation");
+                        }
+                    } else {
+                        SDL_LogError(0, "Could not animate sprite with invalid animation key '%s'", sprite.animationKey);
                     }
                 }
+            } else {
+                SDL_LogError(0, "Could not animate sprite with invalid spritesheet key '%s'", sprite.spritesheetKey);
             }
         }
         lastAnimAt = depot.Now();

@@ -15,6 +15,7 @@ enum FacetType {
     Facet_FpsCounter,
     Facet_Histogram,
     Facet_Keymap,
+    Facet_Map,
     Facet_Material,
     Facet_Text,
     Facet_Position,

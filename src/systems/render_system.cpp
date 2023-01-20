@@ -49,7 +49,7 @@ Texture *RenderSystem::FindOrCreateTextureBMP(Depot &depot, const char *textureK
     return texture;
 }
 
-Error RenderSystem::Init(const char *title, int width, int height)
+Error RenderSystem::Init(const char *title, vec2 windowSize)
 {
 #if FDOV_VSYNC
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "true");
@@ -75,7 +75,7 @@ Error RenderSystem::Init(const char *title, int width, int height)
 
     window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        width, height,
+        (int)windowSize.x, (int)windowSize.y,
         flags
     );
     if (!window) {
