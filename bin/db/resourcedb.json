@@ -72,24 +72,24 @@
       name: "map_room_end",
       room_type: "End",
       spritesheet_key: "sheet_cards",
-      animation_key: "anim_card_empty_slot"
+      animation_key: "anim_card_backface"
     },
     {
       name: "map_room_monster",
       room_type: "Monster",
       spritesheet_key: "sheet_cards",
-      animation_key: "anim_card_empty_slot"
+      animation_key: "anim_card_bomb"
     },
     {
       name: "map_room_start",
       spritesheet_key: "sheet_cards",
-      animation_key: "anim_card_empty_slot"
+      animation_key: "anim_card_camp"
     },
     {
       name: "map_room_treasure",
       room_type: "Treasure",
       spritesheet_key: "sheet_cards",
-      animation_key: "anim_card_empty_slot"
+      animation_key: "anim_card_lighter"
     }
   ],
   material_protos: [
