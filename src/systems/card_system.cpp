@@ -335,8 +335,7 @@ void CardSystem::UpdateCards(Depot &depot)
         }
 
         if (card.noClickUntil > depot.Now()) {
-            depot.spriteSystem.PushUpdateAnimation(depot, card.uid,
-                "sheet_cards", "card_backface");
+            depot.spriteSystem.PushUpdateAnimation(card.uid, "sheet_cards", "card_backface");
         } else if (card.noClickUntil) {
             card.noClickUntil = 0;
 
@@ -347,7 +346,7 @@ void CardSystem::UpdateCards(Depot &depot)
                 continue;
             }
 
-            depot.spriteSystem.PushUpdateAnimation(depot, card.uid,
+            depot.spriteSystem.PushUpdateAnimation(card.uid,
                 cardProto->spritesheet()->c_str(),
                 cardProto->default_animation()->c_str());
 

@@ -17,6 +17,7 @@ struct RenderSystem {
     // Use sparingly, inter-system dependencies make the code less readable
     SDL_Window *Window(void) { return window; }
     SDL_Renderer *Renderer(void) { return renderer; }
+    vec2 WindowSize(void);
 
     bool Running(void);
     void Clear(vec4 color);

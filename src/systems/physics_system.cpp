@@ -85,6 +85,10 @@ void PhysicsSystem::Update(Depot &depot, double dt)
             body.velocity.z *= -body.restitution;
         }
 
+#if FDOV_PHYSICS_CONSTRAIN_TO_SCREEN
+
+#endif
+
 #if FDOV_DEBUG_BODY
         // Update debug text
         size_t maxLen = 1024;

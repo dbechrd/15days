@@ -10,8 +10,8 @@ void SpriteSystem::InitSprite(Depot &depot, Sprite &sprite, vec4 color,
     sprite.UpdateRect(depot);
 }
 
-void SpriteSystem::PushUpdateAnimation(Depot &depot, UID uidSprite,
-    const char *spritesheetKey, const char *animationKey, int frame)
+void SpriteSystem::PushUpdateAnimation(UID uidSprite, const char *spritesheetKey,
+    const char *animationKey, int frame)
 {
     Sprite_UpdateAnimationRequest updateAnimationRequest{};
     updateAnimationRequest.uidSprite = uidSprite;

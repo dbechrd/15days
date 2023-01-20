@@ -1,6 +1,14 @@
 #include "input_system.h"
 #include "../facets/depot.h"
 
+void InputSystem::PushInputEvent(int scancode, bool down)
+{
+    InputEvent inputEvent{};
+    inputEvent.scancode = scancode;
+    inputEvent.down = down;
+    inputQueue.push_back(inputEvent);
+}
+
 // Return true if you want to skip further processing of hotkeys
 bool CheckHotkeysDebug(Depot &depot, const InputEvent &e)
 {
@@ -103,9 +111,10 @@ void CheckHotkeys(double now, ButtonState buttons[FDOV_SCANCODE_COUNT],
     }
 }
 
-void InputSystem::ProcessInput(Depot &depot, const InputQueue &inputQueue)
+// Translate inputs into messages using the active keymap(s)
+void InputSystem::ProcessInputQueue(Depot &depot)
 {
-#if 1
+#if 0
     bool lCtrl = buttons[SDL_SCANCODE_LCTRL].Active(true);
     static bool ctrlWasPressed = 0;
     if (lCtrl && lCtrl != ctrlWasPressed) {
@@ -138,6 +147,7 @@ void InputSystem::ProcessInput(Depot &depot, const InputQueue &inputQueue)
             CheckHotkeys(depot.Now(), buttons, keymap, depot.msgQueue);
         }
     }
+    inputQueue.clear();
 
     for (Keymap &keymap : depot.keymap) {
         // Trigger commands for repeating hotkeys that are still active but

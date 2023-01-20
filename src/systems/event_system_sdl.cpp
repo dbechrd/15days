@@ -1,7 +1,8 @@
 #include "event_system_sdl.h"
 #include "input_system.h"
+#include "../facets/depot.h"
 
-void EventSystemSDL::ProcessEvents(InputQueue &inputQueue)
+void EventSystemSDL::ProcessEvents(Depot &depot)
 {
     SDL_Event evt{};
 
@@ -19,20 +20,23 @@ void EventSystemSDL::ProcessEvents(InputQueue &inputQueue)
         switch (evt.type) {
             case SDL_QUIT:
             {
-                inputQueue.push_back({ FDOV_SCANCODE_QUIT, true });
+                Message msgQuit{};
+                msgQuit.uid = 0;
+                msgQuit.type = MsgType_Render_Quit;
+                depot.msgQueue.push_back(msgQuit);
                 break;
             }
             case SDL_KEYDOWN:
             {
                 if (!evt.key.repeat) {
-                    inputQueue.push_back({ evt.key.keysym.scancode, true });
+                    depot.inputSystem.PushInputEvent(evt.key.keysym.scancode, true);
                 }
                 break;
             }
             case SDL_KEYUP:
             {
                 if (!evt.key.repeat) {
-                    inputQueue.push_back({ evt.key.keysym.scancode, false });
+                    depot.inputSystem.PushInputEvent(evt.key.keysym.scancode, false);
                 }
                 break;
             }
@@ -55,9 +59,9 @@ void EventSystemSDL::ProcessEvents(InputQueue &inputQueue)
                 if (scancode)
                 {
                     if (evt.button.state == SDL_PRESSED) {
-                        inputQueue.push_back({ scancode, true });
+                        depot.inputSystem.PushInputEvent(scancode, true);
                     } else if (evt.button.state == SDL_RELEASED) {
-                        inputQueue.push_back({ scancode, false });
+                        depot.inputSystem.PushInputEvent(scancode, false);
                     }
                 }
                 break;

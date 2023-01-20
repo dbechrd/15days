@@ -160,6 +160,14 @@ void RenderSystem::Destroy(void)
     SDL_Quit();
 }
 
+vec2 RenderSystem::WindowSize(void)
+{
+    int x = 0, y = 0;
+    SDL_GetWindowSize(window, &x, &y);
+    vec2 windowSize{ (float)x, (float)y };
+    return windowSize;
+}
+
 bool RenderSystem::Running(void)
 {
     return running;
@@ -360,5 +368,12 @@ void RenderSystem::Flush(Depot &depot, DrawQueue &drawQueue)
 
 void RenderSystem::Present(void)
 {
+    //SDL_Rect clipRect{};
+    //clipRect.x = 0;
+    //clipRect.y = 0;
+    //clipRect.w = SCREEN_W / 2;
+    //clipRect.h = SCREEN_H;
+    //SDL_SetRenderClipRect(renderer, &clipRect);
+
     SDL_RenderPresent(renderer);
 }

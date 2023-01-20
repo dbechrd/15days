@@ -261,31 +261,12 @@ void Depot::Run(void)
         cursorSystem.UpdateCursors(*this);
         histogramSystem.Update(*this);
 
-        // TODO: Think about pub-sub as a better form of message bus than this
-        // MsgQueue thing that gets read/written everywhere.
-
-        // TODO: If something has a side effect, defer it when possible by
-        // adding it to its own dedicated queue as oppposed to mixing
-        // everything into One Big Queue (TM). E.g. collisionList essentially
-        // does this right now, but has a lot of O(n) iterations that we could
-        // maybe remove.
-
         {
             // TODO: Stop using a queue for this, just capture state of every
             // key / mouse / quit request into a map (handle instantaneous
             // down/up events properly, they should report down for 1 frame).
-
-            // Collect SDL events into the appropriate queues
-            eventSystemSDL.ProcessEvents(inputQueue);
-
-            // TODO(dlb): Top-down stack order (e.g. menu handles input before game
-            // when open, and marks all inputs as handled to prevent it from leaking
-            // into the game, and a UI window like inventory does the same, but
-            // only if the mouse is within the window bounds or smth)
-            //
-            // Translate inputs into messages using the active keymap(s)
-            inputSystem.ProcessInput(*this, inputQueue);
-            inputQueue.clear();
+            eventSystemSDL.ProcessEvents(*this);
+            inputSystem.ProcessInputQueue(*this);
         }
 
         movementSystem.React(*this);  // reacts to Movement_*
@@ -296,7 +277,7 @@ void Depot::Run(void)
 
         collisionSystem.DetectCollisions(*this, collisionList);
 
-        cursorSystem.UpdateDragTargets(*this, collisionList);  // gen: card_dragbegin, card_dragupdate, card_leftclick
+        cursorSystem.UpdateDragTargets(*this, collisionList);
         effectSystem.ApplyDragFx(*this, collisionList);
 
         // Message converter

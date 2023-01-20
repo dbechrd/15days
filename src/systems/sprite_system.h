@@ -18,8 +18,8 @@ struct SpriteSystem {
     static void InitSprite(Depot &depot, Sprite &sprite, vec4 color,
         const char *spritesheetKey, const char *animationKey, int frame = 0);
 
-    void PushUpdateAnimation(Depot &depot, UID uidSprite,
-        const char *spritesheetKey, const char *animationKey, int frame = 0);
+    void PushUpdateAnimation(UID uidSprite, const char *spritesheetKey,
+        const char *animationKey, int frame = 0);
     void ProcessQueues(Depot &depot);
 
     void Update(Depot &depot);

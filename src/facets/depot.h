@@ -213,6 +213,5 @@ private:
     double realDt{};
     double realDtSmooth = fixedDt;
 
-    InputQueue inputQueue{};  // raw input (abstracted from platform)
     CollisionList collisionList{};
 };

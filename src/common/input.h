@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include "basic.h"
 
 #define FDOV_FIRST_SCANCODE 512
 
@@ -21,15 +21,5 @@ enum {
     FDOV_SCANCODE_MOUSE_X1,
     FDOV_SCANCODE_MOUSE_X2,
 
-    // Window "X" button (or Alt+F4, etc.)
-    FDOV_SCANCODE_QUIT,
-
     FDOV_SCANCODE_COUNT
 };
-
-struct InputEvent {
-    int  scancode {};
-    bool down     {};  // true for KEYDOWN, false for KEYUP
-};
-
-typedef std::vector<InputEvent> InputQueue;
