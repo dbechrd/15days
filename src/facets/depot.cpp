@@ -137,6 +137,8 @@ void *Depot::GetFacet(UID uid, FacetType type)
 
 void *Depot::GetFacetByName(const char *name, FacetType type)
 {
+    if (!name) return 0;
+
     std::string key{ name };
     if (uidByName.contains(key)) {
         UID uid = uidByName[key];
@@ -293,6 +295,7 @@ void Depot::Run(void)
         }
 
         collisionSystem.DetectCollisions(*this, collisionList);
+
         cursorSystem.UpdateDragTargets(*this, collisionList);  // gen: card_dragbegin, card_dragupdate, card_leftclick
         effectSystem.ApplyDragFx(*this, collisionList);
 

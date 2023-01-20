@@ -1,6 +1,4 @@
 #pragma once
-#include "fbg/ResourceDB_generated.h"
-#include "fbg/SaveFile_generated.h"
 
 #include "../common/arena.h"
 #include "../common/basic.h"

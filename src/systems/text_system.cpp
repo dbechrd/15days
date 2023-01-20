@@ -11,6 +11,12 @@ UID TextSystem::CreateNarrator(Depot &depot)
     position->pos.x = windowWidth / 2.0f;
     position->pos.y = 200.0f;
 
+#if 1
+    position->pos.x = 10.0f;
+    position->pos.y = 4.0f;
+    //position->pos.x = 20.0f;
+    //position->pos.y = SCREEN_H - 90.0f;
+#else
     if (depot.card.size()) {
         Position *campPos = (Position *)depot.GetFacet(depot.card.front().uid, Facet_Position);
         if (campPos) {
@@ -18,16 +24,15 @@ UID TextSystem::CreateNarrator(Depot &depot)
             position->pos.y = campPos->pos.y - 100.0f;
         }
     }
+#endif
 
     Text *text = (Text *)depot.AddFacet(uidNarrator, Facet_Text);
+    text->fontKey = "karmina_bold_64";
+    text->align = TextAlign_VBottom_HCenter;
 #if 0
-    text->font = depot.textSystem.LoadFont(depot, "font/KarminaBold.otf", 64);
     text->str = "15 Days";
 #endif
-#if 1
-    position->pos.x = 10.0f;
-    position->pos.y = 4.0f;
-    text->fontKey = "karmina_bold_64";
+#if 0
     text->str =
         C_RED     "Red"
         C_GREEN   " Green"
@@ -38,13 +43,10 @@ UID TextSystem::CreateNarrator(Depot &depot)
         C_WHITE   " White";
 #endif
 #if 0
-    text->font = depot.textSystem.LoadFont(depot, "font/OpenSans-Bold.ttf", 20);
     text->str = "The`g camp`w is your home.\n"
         "Your adventure starts here.\n"
         "`r+10 health`w while in camp.";
 #endif
-
-    text->align = TextAlign_VBottom_HCenter;
 
     // TODO: NarratorSystem
     // - Check if position.pos + sprite.size outside of screen w/h
@@ -63,6 +65,8 @@ UID TextSystem::CreateNarrator(Depot &depot)
 
 Font *TextSystem::FindOrLoadFont(Depot &depot, const char *fontKey)
 {
+    if (!fontKey) return 0;
+
     // Check if already loaded
     Font *existingFont = (Font *)depot.GetFacetByName(fontKey, Facet_Font);
     if (existingFont) {

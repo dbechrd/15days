@@ -76,6 +76,17 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
         case MsgType_Cursor_Notify_DragUpdate:
         {
             depot.audioSystem.PushPlaySound(depot, dragUpdateSoundKey);
+
+            vec2 cursorPos = msg.data.cursor_dragevent.currentPos;
+            vec2 dragOffset = msg.data.cursor_dragevent.subjectOffset;
+
+            Position *pos = (Position *)depot.GetFacet(card->uid, Facet_Position);
+            if (pos) {
+                pos->pos.x = cursorPos.x - dragOffset.x;
+                pos->pos.y = cursorPos.y - dragOffset.y;
+            } else {
+                SDL_LogError(0, "Cannot drag card with no position");
+            }
             break;
         }
         case MsgType_Cursor_Notify_DragEnd:
@@ -85,9 +96,9 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
             depot.audioSystem.PushPlaySound(depot, dragEndSoundKey, true);
 
             // If drag was tiny, treat as click
-            const vec2 dragDelta = msg.data.cursor_dragend.dragDelta;
+            const vec2 dragOffset = msg.data.cursor_dragevent.dragOffset;
             const float tinyDrag = 5.0f;
-            if (fabs(dragDelta.x) < tinyDrag && fabs(dragDelta.y) < tinyDrag) {
+            if (fabs(dragOffset.x) < tinyDrag && fabs(dragOffset.y) < tinyDrag) {
                 if (card->cardType == CardType_Deck) {
                     deck_try_draw_card(depot, card);
                 }
@@ -292,11 +303,13 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 pendingDragTarget = dragTarget->uid;
             }
         } else if (card.wantsToStack) {
+#if FDOV_ENABLE_CARD_STACKING
             Card *dragTarget = FindDragTarget(depot, collisionList, &card);
             if (dragTarget) {
                 card.stackParent = dragTarget->uid;
                 dragTarget->stackChild = card.uid;
             }
+#endif
             card.wantsToStack = false;
         }
     }

@@ -1,7 +1,5 @@
 #pragma once
 #include "basic.h"
-#include "../facets/card.h"
-#include <vector>
 
 enum MsgType {
     // Relays all messages to another UID
@@ -18,8 +16,10 @@ enum MsgType {
     //MsgType_Cursor_PrimaryPress,    // directly from events
     //MsgType_Cursor_PrimaryRelease,  // directly from events
 
-    MsgType_Effect_OnFireBegin,
-    MsgType_Effect_OnFireEnd,
+    //MsgType_Effect_OnFireBegin,
+    //MsgType_Effect_OnFireEnd,
+
+    MsgType_Material_StateChange,
 
     MsgType_Movement_WalkUp,
     MsgType_Movement_WalkLeft,
@@ -45,15 +45,25 @@ enum MsgType {
     MsgType_Window_Quit,
 };
 
-struct Msg_Cursor_Notify_DragEnd {
-    vec2 dragDelta{};  // delta pos of mouse compared to where drag was started
+struct Msg_Cursor_Notify_DragEvent {
+    vec2 startPos      {};  // cursor position when drag event started
+    vec2 currentPos    {};  // current cursor position
+    vec2 dragOffset    {};  // currentPos - startPos, for convenience
+    vec2 subjectOffset {};  // initial cursor offset from position of drag subject
+};
+
+struct Msg_Material_StateChange {
+    ResourceDB::MaterialStates oldStates   {};
+    ResourceDB::MaterialStates newStates   {};
+    ResourceDB::MaterialStates deltaStates {};
 };
 
 struct Message {
     UID     uid  {};  // primary subject of interest
     MsgType type {};
     union {
-        Msg_Cursor_Notify_DragEnd cursor_dragend;
+        Msg_Cursor_Notify_DragEvent cursor_dragevent;
+        Msg_Material_StateChange material_statechange;
         //Msg_Render_FrameBegin render_framebegin;
     } data {};
 

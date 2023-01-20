@@ -33,6 +33,9 @@ struct SpritesheetBuilder;
 struct MaterialProto;
 struct MaterialProtoBuilder;
 
+struct ElementProto;
+struct ElementProtoBuilder;
+
 struct CardProto;
 struct CardProtoBuilder;
 
@@ -66,34 +69,31 @@ inline const char *EnumNameMaterialAttribs(MaterialAttribs e) {
   return EnumNamesMaterialAttribs()[index];
 }
 
-enum EffectTypes : uint32_t {
-  EffectTypes_IgniteFlammable = 1,
-  EffectTypes_ExtinguishFlammable = 2,
-  EffectTypes_NONE = 0,
-  EffectTypes_ANY = 3
+enum MaterialStates : uint32_t {
+  MaterialStates_OnFire = 1,
+  MaterialStates_NONE = 0,
+  MaterialStates_ANY = 1
 };
 
-inline const EffectTypes (&EnumValuesEffectTypes())[2] {
-  static const EffectTypes values[] = {
-    EffectTypes_IgniteFlammable,
-    EffectTypes_ExtinguishFlammable
+inline const MaterialStates (&EnumValuesMaterialStates())[1] {
+  static const MaterialStates values[] = {
+    MaterialStates_OnFire
   };
   return values;
 }
 
-inline const char * const *EnumNamesEffectTypes() {
-  static const char * const names[3] = {
-    "IgniteFlammable",
-    "ExtinguishFlammable",
+inline const char * const *EnumNamesMaterialStates() {
+  static const char * const names[2] = {
+    "OnFire",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameEffectTypes(EffectTypes e) {
-  if (flatbuffers::IsOutRange(e, EffectTypes_IgniteFlammable, EffectTypes_ExtinguishFlammable)) return "";
-  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(EffectTypes_IgniteFlammable);
-  return EnumNamesEffectTypes()[index];
+inline const char *EnumNameMaterialStates(MaterialStates e) {
+  if (flatbuffers::IsOutRange(e, MaterialStates_OnFire, MaterialStates_OnFire)) return "";
+  const size_t index = static_cast<size_t>(e) - static_cast<size_t>(MaterialStates_OnFire);
+  return EnumNamesMaterialStates()[index];
 }
 
 struct Font FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -601,7 +601,8 @@ struct MaterialProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_ATTRIBS = 6
+    VT_ATTRIBS = 6,
+    VT_DEFAULT_STATES = 8
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -615,11 +616,15 @@ struct MaterialProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   ResourceDB::MaterialAttribs attribs() const {
     return static_cast<ResourceDB::MaterialAttribs>(GetField<uint32_t>(VT_ATTRIBS, 0));
   }
+  ResourceDB::MaterialStates default_states() const {
+    return static_cast<ResourceDB::MaterialStates>(GetField<uint32_t>(VT_DEFAULT_STATES, 0));
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffsetRequired(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<uint32_t>(verifier, VT_ATTRIBS, 4) &&
+           VerifyField<uint32_t>(verifier, VT_DEFAULT_STATES, 4) &&
            verifier.EndTable();
   }
 };
@@ -633,6 +638,9 @@ struct MaterialProtoBuilder {
   }
   void add_attribs(ResourceDB::MaterialAttribs attribs) {
     fbb_.AddElement<uint32_t>(MaterialProto::VT_ATTRIBS, static_cast<uint32_t>(attribs), 0);
+  }
+  void add_default_states(ResourceDB::MaterialStates default_states) {
+    fbb_.AddElement<uint32_t>(MaterialProto::VT_DEFAULT_STATES, static_cast<uint32_t>(default_states), 0);
   }
   explicit MaterialProtoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -649,8 +657,10 @@ struct MaterialProtoBuilder {
 inline flatbuffers::Offset<MaterialProto> CreateMaterialProto(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
-    ResourceDB::MaterialAttribs attribs = static_cast<ResourceDB::MaterialAttribs>(0)) {
+    ResourceDB::MaterialAttribs attribs = static_cast<ResourceDB::MaterialAttribs>(0),
+    ResourceDB::MaterialStates default_states = static_cast<ResourceDB::MaterialStates>(0)) {
   MaterialProtoBuilder builder_(_fbb);
+  builder_.add_default_states(default_states);
   builder_.add_attribs(attribs);
   builder_.add_name(name);
   return builder_.Finish();
@@ -659,12 +669,111 @@ inline flatbuffers::Offset<MaterialProto> CreateMaterialProto(
 inline flatbuffers::Offset<MaterialProto> CreateMaterialProtoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    ResourceDB::MaterialAttribs attribs = static_cast<ResourceDB::MaterialAttribs>(0)) {
+    ResourceDB::MaterialAttribs attribs = static_cast<ResourceDB::MaterialAttribs>(0),
+    ResourceDB::MaterialStates default_states = static_cast<ResourceDB::MaterialStates>(0)) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return ResourceDB::CreateMaterialProto(
       _fbb,
       name__,
-      attribs);
+      attribs,
+      default_states);
+}
+
+struct ElementProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef ElementProtoBuilder Builder;
+  static FLATBUFFERS_CONSTEXPR_CPP11 const char *GetFullyQualifiedName() {
+    return "ResourceDB.ElementProto";
+  }
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_AFFECTED_MATERIALS_MASK = 6,
+    VT_AFFECTED_STATES_MASK = 8,
+    VT_NEW_STATES = 10
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  bool KeyCompareLessThan(const ElementProto *o) const {
+    return *name() < *o->name();
+  }
+  int KeyCompareWithValue(const char *_name) const {
+    return strcmp(name()->c_str(), _name);
+  }
+  ResourceDB::MaterialAttribs affected_materials_mask() const {
+    return static_cast<ResourceDB::MaterialAttribs>(GetField<uint32_t>(VT_AFFECTED_MATERIALS_MASK, 0));
+  }
+  ResourceDB::MaterialStates affected_states_mask() const {
+    return static_cast<ResourceDB::MaterialStates>(GetField<uint32_t>(VT_AFFECTED_STATES_MASK, 0));
+  }
+  ResourceDB::MaterialStates new_states() const {
+    return static_cast<ResourceDB::MaterialStates>(GetField<uint32_t>(VT_NEW_STATES, 0));
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffsetRequired(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<uint32_t>(verifier, VT_AFFECTED_MATERIALS_MASK, 4) &&
+           VerifyField<uint32_t>(verifier, VT_AFFECTED_STATES_MASK, 4) &&
+           VerifyField<uint32_t>(verifier, VT_NEW_STATES, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct ElementProtoBuilder {
+  typedef ElementProto Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(ElementProto::VT_NAME, name);
+  }
+  void add_affected_materials_mask(ResourceDB::MaterialAttribs affected_materials_mask) {
+    fbb_.AddElement<uint32_t>(ElementProto::VT_AFFECTED_MATERIALS_MASK, static_cast<uint32_t>(affected_materials_mask), 0);
+  }
+  void add_affected_states_mask(ResourceDB::MaterialStates affected_states_mask) {
+    fbb_.AddElement<uint32_t>(ElementProto::VT_AFFECTED_STATES_MASK, static_cast<uint32_t>(affected_states_mask), 0);
+  }
+  void add_new_states(ResourceDB::MaterialStates new_states) {
+    fbb_.AddElement<uint32_t>(ElementProto::VT_NEW_STATES, static_cast<uint32_t>(new_states), 0);
+  }
+  explicit ElementProtoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<ElementProto> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ElementProto>(end);
+    fbb_.Required(o, ElementProto::VT_NAME);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ElementProto> CreateElementProto(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    ResourceDB::MaterialAttribs affected_materials_mask = static_cast<ResourceDB::MaterialAttribs>(0),
+    ResourceDB::MaterialStates affected_states_mask = static_cast<ResourceDB::MaterialStates>(0),
+    ResourceDB::MaterialStates new_states = static_cast<ResourceDB::MaterialStates>(0)) {
+  ElementProtoBuilder builder_(_fbb);
+  builder_.add_new_states(new_states);
+  builder_.add_affected_states_mask(affected_states_mask);
+  builder_.add_affected_materials_mask(affected_materials_mask);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<ElementProto> CreateElementProtoDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    ResourceDB::MaterialAttribs affected_materials_mask = static_cast<ResourceDB::MaterialAttribs>(0),
+    ResourceDB::MaterialStates affected_states_mask = static_cast<ResourceDB::MaterialStates>(0),
+    ResourceDB::MaterialStates new_states = static_cast<ResourceDB::MaterialStates>(0)) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return ResourceDB::CreateElementProto(
+      _fbb,
+      name__,
+      affected_materials_mask,
+      affected_states_mask,
+      new_states);
 }
 
 struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -676,8 +785,8 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 4,
     VT_SPRITESHEET = 6,
     VT_DEFAULT_ANIMATION = 8,
-    VT_MATERIAL_PROTO = 10,
-    VT_EFFECTS = 12,
+    VT_ELEMENT_PROTO = 10,
+    VT_MATERIAL_PROTO = 12,
     VT_DRAG_BEGIN_SOUND_KEY = 14,
     VT_DRAG_UPDATE_SOUND_KEY = 16,
     VT_DRAG_END_SOUND_KEY = 18
@@ -697,11 +806,11 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::String *default_animation() const {
     return GetPointer<const flatbuffers::String *>(VT_DEFAULT_ANIMATION);
   }
+  const flatbuffers::String *element_proto() const {
+    return GetPointer<const flatbuffers::String *>(VT_ELEMENT_PROTO);
+  }
   const flatbuffers::String *material_proto() const {
     return GetPointer<const flatbuffers::String *>(VT_MATERIAL_PROTO);
-  }
-  ResourceDB::EffectTypes effects() const {
-    return static_cast<ResourceDB::EffectTypes>(GetField<uint32_t>(VT_EFFECTS, 0));
   }
   const flatbuffers::String *drag_begin_sound_key() const {
     return GetPointer<const flatbuffers::String *>(VT_DRAG_BEGIN_SOUND_KEY);
@@ -720,9 +829,10 @@ struct CardProto FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(spritesheet()) &&
            VerifyOffset(verifier, VT_DEFAULT_ANIMATION) &&
            verifier.VerifyString(default_animation()) &&
+           VerifyOffset(verifier, VT_ELEMENT_PROTO) &&
+           verifier.VerifyString(element_proto()) &&
            VerifyOffset(verifier, VT_MATERIAL_PROTO) &&
            verifier.VerifyString(material_proto()) &&
-           VerifyField<uint32_t>(verifier, VT_EFFECTS, 4) &&
            VerifyOffset(verifier, VT_DRAG_BEGIN_SOUND_KEY) &&
            verifier.VerifyString(drag_begin_sound_key()) &&
            VerifyOffset(verifier, VT_DRAG_UPDATE_SOUND_KEY) &&
@@ -746,11 +856,11 @@ struct CardProtoBuilder {
   void add_default_animation(flatbuffers::Offset<flatbuffers::String> default_animation) {
     fbb_.AddOffset(CardProto::VT_DEFAULT_ANIMATION, default_animation);
   }
+  void add_element_proto(flatbuffers::Offset<flatbuffers::String> element_proto) {
+    fbb_.AddOffset(CardProto::VT_ELEMENT_PROTO, element_proto);
+  }
   void add_material_proto(flatbuffers::Offset<flatbuffers::String> material_proto) {
     fbb_.AddOffset(CardProto::VT_MATERIAL_PROTO, material_proto);
-  }
-  void add_effects(ResourceDB::EffectTypes effects) {
-    fbb_.AddElement<uint32_t>(CardProto::VT_EFFECTS, static_cast<uint32_t>(effects), 0);
   }
   void add_drag_begin_sound_key(flatbuffers::Offset<flatbuffers::String> drag_begin_sound_key) {
     fbb_.AddOffset(CardProto::VT_DRAG_BEGIN_SOUND_KEY, drag_begin_sound_key);
@@ -778,8 +888,8 @@ inline flatbuffers::Offset<CardProto> CreateCardProto(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> spritesheet = 0,
     flatbuffers::Offset<flatbuffers::String> default_animation = 0,
+    flatbuffers::Offset<flatbuffers::String> element_proto = 0,
     flatbuffers::Offset<flatbuffers::String> material_proto = 0,
-    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0),
     flatbuffers::Offset<flatbuffers::String> drag_begin_sound_key = 0,
     flatbuffers::Offset<flatbuffers::String> drag_update_sound_key = 0,
     flatbuffers::Offset<flatbuffers::String> drag_end_sound_key = 0) {
@@ -787,8 +897,8 @@ inline flatbuffers::Offset<CardProto> CreateCardProto(
   builder_.add_drag_end_sound_key(drag_end_sound_key);
   builder_.add_drag_update_sound_key(drag_update_sound_key);
   builder_.add_drag_begin_sound_key(drag_begin_sound_key);
-  builder_.add_effects(effects);
   builder_.add_material_proto(material_proto);
+  builder_.add_element_proto(element_proto);
   builder_.add_default_animation(default_animation);
   builder_.add_spritesheet(spritesheet);
   builder_.add_name(name);
@@ -800,14 +910,15 @@ inline flatbuffers::Offset<CardProto> CreateCardProtoDirect(
     const char *name = nullptr,
     const char *spritesheet = nullptr,
     const char *default_animation = nullptr,
+    const char *element_proto = nullptr,
     const char *material_proto = nullptr,
-    ResourceDB::EffectTypes effects = static_cast<ResourceDB::EffectTypes>(0),
     const char *drag_begin_sound_key = nullptr,
     const char *drag_update_sound_key = nullptr,
     const char *drag_end_sound_key = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto spritesheet__ = spritesheet ? _fbb.CreateString(spritesheet) : 0;
   auto default_animation__ = default_animation ? _fbb.CreateString(default_animation) : 0;
+  auto element_proto__ = element_proto ? _fbb.CreateString(element_proto) : 0;
   auto material_proto__ = material_proto ? _fbb.CreateString(material_proto) : 0;
   auto drag_begin_sound_key__ = drag_begin_sound_key ? _fbb.CreateString(drag_begin_sound_key) : 0;
   auto drag_update_sound_key__ = drag_update_sound_key ? _fbb.CreateString(drag_update_sound_key) : 0;
@@ -817,8 +928,8 @@ inline flatbuffers::Offset<CardProto> CreateCardProtoDirect(
       name__,
       spritesheet__,
       default_animation__,
+      element_proto__,
       material_proto__,
-      effects,
       drag_begin_sound_key__,
       drag_update_sound_key__,
       drag_end_sound_key__);
@@ -832,17 +943,21 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_CARD_PROTOS = 6,
-    VT_FONTS = 8,
-    VT_MATERIAL_PROTOS = 10,
-    VT_SPRITESHEETS = 12,
-    VT_SOUNDS = 14,
-    VT_TEXTURES = 16
+    VT_ELEMENT_PROTOS = 8,
+    VT_FONTS = 10,
+    VT_MATERIAL_PROTOS = 12,
+    VT_SPRITESHEETS = 14,
+    VT_SOUNDS = 16,
+    VT_TEXTURES = 18
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>> *card_protos() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>> *>(VT_CARD_PROTOS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::ElementProto>> *element_protos() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::ElementProto>> *>(VT_ELEMENT_PROTOS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *fonts() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>> *>(VT_FONTS);
@@ -866,6 +981,9 @@ struct Root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CARD_PROTOS) &&
            verifier.VerifyVector(card_protos()) &&
            verifier.VerifyVectorOfTables(card_protos()) &&
+           VerifyOffset(verifier, VT_ELEMENT_PROTOS) &&
+           verifier.VerifyVector(element_protos()) &&
+           verifier.VerifyVectorOfTables(element_protos()) &&
            VerifyOffset(verifier, VT_FONTS) &&
            verifier.VerifyVector(fonts()) &&
            verifier.VerifyVectorOfTables(fonts()) &&
@@ -894,6 +1012,9 @@ struct RootBuilder {
   }
   void add_card_protos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>>> card_protos) {
     fbb_.AddOffset(Root::VT_CARD_PROTOS, card_protos);
+  }
+  void add_element_protos(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::ElementProto>>> element_protos) {
+    fbb_.AddOffset(Root::VT_ELEMENT_PROTOS, element_protos);
   }
   void add_fonts(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts) {
     fbb_.AddOffset(Root::VT_FONTS, fonts);
@@ -925,6 +1046,7 @@ inline flatbuffers::Offset<Root> CreateRoot(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::CardProto>>> card_protos = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::ElementProto>>> element_protos = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Font>>> fonts = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::MaterialProto>>> material_protos = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<ResourceDB::Spritesheet>>> spritesheets = 0,
@@ -936,6 +1058,7 @@ inline flatbuffers::Offset<Root> CreateRoot(
   builder_.add_spritesheets(spritesheets);
   builder_.add_material_protos(material_protos);
   builder_.add_fonts(fonts);
+  builder_.add_element_protos(element_protos);
   builder_.add_card_protos(card_protos);
   builder_.add_name(name);
   return builder_.Finish();
@@ -945,6 +1068,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::CardProto>> *card_protos = nullptr,
+    std::vector<flatbuffers::Offset<ResourceDB::ElementProto>> *element_protos = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::Font>> *fonts = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::MaterialProto>> *material_protos = nullptr,
     std::vector<flatbuffers::Offset<ResourceDB::Spritesheet>> *spritesheets = nullptr,
@@ -952,6 +1076,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
     std::vector<flatbuffers::Offset<ResourceDB::Texture>> *textures = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto card_protos__ = card_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::CardProto>(card_protos) : 0;
+  auto element_protos__ = element_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::ElementProto>(element_protos) : 0;
   auto fonts__ = fonts ? _fbb.CreateVectorOfSortedTables<ResourceDB::Font>(fonts) : 0;
   auto material_protos__ = material_protos ? _fbb.CreateVectorOfSortedTables<ResourceDB::MaterialProto>(material_protos) : 0;
   auto spritesheets__ = spritesheets ? _fbb.CreateVectorOfSortedTables<ResourceDB::Spritesheet>(spritesheets) : 0;
@@ -961,6 +1086,7 @@ inline flatbuffers::Offset<Root> CreateRootDirect(
       _fbb,
       name__,
       card_protos__,
+      element_protos__,
       fonts__,
       material_protos__,
       spritesheets__,

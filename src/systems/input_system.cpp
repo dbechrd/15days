@@ -19,6 +19,18 @@ bool CheckHotkeysDebug(Depot &depot, const InputEvent &e)
             }
             break;
         }
+        case SDL_SCANCODE_N: {
+            depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE),
+                C_RED     "Red"
+                C_GREEN   " Green"
+                C_BLUE    " Blue"
+                C_CYAN    " Cyan"
+                C_MAGENTA " Magenta"
+                C_YELLOW  " Yellow"
+                C_WHITE   " White"
+            );
+            break;
+        }
         default: break;
     }
 

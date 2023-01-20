@@ -39,6 +39,14 @@ UID create_cursor(Depot &depot)
     position->pos = { x, y };
     position->size = { 1, 1 };
 
+#if 0
+    Text *text = (Text *)depot.AddFacet(uidCursor, Facet_Text);
+    text->fontKey = "opensans_bold_16";
+    text->str = "00 fps (00.00 ms)";
+    text->align = TextAlign_VTop_HLeft;
+    text->offset = { 16, 16 };
+#endif
+
     //Keymap *keymap = (Keymap *)depot.AddFacet(uidCursor, Facet_Keymap);
     //keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Press, MsgType_Cursor_PrimaryPress);
     //keymap->hotkeys.emplace_back(HotkeyMod_None, FDOV_SCANCODE_MOUSE_LEFT, 0, 0, Hotkey_Release | Hotkey_Handled, MsgType_Cursor_PrimaryRelease);
@@ -345,18 +353,21 @@ void campfire_callback(Depot &depot, const Message &msg, const Trigger &trigger,
     UID uidCampfire = msg.uid;
 
     switch (msg.type) {
-        case MsgType_Effect_OnFireBegin:
-        {
-            depot.audioSystem.PushPlaySound(depot, "sfx_fire_start", true);
-            depot.audioSystem.PushStopSound(depot, "sfx_fire_extinguish");
-            depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_burning");
-            break;
-        }
-        case MsgType_Effect_OnFireEnd:
-        {
-            depot.audioSystem.PushPlaySound(depot, "sfx_fire_extinguish", true);
-            depot.audioSystem.PushStopSound(depot, "sfx_fire_start");
-            depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_unlit");
+        case MsgType_Material_StateChange: {
+            const ResourceDB::MaterialStates &newStates = msg.data.material_statechange.newStates;
+            const ResourceDB::MaterialStates &deltaStates = msg.data.material_statechange.deltaStates;
+
+            if (deltaStates & ResourceDB::MaterialStates_OnFire) {
+                if (newStates & ResourceDB::MaterialStates_OnFire) {
+                    depot.audioSystem.PushPlaySound(depot, "sfx_fire_start", true);
+                    depot.audioSystem.PushStopSound(depot, "sfx_fire_extinguish");
+                    depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_burning");
+                } else {
+                    depot.audioSystem.PushPlaySound(depot, "sfx_fire_extinguish", true);
+                    depot.audioSystem.PushStopSound(depot, "sfx_fire_start");
+                    depot.spriteSystem.PushUpdateAnimation(depot, uidCampfire, "sheet_campfire_small", "anim_unlit");
+                }
+            }
             break;
         }
         default: break;
@@ -427,9 +438,24 @@ int main(int argc, char *argv[])
     if (!err) {
         dlb_rand32_seed(SDL_GetTicks());
 
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days");
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "I hope you have fun");
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "It worksssss!!!");
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), " ", 2);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k...", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k..", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k.", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello!", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k...", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k..", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k.", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days!", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k...", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k..", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k.", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards.", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k....", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k...", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k..", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k.", 1);
+        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens!", 1);
 
         // TODO: Move this into depot init?
         void *bufToDelete = 0;

@@ -40,22 +40,29 @@ enum MaterialAttribs:uint (bit_flags) {
     Flammable
 }
 
+enum MaterialStates:uint (bit_flags) {
+    OnFire
+}
+
 table MaterialProto {
     name:string (key);
     attribs:MaterialAttribs;
+    default_states:MaterialStates;
 }
 
-enum EffectTypes:uint (bit_flags) {
-    IgniteFlammable,
-    ExtinguishFlammable
+table ElementProto {
+    name:string (key);
+    affected_materials_mask:MaterialAttribs;
+    affected_states_mask:MaterialStates;
+    new_states:MaterialStates;
 }
 
 table CardProto {
     name:string (key);
     spritesheet:string;
     default_animation:string;
+    element_proto:string;
     material_proto:string;
-    effects:EffectTypes;
     drag_begin_sound_key:string;
     drag_update_sound_key:string;
     drag_end_sound_key:string;
@@ -64,6 +71,7 @@ table CardProto {
 table Root {
     name:string;
     card_protos:[CardProto];
+    element_protos:[ElementProto];
     fonts:[Font];
     material_protos:[MaterialProto];
     spritesheets:[Spritesheet];

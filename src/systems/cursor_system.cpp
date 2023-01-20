@@ -105,63 +105,82 @@ void CursorSystem::UpdateDragTargets(Depot &depot, const CollisionList &collisio
             continue;
         }
 
+        vec2 currentPos{
+            cursorPos->pos.x,
+            cursorPos->pos.y
+        };
+
+        bool endDrag = false;
+
         // Update uid drag subject
         if (cursor.leftButtonDownAt) {
             // Check if there's something to start dragging
             if (!cursor.uidDragSubject) {
                 DragTarget dragTarget = GetDragTarget(depot, cursor.uid, collisionList);
                 if (dragTarget.uid) {
-                    cursor.dragBeginPos = { cursorPos->pos.x, cursorPos->pos.y };
+                    cursor.dragBeginPos = currentPos;
                     cursor.uidDragSubject = dragTarget.uid;
                     cursor.dragSubjectOffset = dragTarget.offset;
+
+                    vec2 dragOffset{};
+                    dragOffset.x = currentPos.x - cursor.dragBeginPos.x;
+                    dragOffset.y = currentPos.y - cursor.dragBeginPos.y;
 
                     Message dragBegin{};
                     dragBegin.type = MsgType_Cursor_Notify_DragBegin;
                     dragBegin.uid = cursor.uidDragSubject;
+                    dragBegin.data.cursor_dragevent.startPos = cursor.dragBeginPos;
+                    dragBegin.data.cursor_dragevent.currentPos = currentPos;
+                    dragBegin.data.cursor_dragevent.dragOffset = dragOffset;
+                    dragBegin.data.cursor_dragevent.subjectOffset = cursor.dragSubjectOffset;
                     depot.msgQueue.push_back(dragBegin);
                 }
             }
         } else if (cursor.uidDragSubject) {
-            vec2 dragDelta{
-                cursorPos->pos.x - cursor.dragBeginPos.x,
-                cursorPos->pos.y - cursor.dragBeginPos.y
-            };
+            vec2 dragOffset{};
+            dragOffset.x = currentPos.x - cursor.dragBeginPos.x;
+            dragOffset.y = currentPos.y - cursor.dragBeginPos.y;
 
             Message dragEnd{};
             dragEnd.type = MsgType_Cursor_Notify_DragEnd;
             dragEnd.uid = cursor.uidDragSubject;
-            dragEnd.data.cursor_dragend.dragDelta.x = dragDelta.x;
-            dragEnd.data.cursor_dragend.dragDelta.x = dragDelta.y;
+            dragEnd.data.cursor_dragevent.startPos = cursor.dragBeginPos;
+            dragEnd.data.cursor_dragevent.currentPos = currentPos;
+            dragEnd.data.cursor_dragevent.dragOffset = dragOffset;
+            dragEnd.data.cursor_dragevent.subjectOffset = cursor.dragSubjectOffset;
             depot.msgQueue.push_back(dragEnd);
 
-            // Button no longer held down, reset drag state
-            cursor.dragBeginPos = {};
-            cursor.uidDragSubject = 0;
-            cursor.dragSubjectOffset = {};
+            // Button no longer held down, end drag
+            endDrag = true;
         }
 
         // Update drag subject's position
         if (cursor.uidDragSubject) {
             Position *subjectPos = (Position *)depot.GetFacet(cursor.uidDragSubject, Facet_Position);
             if (subjectPos) {
+                vec2 dragOffset{};
+                dragOffset.x = currentPos.x - cursor.dragBeginPos.x;
+                dragOffset.y = currentPos.y - cursor.dragBeginPos.y;
+
                 Message dragUpdate{};
                 dragUpdate.type = MsgType_Cursor_Notify_DragUpdate;
                 dragUpdate.uid = cursor.uidDragSubject;
+                dragUpdate.data.cursor_dragevent.startPos = cursor.dragBeginPos;
+                dragUpdate.data.cursor_dragevent.currentPos = currentPos;
+                dragUpdate.data.cursor_dragevent.dragOffset = dragOffset;
+                dragUpdate.data.cursor_dragevent.subjectOffset = cursor.dragSubjectOffset;
                 depot.msgQueue.push_back(dragUpdate);
-
-                // TODO: This should probably generate a message instead..
-                subjectPos->pos.x = (float)cursorPos->pos.x - cursor.dragSubjectOffset.x;
-                subjectPos->pos.y = (float)cursorPos->pos.y - cursor.dragSubjectOffset.y;
-
-                //Message applyImpulse{};
-                //applyImpulse.type = MsgType_Physics_ApplyImpulse;
-                //applyImpulse.uid = cursor->uidDragSubject;
-                //depot.msgQueue.push_back(applyImpulse);
             } else {
-                // Whatever we were dragging has disappeared, reset drag state
-                cursor.uidDragSubject = 0;
-                cursor.dragSubjectOffset = {};
+                // Whatever we were dragging has disappeared, end drag
+                SDL_LogError(0, "Drag subject position vanished %u", cursor.uidDragSubject);
+                endDrag = true;
             }
+        }
+
+        if (endDrag) {
+            cursor.dragBeginPos = {};
+            cursor.uidDragSubject = 0;
+            cursor.dragSubjectOffset = {};
         }
     }
 }

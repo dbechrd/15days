@@ -1,7 +1,7 @@
 #include "effect_system.h"
 #include "../facets/depot.h"
 
-void ApplyEffectsToMaterial(Depot &depot, Material &material, ResourceDB::EffectTypes effectTypes)
+void ApplyEffectsToMaterial(Depot &depot, Material &material, const char *elementProtoKey)
 {
     const ResourceDB::MaterialProto *materialProto = depot.resources->material_protos()->LookupByKey(material.materialProtoKey);
     if (!materialProto) {
@@ -10,9 +10,45 @@ void ApplyEffectsToMaterial(Depot &depot, Material &material, ResourceDB::Effect
     }
     const ResourceDB::MaterialAttribs &matAttribs = materialProto->attribs();
 
+    const ResourceDB::ElementProto *elementProto = depot.resources->element_protos()->LookupByKey(elementProtoKey);
+    if (!elementProto) {
+        SDL_LogError(0, "Invalid element prototype key %s\n", elementProtoKey);
+        return;
+    }
+
+    const ResourceDB::MaterialAttribs affectedMaterialsMask = elementProto->affected_materials_mask();
+
+    const ResourceDB::MaterialStates affectedStatesMask = elementProto->affected_states_mask();
+    const ResourceDB::MaterialStates pendingNewStates = elementProto->new_states();
+    //const ResourceDB::MaterialState effectiveNewState =
+    //    (ResourceDB::MaterialState)(newState & affectedStateMask);
+
+    if ((matAttribs & affectedMaterialsMask) > 0) {
+        ResourceDB::MaterialStates oldStates = material.states;
+        ResourceDB::MaterialStates newStates = (ResourceDB::MaterialStates)(
+            (material.states & ~affectedStatesMask) |
+            (pendingNewStates & affectedStatesMask)
+        );
+        ResourceDB::MaterialStates deltaStates = (ResourceDB::MaterialStates)(
+            oldStates ^ newStates
+        );
+
+        if (deltaStates > 0) {
+            material.states = newStates;
+            Message msgStateChange{};
+            msgStateChange.type = MsgType_Material_StateChange;
+            msgStateChange.uid = material.uid;
+            msgStateChange.data.material_statechange.oldStates = oldStates;
+            msgStateChange.data.material_statechange.newStates = newStates;
+            msgStateChange.data.material_statechange.deltaStates = deltaStates;
+            depot.msgQueue.push_back(msgStateChange);
+        }
+    }
+
+#if 0
     // Effect types
-    const bool fxIgniteFlammable = effectTypes & ResourceDB::EffectTypes_IgniteFlammable;
-    const bool fxExtinguishFlammable = effectTypes & ResourceDB::EffectTypes_ExtinguishFlammable;
+    const bool fxIgniteFlammable = elemAttribs & ResourceDB::ElementAttribs_IgniteFlammable;
+    const bool fxExtinguishFlammable = elemAttribs & ResourceDB::ElementAttribs_ExtinguishFlammable;
 
     // Material attributes
     const bool isFlammable = matAttribs & ResourceDB::MaterialAttribs_Flammable;
@@ -36,6 +72,7 @@ void ApplyEffectsToMaterial(Depot &depot, Material &material, ResourceDB::Effect
         onFireEnd.uid = material.uid;
         depot.msgQueue.push_back(onFireEnd);
     }
+#endif
 }
 
 void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
@@ -71,7 +108,7 @@ void EffectSystem::ApplyDragFx(Depot &depot, const CollisionList &collisionList)
 
                     Material *material = (Material *)depot.GetFacet(recvFxUid, Facet_Material);
                     if (material) {
-                        ApplyEffectsToMaterial(depot, *material, cardProto->effects());
+                        ApplyEffectsToMaterial(depot, *material, cardProto->element_proto()->c_str());
                         break;
                     }
                 }

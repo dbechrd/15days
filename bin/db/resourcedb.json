@@ -28,13 +28,26 @@
       name: "card_proto_lighter",
       spritesheet: "sheet_cards",
       default_animation: "card_lighter",
-      effects: "IgniteFlammable"
+      element_proto: "elem_fire"
     },
     {
       name: "card_proto_water_bucket",
       spritesheet: "sheet_cards",
       default_animation: "card_water_bucket",
-      effects: "ExtinguishFlammable"
+      element_proto: "elem_water"
+    }
+  ],
+  element_protos: [
+    {
+      name: "elem_fire",
+      affected_materials_mask: "Flammable",
+      affected_states_mask: "OnFire",
+      new_states: "OnFire"
+    },
+    {
+      name: "elem_water",
+      affected_materials_mask: "Flammable",
+      affected_states_mask: "OnFire"
     }
   ],
   fonts: [
