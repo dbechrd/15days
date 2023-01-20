@@ -7,7 +7,55 @@ DLB_ASSERT_HANDLER(dlb_assert_callback) {
 }
 dlb_assert_handler_def *dlb_assert_handler = dlb_assert_callback;
 
-const char *debugFont = "font/OpenSans-Bold.ttf";
+Error load_resource_db(Depot &depot, const char *filename, void **bufToDelete)
+{
+    size_t size{};
+    void *data = SDL_LoadFile(filename, &size);
+    if (!data) {
+        SDL_LogError(0, "Failed to load db: %s\n", filename);
+        return E_IO_ERROR;
+    }
+
+    const ResourceDB::Root *db = ResourceDB::GetRoot(data);
+    flatbuffers::Verifier fbv((const u8 *)data, size);
+    if (!ResourceDB::VerifyRootBuffer(fbv)) {
+        SDL_LogError(0, "Verify failed: %s\n", filename);
+        return E_VERIFY_FAILED;
+    }
+
+    depot.resources = db;
+
+    // Preload spritesheet textures (to prevent lazy-loading later)
+    for (const auto &sheet : *db->spritesheets()) {
+        depot.renderSystem.FindOrCreateTextureBMP(depot, sheet->texture_key()->c_str());
+    }
+
+#if 1
+    // DEBUG: Print spritesheet info
+    printf("resdb %s\n", db->name()->c_str());
+    for (const auto &sheet : *db->spritesheets()) {
+        printf("  sheet %s has %d %dx%d cells \n",
+            sheet->name()->c_str(),
+            sheet->cell_count(),
+            sheet->cell_width(),
+            sheet->cell_height()
+        );
+
+        for (const auto &dbAnim : *sheet->animations()) {
+            printf("    anim %s start %d count %d\n",
+                dbAnim->name()->c_str(),
+                dbAnim->frame_start(),
+                dbAnim->frame_count()
+            );
+        }
+    }
+#endif
+
+    // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
+    // return values in functions meant to return things, all sorts of nonsensical
+    // bullshit occurs.
+    return E_SUCCESS;
+}
 
 UID create_global_keymap(Depot &depot)
 {
@@ -57,59 +105,95 @@ UID create_cursor(Depot &depot)
     return uidCursor;
 }
 
-struct Slice {
-    const char * data   {};  // nil terminated, read-only
-    size_t       length {};
-};
 
-Error load_resource_db(Depot &depot, const char *filename, void **bufToDelete)
+void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
-    size_t size{};
-    void *data = SDL_LoadFile(filename, &size);
-    if (!data) {
-        SDL_LogError(0, "Failed to load db: %s\n", filename);
-        return E_IO_ERROR;
-    }
+    switch (msg.type) {
+        case MsgType_Render_FrameBegin:
+        {
+            const double fps = depot.FpsSmooth();
+            const double dt = depot.DtSmooth();
+            const double dtMillis = dt * 1000.0f;
+            const double realDt = depot.RealDt();
+            const double realDtMillis = realDt * 1000.0f;
 
-    const ResourceDB::Root *db = ResourceDB::GetRoot(data);
-    flatbuffers::Verifier fbv((const u8 *)data, size);
-    if (!ResourceDB::VerifyRootBuffer(fbv)) {
-        SDL_LogError(0, "Verify failed: %s\n", filename);
-        return E_VERIFY_FAILED;
-    }
-
-    depot.resources = db;
-
-    // Preload spritesheet textures (to prevent lazy-loading later)
-    for (const auto &sheet : *db->spritesheets()) {
-        depot.renderSystem.FindOrCreateTextureBMP(depot, sheet->texture_key()->c_str());
-    }
-
-#if 1
-    // DEBUG: Print spritesheet info
-    printf("resdb %s\n", db->name()->c_str());
-    for (const auto &sheet : *db->spritesheets()) {
-        printf("  sheet %s has %d %dx%d cells \n",
-            sheet->name()->c_str(),
-            sheet->cell_count(),
-            sheet->cell_width(),
-            sheet->cell_height()
-        );
-
-        for (const auto &dbAnim : *sheet->animations()) {
-            printf("    anim %s start %d count %d\n",
-                dbAnim->name()->c_str(),
-                dbAnim->frame_start(),
-                dbAnim->frame_count()
-            );
-        }
-    }
+            const size_t fpsCounterMaxLen = 2048;
+            char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
+            if (fpsCounterBuf) {
+                snprintf(fpsCounterBuf, fpsCounterMaxLen,
+                    "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
+#if FDOV_SHOW_TODO_LIST
+                    "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
+                    "DefaultSaveFile.fbb (for new games)\n"
+                    "make deck disappear when empty\n"
+                    //"font atlas / glyph cache\n"
+                    //"text drop shadow\n"
+                    "runes\n"
+                    "volume control\n"
+                    "sell stuff\n"
+                    "buy stuffffffff\n"
+                    "roll random attribs\n"
+                    "card groups (inventory?)\n"
+                    "click location cards to teleport there\n"
+                    "charges\n"
+                    "cards that recharge other cards\n"
+                    "cards with timers (e.g. bomb)\n"
+                    "networking (?)\n"
 #endif
+                    ,
+                    fps, dtMillis, realDtMillis, depot.Hashes()
+                );
 
-    // Credit: whaatsuuup in twitch chat noticed this wasn't here. If you forget
-    // return values in functions meant to return things, all sorts of nonsensical
-    // bullshit occurs.
-    return E_SUCCESS;
+                depot.textSystem.PushUpdateText(depot, trigger.message.uid,
+                    { 0.0f, 20.0f }, C255(COLOR_WHITE), fpsCounterBuf);
+            } else {
+                printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
+            }
+            break;
+        }
+        default: break;
+    }
+}
+
+UID create_fps_counter(Depot &depot)
+{
+    UID uidFpsCounter = depot.Alloc("fps_counter");
+
+    FpsCounter *fpsCounter = (FpsCounter *)depot.AddFacet(uidFpsCounter, Facet_FpsCounter);
+    UNUSED(fpsCounter);
+
+    Position *position = (Position *)depot.AddFacet(uidFpsCounter, Facet_Position);
+    //int windowW = 0, windowH = 0;
+    //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
+    //position->pos.x = windowW / 2.0f;
+    //position->pos.y = 200.0f;
+    position->pos.x = 10;
+    position->pos.y = 90;
+
+    Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
+    text->fontKey = "opensans_bold_16";
+    //text->font = depot.textSystem.LoadFont(depot, "font/pricedown_bl.ttf", 16);
+
+    text->str = "00 fps (00.00 ms)";
+    text->align = TextAlign_VTop_HLeft;
+
+    Histogram *histo = (Histogram *)depot.AddFacet(uidFpsCounter, Facet_Histogram);
+    for (int i = 1; i <= 100; i++) {
+        histo->values.push_back(i);
+    };
+
+    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidFpsCounter, uidFpsCounter, fps_update_text);
+
+    // TODO: NarratorSystem
+    // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
+    //   - Checks if position.pos + sprite.size outside of screen w/h
+    // - NarratorSystem::Update();
+    //   - Iterate all NarratorTrigger facets and check triggers
+    //   - If any triggers fired, add Msg_NarratorSays to narratorQueue
+    // - NarratorSystem::Draw(narratorQueue, drawList);
+    //   - Generate draw commands from the message queue
+
+    return uidFpsCounter;
 }
 
 bool combat_try_attack(Depot &depot, Combat *combat)
@@ -258,96 +342,6 @@ UID create_player(Depot &depot)
     return uidPlayer;
 }
 
-void fps_update_text(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
-{
-    switch (msg.type) {
-        case MsgType_Render_FrameBegin:
-        {
-            const double fps = depot.FpsSmooth();
-            const double dt = depot.DtSmooth();
-            const double dtMillis = dt * 1000.0f;
-            const double realDt = depot.RealDt();
-            const double realDtMillis = realDt * 1000.0f;
-
-            const size_t fpsCounterMaxLen = 2048;
-            char *fpsCounterBuf = (char *)depot.frameArena.Alloc(fpsCounterMaxLen);
-            if (fpsCounterBuf) {
-                snprintf(fpsCounterBuf, fpsCounterMaxLen,
-                    "%.2f fps (sim: %.2f ms, real: %.2f ms, hashes: %zu)\n"
-#if FDOV_SHOW_TODO_LIST
-                    "ConfigFile.fbb (for keybinds, window pos/size, etc.)\n"
-                    "DefaultSaveFile.fbb (for new games)\n"
-                    "make deck disappear when empty\n"
-                    //"font atlas / glyph cache\n"
-                    //"text drop shadow\n"
-                    "runes\n"
-                    "volume control\n"
-                    "sell stuff\n"
-                    "buy stuffffffff\n"
-                    "roll random attribs\n"
-                    "card groups (inventory?)\n"
-                    "click location cards to teleport there\n"
-                    "charges\n"
-                    "cards that recharge other cards\n"
-                    "cards with timers (e.g. bomb)\n"
-                    "networking (?)\n"
-#endif
-                    ,
-                    fps, dtMillis, realDtMillis, depot.Hashes()
-                );
-
-                depot.textSystem.PushUpdateText(depot, trigger.message.uid,
-                    { 0.0f, 20.0f }, C255(COLOR_WHITE), fpsCounterBuf);
-            } else {
-                printf("WARN: Failed to allocate enough frame arena space for fps counter string\n");
-            }
-            break;
-        }
-        default: break;
-    }
-}
-
-UID create_fps_counter(Depot &depot)
-{
-    UID uidFpsCounter = depot.Alloc("fps_counter");
-
-    FpsCounter *fpsCounter = (FpsCounter *)depot.AddFacet(uidFpsCounter, Facet_FpsCounter);
-    UNUSED(fpsCounter);
-
-    Position *position = (Position *)depot.AddFacet(uidFpsCounter, Facet_Position);
-    //int windowW = 0, windowH = 0;
-    //SDL_GetWindowSize(renderSystem.window, &windowW, &windowH);
-    //position->pos.x = windowW / 2.0f;
-    //position->pos.y = 200.0f;
-    position->pos.x = 10;
-    position->pos.y = 90;
-
-    Text *text = (Text *)depot.AddFacet(uidFpsCounter, Facet_Text);
-    text->fontKey = "opensans_bold_16";
-    //text->font = depot.textSystem.LoadFont(depot, "font/pricedown_bl.ttf", 16);
-
-    text->str = "00 fps (00.00 ms)";
-    text->align = TextAlign_VTop_HLeft;
-
-    Histogram *histo = (Histogram *)depot.AddFacet(uidFpsCounter, Facet_Histogram);
-    for (int i = 1; i <= 100; i++) {
-        histo->values.push_back(i);
-    };
-
-    depot.triggerSystem.Trigger_Special_RelayAllMessages(depot, uidFpsCounter, uidFpsCounter, fps_update_text);
-
-    // TODO: NarratorSystem
-    // - NarratorTrigger (UID, NarrationEvent_LeaveScreen)
-    //   - Checks if position.pos + sprite.size outside of screen w/h
-    // - NarratorSystem::Update();
-    //   - Iterate all NarratorTrigger facets and check triggers
-    //   - If any triggers fired, add Msg_NarratorSays to narratorQueue
-    // - NarratorSystem::Draw(narratorQueue, drawList);
-    //   - Generate draw commands from the message queue
-
-    return uidFpsCounter;
-}
-
 void campfire_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     UID uidCampfire = msg.uid;
@@ -390,6 +384,28 @@ void create_cards(Depot &depot)
     //depot.cardSystem.PushSpawnCard(depot, "card_proto_bomb", { 900, 300, 0 });
     depot.cardSystem.PushSpawnCard(depot, "card_proto_camp", { 900, 300, 0 }, 0);
     depot.cardSystem.PushSpawnCard(depot, "card_proto_campfire", { 200, 500, 0 }, campfire_callback);
+}
+
+void say_hello(Depot &depot)
+{
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), " ", 2);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k...", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k..", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k.", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello!", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k...", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k..", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k.", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days!", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k...", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k..", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k.", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards.", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k....", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k...", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k..", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k.", 1);
+    depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens!", 1);
 }
 
 //void *fdov_malloc_func(size_t size)
@@ -438,25 +454,6 @@ int main(int argc, char *argv[])
     if (!err) {
         dlb_rand32_seed(SDL_GetTicks());
 
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), " ", 2);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k...", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k..", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello! `k.", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Hello!", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k...", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k..", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days! `k.", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Welcome to 15 days!", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k...", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k..", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards. `k.", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "This is a game about cards.", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k....", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k...", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k..", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens! `k.", 1);
-        depot.textSystem.PushUpdateNarrator(depot, {}, C255(COLOR_WHITE), "Click them and see what happens!", 1);
-
         // TODO: Move this into depot init?
         void *bufToDelete = 0;
         Error resourceDbErr = load_resource_db(depot, "db/ResourceDB.fbb", &bufToDelete);
@@ -464,8 +461,9 @@ int main(int argc, char *argv[])
             create_global_keymap(depot);
             create_cursor(depot);
             create_fps_counter(depot);
-            create_cards(depot);
             create_player(depot);
+            create_cards(depot);
+            say_hello(depot);
 
             // Run the game
             depot.TransitionTo(GameState_Play);
