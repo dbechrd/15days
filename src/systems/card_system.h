@@ -4,6 +4,7 @@
 #include "../common/draw_list.h"
 #include "../common/message.h"
 #include "../facets/card.h"
+#include "../facets/map.h"
 #include "../facets/trigger.h"
 
 struct Card_SpawnCardRequest {
@@ -35,7 +36,14 @@ private:
     Card_SpawnCardQueue spawnCardQueue{};
     UID pendingDragTarget{};
 
-    Card *FindDragTarget(Depot &depot, const CollisionList &collisionList, struct Card *dragSubject);
+    struct MapSlotTarget {
+        Map * map   {};
+        int   slotX {};
+        int   slotY {};
+    };
+
+    bool FindMapSlotTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject, MapSlotTarget *mapSlotTarget);
+    Card *FindDragTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject);
     void SpawnCardInternal(Depot &depot, const Card_SpawnCardRequest &spawnCardRequest);
     void UpdateCards(Depot &depot);
     void UpdateStacks(Depot &depot, const CollisionList &collisionList);

@@ -7,6 +7,7 @@
 
 struct MapSlot {
     const char *mapRoomKey {};
+    UID card {};
 };
 
 struct Map : public Facet {

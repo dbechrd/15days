@@ -10,6 +10,9 @@ enum CardType {
 
 struct Card : public Facet {
     CardType     cardType     {};
+    UID          map          {};
+    int          mapSlotX     {};
+    int          mapSlotY     {};
     UID          stackParent  {};
     UID          stackChild   {};
     bool         wantsToStack {};

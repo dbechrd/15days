@@ -47,6 +47,31 @@ void deck_try_draw_card(Depot &depot, Card *card)
     }
 }
 
+void remove_card_from_parent_card(Depot &depot, Card *card)
+{
+    if (!card->stackParent) return;
+
+    Card *parent = (Card *)depot.GetFacet(card->stackParent, Facet_Card);
+    if (parent) {
+        parent->stackChild = 0;
+    }
+    card->stackParent = 0;
+}
+
+void remove_card_from_map_slot(Depot &depot, Card *card)
+{
+    if (!card->map) return;
+
+    Map *map = (Map *)depot.GetFacet(card->map, Facet_Map);
+    if (map) {
+        MapSlot &mapSlot = map->slots[card->mapSlotY][card->mapSlotX];
+        if (mapSlot.card == card->uid) {
+            mapSlot.card = 0;
+        }
+    }
+    card->map = 0;
+}
+
 void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, void *userData)
 {
     Card *card = (Card *)depot.GetFacet(msg.uid, Facet_Card);
@@ -65,10 +90,8 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
             depot.audioSystem.PushPlaySound(depot, "sfx_drag_begin");
             depot.audioSystem.PushPlaySound(depot, dragBeginSoundKey);
 
-            // Break from parent stack
-            Card *parent = (Card *)depot.GetFacet(card->stackParent, Facet_Card);
-            if (parent) parent->stackChild = 0;
-            card->stackParent = 0;
+            remove_card_from_parent_card(depot, card);
+            remove_card_from_map_slot(depot, card);
             card->wantsToStack = false;
 
             break;
@@ -111,6 +134,57 @@ void card_callback(Depot &depot, const Message &msg, const Trigger &trigger, voi
         }
         default: break;
     }
+}
+
+bool CardSystem::FindMapSlotTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject, MapSlotTarget *mapSlotTarget)
+{
+    if (!dragSubject) {
+        return false;
+    }
+
+    for (const Collision &collision : collisionList) {
+        // Check if cursor collision, and resolve out-of-order A/B nonsense
+        UID targetUid = 0;
+        const rect *subjectRect = 0;
+        const rect *targetRect = 0;
+        if (dragSubject->uid == collision.uidA) {
+            targetUid = collision.uidB;
+            targetRect = &collision.bboxB;
+            subjectRect = &collision.bboxA;
+        } else if (dragSubject->uid == collision.uidB) {
+            targetUid = collision.uidA;
+            targetRect = &collision.bboxA;
+            subjectRect = &collision.bboxB;
+        } else {
+            continue;
+        }
+
+        // Check if target is a map
+        Map *targetMap = (Map *)depot.GetFacet(targetUid, Facet_Map);
+        if (targetMap) {
+            vec2 subjectCenter = {
+                subjectRect->x + subjectRect->w / 2,
+                subjectRect->y + subjectRect->h / 2
+            };
+            int slotX, slotY;
+            slotX = floorf((subjectCenter.x - targetRect->x) / 100.0f);
+            slotY = floorf((subjectCenter.y - targetRect->y) / 150.0f);
+            slotX = CLAMP(slotX, 0, MAP_MAX_W - 1);
+            slotY = CLAMP(slotY, 0, MAP_MAX_H - 1);
+
+            MapSlot *mapSlot = &targetMap->slots[slotY][slotX];
+            if (!mapSlot->card) {
+                if (mapSlotTarget) {
+                    mapSlotTarget->map = targetMap;
+                    mapSlotTarget->slotX = slotX;
+                    mapSlotTarget->slotY = slotY;
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 Card *CardSystem::FindDragTarget(Depot &depot, const CollisionList &collisionList, Card *dragSubject)
@@ -303,13 +377,22 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
                 pendingDragTarget = dragTarget->uid;
             }
         } else if (card.wantsToStack) {
-#if FDOV_ENABLE_CARD_STACKING
-            Card *dragTarget = FindDragTarget(depot, collisionList, &card);
-            if (dragTarget) {
-                card.stackParent = dragTarget->uid;
-                dragTarget->stackChild = card.uid;
+            MapSlotTarget mapSlotTarget{};
+            if (FindMapSlotTarget(depot, collisionList, &card, &mapSlotTarget)) {
+                MapSlot *mapSlot = &mapSlotTarget.map->slots[mapSlotTarget.slotY][mapSlotTarget.slotX];
+                mapSlot->card = card.uid;
+                card.map = mapSlotTarget.map->uid;
+                card.mapSlotX = mapSlotTarget.slotX;
+                card.mapSlotY = mapSlotTarget.slotY;
+            } else {
+    #if FDOV_STACK_CARDS
+                Card *dragTarget = FindDragTarget(depot, collisionList, &card);
+                if (dragTarget) {
+                    card.stackParent = dragTarget->uid;
+                    dragTarget->stackChild = card.uid;
+                }
+    #endif
             }
-#endif
             card.wantsToStack = false;
         }
     }
@@ -318,7 +401,22 @@ void CardSystem::UpdateStacks(Depot &depot, const CollisionList &collisionList)
 void CardSystem::UpdateCards(Depot &depot)
 {
     for (Card &card : depot.card) {
-        if (card.stackParent) {
+        if (card.map) {
+            Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
+            DLB_ASSERT(position);
+
+            Position *mapPos = (Position *)depot.GetFacet(card.map, Facet_Position);
+            DLB_ASSERT(mapPos);
+
+            vec3 targetPos = mapPos->pos;
+            targetPos.x += card.mapSlotX * 100;
+            targetPos.y += card.mapSlotY * 150;
+
+            const float lerpFac = 1.0f - powf(1.0f - 0.5f, depot.RealDt() * 60.0f);
+            position->pos.x = LERP(position->pos.x, targetPos.x, lerpFac);
+            position->pos.y = LERP(position->pos.y, targetPos.y, lerpFac);
+            position->pos.z = LERP(position->pos.z, targetPos.z, lerpFac);
+        } else if (card.stackParent) {
             Position *position = (Position *)depot.GetFacet(card.uid, Facet_Position);
             DLB_ASSERT(position);
 

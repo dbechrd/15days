@@ -398,10 +398,14 @@ UID create_map(Depot &depot)
         20,
         0
     };
+    position->size = {
+        100 * MAP_MAX_W,
+        150 * MAP_MAX_H
+    };
 
     Map *map = (Map *)depot.AddFacet(uidMap, Facet_Map);
-    map->slots[0][0].mapRoomKey = "map_room_start";
-    map->slots[MAP_MAX_H - 1][MAP_MAX_W - 1].mapRoomKey = "map_room_end";
+    //map->slots[0][0].mapRoomKey = "map_room_start";
+    //map->slots[MAP_MAX_H - 1][MAP_MAX_W - 1].mapRoomKey = "map_room_end";
 
     for (int y = 0; y < MAP_MAX_H; y++) {
         for (int x = 0; x < MAP_MAX_W; x++) {
@@ -414,7 +418,7 @@ UID create_map(Depot &depot)
                 "map_room_treasure",
             };
             int randRoom = dlb_rand32i_range(0, ARRAY_SIZE(roomKeys) - 1);
-            slot.mapRoomKey = roomKeys[randRoom];
+            slot.mapRoomKey = "map_room_empty"; //roomKeys[randRoom];
         }
     }
 
