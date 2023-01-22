@@ -31,6 +31,16 @@
       element_proto: "elem_fire"
     },
     {
+      name: "card_proto_monster",
+      spritesheet: "sheet_cards",
+      default_animation: "anim_card_monster"
+    },
+    {
+      name: "card_proto_treasure",
+      spritesheet: "sheet_cards",
+      default_animation: "anim_card_treasure"
+    },
+    {
       name: "card_proto_water_bucket",
       spritesheet: "sheet_cards",
       default_animation: "anim_card_water_bucket",
@@ -155,8 +165,20 @@
           frame_count: 1
         },
         {
+          name: "anim_card_monster",
+          desc: "Beeg, scawy `kmonster`w.",
+          frame_start: 7,
+          frame_count: 1
+        },
+        {
+          name: "anim_card_treasure",
+          desc: "Delicious `yTreasure`w.",
+          frame_start: 6,
+          frame_count: 1
+        },
+        {
           name: "anim_card_water_bucket",
-          desc: "Dis is a `bwater bucket`w",
+          desc: "Dis is a `bwater bucket`w.",
           frame_start: 3,
           frame_count: 1
         }

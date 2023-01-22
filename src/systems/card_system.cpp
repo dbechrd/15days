@@ -25,14 +25,22 @@ void deck_try_draw_card(Depot &depot, Card *card)
 #endif
         // TODO: Deck should own list of protos/chances
         const char *cardProtoKey = 0;
-        float rng = dlb_rand32f_range(0, 1);
-        if (rng < 0.5f) {
-            cardProtoKey = "card_proto_lighter";
-        } else if (rng < 0.9f) {
-            cardProtoKey = "card_proto_water_bucket";
-        } else {
-            cardProtoKey = "card_proto_bomb";
-        }
+        static const char *cards[] = {
+            "card_proto_lighter",
+            "card_proto_water_bucket",
+            "card_proto_bomb",
+            "card_proto_treasure",
+            "card_proto_monster",
+        };
+        static int chances[] = {
+            0, 0, 0, 0, 0, 0, // lighter
+            1, 1, 1, 1, 1, 1, // bucket
+            2, 2,             // bomb
+            3,                // treasure
+            4, 4, 4, 4,       // monster
+        };
+        int pick = dlb_rand32i_range(0, ARRAY_SIZE(chances) - 1);
+        cardProtoKey = cards[chances[pick]];
 
         depot.cardSystem.PushSpawnCard(depot, cardProtoKey, spawnPos, true);
         depot.renderSystem.PushShake(depot, 3.0f, 100.0f, 0.1f);
